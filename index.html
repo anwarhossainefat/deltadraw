@@ -1321,7 +1321,7 @@ canvas.addEventListener('dblclick', (e) => {
   const p = eventPoint(e);
   const n = nodeAt(p);
   if (n) { n.accept = !n.accept; select('node', n.id); commit(); return; }
-  if (linkAt(p)) { focusLabel(); return; }
+  if (linkAt(p)) { focusLabel(true); return; }
   const s = snapPoint(p.x, p.y, null);
   const nn = addNode(s.x, s.y);
   select('node', nn.id); commit();
@@ -1342,6 +1342,13 @@ document.addEventListener('keydown', (e) => {
   if (!$('#export-modal').hidden) { if (e.key === 'Escape') closeExport(); return; }
   if (mod && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveFile(); return; }
   if (isTyping(e.target)) {
+    // In the label box, Ctrl+Z / Ctrl+Y act on the drawing (label edits are part of the drawing's history)
+    if (e.target.id === 'sel-label' && mod && /^[zZyY]$/.test(e.key)) {
+      e.preventDefault();
+      (e.key === 'y' || e.key === 'Y' || e.shiftKey) ? redo() : undo();
+      if (!selectedObj()) { e.target.blur(); canvas.focus({ preventScroll: true }); }
+      return;
+    }
     if (e.key === 'Escape' || (e.key === 'Enter' && e.target.id === 'sel-label')) { e.target.blur(); canvas.focus({ preventScroll: true }); }
     return;
   }
@@ -1374,8 +1381,11 @@ document.addEventListener('keydown', (e) => {
 
 /* ---------------- Selection panel ---------------- */
 const selLabel = $('#sel-label');
-function focusLabel() {
-  if (window.matchMedia('(pointer: coarse)').matches || true) { selLabel.focus(); selLabel.select(); }
+// On touch screens, jump into the label box so the keyboard opens. With a mouse, typing
+// on the canvas already edits the label, so focus stays on the canvas (unless forced).
+function focusLabel(force) {
+  const touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  if (touch || force) { selLabel.focus(); selLabel.select(); }
 }
 function syncLabelInput() {
   const o = selectedObj();
