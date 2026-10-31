@@ -102,7 +102,12 @@ button,input,select,textarea{font:inherit;color:inherit}
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
   height:34px;padding:0 11px;border:1px solid var(--line);border-radius:7px;
   background:var(--surface);color:var(--ink);font:500 13px/1 var(--font-ui);cursor:pointer;white-space:nowrap;
+  text-decoration:none;
 }
+.gate{width:min(440px,100%);height:auto;align-self:center}
+.gate .input{height:auto}
+.code-chip{font:600 13px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;letter-spacing:.04em}
+.input.code-field{text-transform:uppercase;letter-spacing:.06em}
 .btn:hover{background:var(--surface-2)}
 .btn:disabled{opacity:.42;cursor:default;background:var(--surface)}
 .btn svg{width:16px;height:16px;flex:none}
@@ -210,7 +215,7 @@ details.batch[open] summary{margin-bottom:8px}
 .dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(780px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;grid-template-rows:auto 1fr}
 .dialog-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
 .dialog-head h2{margin:0;font:600 16px var(--font-ui);flex:1}
-.dialog-body{padding:16px;display:grid;gap:14px;min-width:0}
+.dialog-body{padding:16px;display:grid;gap:14px;min-width:0;align-content:start}
 .preview{border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:46vh;display:grid;place-items:center;padding:12px;
   background-color:#fff;background-image:linear-gradient(45deg,#e9ecf1 25%,transparent 25%),linear-gradient(-45deg,#e9ecf1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e9ecf1 75%),linear-gradient(-45deg,transparent 75%,#e9ecf1 75%);
   background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
@@ -327,6 +332,10 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       <span class="spacer"></span>
 
       <div class="group">
+        <a class="btn" id="btn-exam" href="exam.html" target="_blank" rel="noopener" title="Open the drawing-only exam version in a new tab">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><rect x="3" y="2.5" width="10" height="11.5" rx="1.5"/><path d="M6 2.5h4v2H6zM5.5 8h5M5.5 10.8h3.5"/></svg>
+          Exam mode
+        </a>
         <button class="btn icon" id="btn-theme" title="Theme: follows your system" aria-label="Change theme">
           <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11" /><path d="M8 2.5a5.5 5.5 0 010 11z" fill="currentColor"/></svg>
         </button>
@@ -535,7 +544,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
   </div>
 
   <footer class="foot">
-    <span>DeltaDraw v1.1 · finite automata drawer</span>
+    <span>DeltaDraw v1.2 · finite automata drawer</span>
     <a href="https://github.com/anwarhossainefat/deltadraw" rel="noopener" target="_blank">Source on GitHub</a>
   </footer>
 </section>
@@ -590,7 +599,7 @@ const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 const TAU = Math.PI * 2;
 const STORE_KEY = 'deltadraw:v2';
-const VERSION = '1.1';
+const VERSION = '1.2';
 const NODE_MIN_R = 26;
 const GRID = 20;
 let sim = null; // active string simulation (full version only)
@@ -1345,7 +1354,8 @@ canvas.addEventListener('wheel', (e) => {
 function isTyping(el) { return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable); }
 document.addEventListener('keydown', (e) => {
   const mod = e.ctrlKey || e.metaKey;
-  if (!$('#export-modal').hidden) { if (e.key === 'Escape') closeExport(); return; }
+  const openModal = document.querySelector('.modal:not([hidden])');
+  if (openModal) { if (e.key === 'Escape' && openModal.id === 'export-modal') closeExport(); return; }
   if (mod && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveShortcut(); return; }
   if (isTyping(e.target)) {
     // In the label box, Ctrl+Z / Ctrl+Y act on the drawing (label edits are part of the drawing's history)
@@ -2055,7 +2065,9 @@ $('#file-input').addEventListener('change', (e) => {
         if (!isDocShape(d)) throw new Error('invalid');
         loadDoc(d);
         const who = d.name ? `${d.name}, ` : '';
-        toast(d.mode === 'exam' ? `Opened answer: ${who}Question ${d.question}` : `Opened ${f.name}`, 'Undo', undo);
+        const when = (iso) => (iso ? new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
+        const extra = d.code ? ` · code ${d.code} · started ${when(d.started)} · saved ${when(d.time)}` : '';
+        toast(d.mode === 'exam' ? `Opened answer: ${who}Question ${d.question}${extra}` : `Opened ${f.name}`, 'Undo', undo);
       } catch (err) {
         toast('This PNG has no DeltaDraw drawing inside. Only images downloaded from DeltaDraw can be opened.');
       }

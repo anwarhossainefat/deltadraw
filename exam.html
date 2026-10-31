@@ -90,7 +90,12 @@ button,input,select,textarea{font:inherit;color:inherit}
   display:inline-flex;align-items:center;justify-content:center;gap:6px;
   height:34px;padding:0 11px;border:1px solid var(--line);border-radius:7px;
   background:var(--surface);color:var(--ink);font:500 13px/1 var(--font-ui);cursor:pointer;white-space:nowrap;
+  text-decoration:none;
 }
+.gate{width:min(440px,100%);height:auto;align-self:center}
+.gate .input{height:auto}
+.code-chip{font:600 13px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;letter-spacing:.04em}
+.input.code-field{text-transform:uppercase;letter-spacing:.06em}
 .btn:hover{background:var(--surface-2)}
 .btn:disabled{opacity:.42;cursor:default;background:var(--surface)}
 .btn svg{width:16px;height:16px;flex:none}
@@ -198,7 +203,7 @@ details.batch[open] summary{margin-bottom:8px}
 .dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(780px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;grid-template-rows:auto 1fr}
 .dialog-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
 .dialog-head h2{margin:0;font:600 16px var(--font-ui);flex:1}
-.dialog-body{padding:16px;display:grid;gap:14px;min-width:0}
+.dialog-body{padding:16px;display:grid;gap:14px;min-width:0;align-content:start}
 .preview{border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:46vh;display:grid;place-items:center;padding:12px;
   background-color:#fff;background-image:linear-gradient(45deg,#e9ecf1 25%,transparent 25%),linear-gradient(-45deg,#e9ecf1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e9ecf1 75%),linear-gradient(-45deg,transparent 75%,#e9ecf1 75%);
   background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
@@ -348,6 +353,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <label class="field" for="exam-name">Your full name
           <input class="input" id="exam-name" type="text" autocomplete="name" spellcheck="false" placeholder="First and last name">
         </label>
+        <p class="small-text">Exam code <span class="code-chip" id="exam-code-show">—</span> <button class="btn small" id="btn-change-code" title="Enter a different exam code">Change</button></p>
         <p class="small-text">You are drawing <strong>Question <span id="ans-q">1</span></strong>. Pick another question from the menu at the top.</p>
         <button class="btn primary" id="side-answer">Download answer for this question</button>
         <p class="small-text muted">Exam mode is drawing only. String testing, conversion, tables and examples are not available.</p>
@@ -390,7 +396,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
   <div>
     <h2>How to answer in exam mode</h2>
     <ol>
-      <li>Type your <strong>full name</strong> in the panel on the right.</li>
+      <li>When the page opens, enter the <strong>exam code</strong> from your Canvas quiz instructions and your <strong>full name</strong>.</li>
       <li>Choose the <strong>question number</strong> from the menu at the top. Each question keeps its own drawing.</li>
       <li>Draw your automaton. Double-click to add a state, hold <kbd>Shift</kbd> and drag between states to add a transition, and double-click a state to make it accepting.</li>
       <li>Click <strong>Download answer</strong>. A PNG file named like <code>DeltaDraw_Q2_Your_Name.png</code> is saved to your Downloads folder.</li>
@@ -421,12 +427,12 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       </table>
     </div>
     <div>
-      <h3>Before the exam starts</h3>
-      <p class="small-text">Your drawings are kept in this browser, even if the page reloads. To start with empty questions, clear everything here.</p>
+      <h3>Saving</h3>
+      <p class="small-text">Your drawings are saved in this browser under the exam code, so a reload or crash doesn't lose them (enter the same code again). A new code starts with empty questions, and anything untouched for 24 hours is deleted automatically.</p>
       <p><button class="btn danger" id="btn-clear-all">Clear all questions</button></p>
     </div>
   </div>
-  <footer class="foot"><span>DeltaDraw exam mode v1.1</span></footer>
+  <footer class="foot"><span>DeltaDraw exam mode v1.2</span></footer>
 </section>
 
 <div class="modal" id="export-modal" hidden>
@@ -450,6 +456,23 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
     </div>
   </div>
 </div>
+<div class="modal" id="code-gate" hidden>
+  <form class="dialog gate" id="code-form" role="dialog" aria-modal="true" aria-labelledby="gate-title" novalidate>
+    <div class="dialog-head"><h2 id="gate-title">Start exam mode</h2></div>
+    <div class="dialog-body">
+      <p class="small-text">Enter the exam code from your Canvas quiz instructions, and your name.</p>
+      <label class="field" for="code-input">Exam code
+        <input class="input code-field" id="code-input" type="text" autocomplete="off" spellcheck="false" maxlength="30" placeholder="e.g. TEST2-4821">
+      </label>
+      <label class="field" for="gate-name">Your full name
+        <input class="input" id="gate-name" type="text" autocomplete="name" spellcheck="false" placeholder="First and last name">
+      </label>
+      <p class="small-text" id="code-error" style="color:var(--bad)" hidden></p>
+      <div class="row"><button class="btn primary" type="submit" id="code-start">Start</button></div>
+      <p class="small-text muted">Your drawings are saved in this browser under this code only. Entering a new code starts with empty questions, and saved drawings are deleted after 24 hours.</p>
+    </div>
+  </form>
+</div>
 <div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden></button></div>
 
 <script>
@@ -464,7 +487,7 @@ const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 const TAU = Math.PI * 2;
 const STORE_KEY = 'deltadraw:v2';
-const VERSION = '1.1';
+const VERSION = '1.2';
 const NODE_MIN_R = 26;
 const GRID = 20;
 let sim = null; // active string simulation (full version only)
@@ -1216,7 +1239,8 @@ canvas.addEventListener('wheel', (e) => {
 function isTyping(el) { return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable); }
 document.addEventListener('keydown', (e) => {
   const mod = e.ctrlKey || e.metaKey;
-  if (!$('#export-modal').hidden) { if (e.key === 'Escape') closeExport(); return; }
+  const openModal = document.querySelector('.modal:not([hidden])');
+  if (openModal) { if (e.key === 'Escape' && openModal.id === 'export-modal') closeExport(); return; }
   if (mod && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveShortcut(); return; }
   if (isTyping(e.target)) {
     // In the label box, Ctrl+Z / Ctrl+Y act on the drawing (label edits are part of the drawing's history)
@@ -1475,15 +1499,28 @@ function isDocShape(d) {
 /* =====================================================================
    Exam mode: drawing only, one drawing per question, answer saved as PNG
    ===================================================================== */
-const EXAM_KEY = 'deltadraw-exam:v1';
+const EXAM_KEY = 'deltadraw-exam:v2';
 const QUESTIONS = 15;
-const exam = { name: '', q: 1, docs: {} };
+const DAY_MS = 24 * 60 * 60 * 1000;
+// code: exam code from Canvas; started[q]: when the first state of question q was drawn
+const exam = { code: '', name: '', q: 1, docs: {}, started: {} };
 const qHistories = {};
 const emptyDoc = () => ({ nodes: [], links: [], nextId: 1 });
 function saveExam() {
+  if (!exam.code) return; // nothing is saved until an exam code is entered
   exam.docs[exam.q] = { nodes: doc.nodes, links: doc.links, nextId: doc.nextId };
-  store.set(EXAM_KEY, JSON.stringify({ name: exam.name, q: exam.q, docs: exam.docs, settings }));
+  if (doc.nodes.length && !exam.started[exam.q]) exam.started[exam.q] = new Date().toISOString();
+  store.set(EXAM_KEY, JSON.stringify({ code: exam.code, name: exam.name, q: exam.q, docs: exam.docs, started: exam.started, updated: new Date().toISOString(), settings }));
   updateQuestionList();
+}
+function readExamStore() {
+  try { return JSON.parse(store.get(EXAM_KEY) || 'null'); } catch (e) { return null; }
+}
+const isFresh = (s) => !!(s && s.updated && Date.now() - Date.parse(s.updated) < DAY_MS);
+const normCode = (s) => (s || '').trim().toUpperCase().replace(/\s+/g, '-');
+function fmtTime(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 function updateQuestionList() {
   const sel = $('#exam-q');
@@ -1517,10 +1554,10 @@ function switchQuestion(q) {
 function safeName(s) { return (s || '').trim().replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'student'; }
 const answerFile = () => `DeltaDraw_Q${exam.q}_${safeName(exam.name)}.png`;
 function makeAnswerCanvas() {
-  const scale = 2, headH = 52;
+  const scale = 2, headH = 72;
   const b = exportBox(20);
   const bw = b ? b.w : 360, bh = b ? b.h : 110;
-  const w = Math.max(bw, 460), h = bh + headH;
+  const w = Math.max(bw, 520), h = bh + headH;
   const c = document.createElement('canvas');
   c.width = Math.round(w * scale); c.height = Math.round(h * scale);
   const x = c.getContext('2d');
@@ -1529,8 +1566,10 @@ function makeAnswerCanvas() {
   x.textBaseline = 'alphabetic'; x.textAlign = 'left';
   x.fillStyle = '#111111'; x.font = '600 15px "IBM Plex Sans", Arial, sans-serif';
   x.fillText(`${exam.name.trim() || '(no name)'}  ·  Question ${exam.q}`, 14, 22);
-  x.fillStyle = '#666666'; x.font = '12px "IBM Plex Sans", Arial, sans-serif';
-  x.fillText(`DeltaDraw exam mode v${VERSION}  ·  ${new Date().toLocaleString()}`, 14, 40);
+  x.fillStyle = '#333333'; x.font = '12.5px "IBM Plex Sans", Arial, sans-serif';
+  x.fillText(`Exam code ${exam.code}  ·  Started ${fmtTime(exam.started[exam.q])}  ·  Saved ${fmtTime(new Date().toISOString())}`, 14, 42);
+  x.fillStyle = '#777777'; x.font = '11px "IBM Plex Sans", Arial, sans-serif';
+  x.fillText(`DeltaDraw exam mode v${VERSION}`, 14, 60);
   x.fillStyle = '#dddddd'; x.fillRect(0, headH - 1, w, 1);
   if (b) {
     x.translate((w - bw) / 2 - b.x, headH - b.y);
@@ -1546,7 +1585,7 @@ async function buildAnswer() {
   const c = makeAnswerCanvas();
   const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
   const png = new Uint8Array(await blob.arrayBuffer());
-  const meta = { app: 'DeltaDraw', mode: 'exam', version: VERSION, name: exam.name.trim(), question: exam.q, time: new Date().toISOString(), nodes: doc.nodes, links: doc.links, nextId: doc.nextId };
+  const meta = { app: 'DeltaDraw', mode: 'exam', version: VERSION, code: exam.code, name: exam.name.trim(), question: exam.q, started: exam.started[exam.q] || null, time: new Date().toISOString(), nodes: doc.nodes, links: doc.links, nextId: doc.nextId };
   return new Blob([pngAddText(png, 'DeltaDraw', b64encodeUTF8(JSON.stringify(meta)))], { type: 'image/png' });
 }
 let answerURL = null;
@@ -1607,25 +1646,68 @@ $('#btn-clear-all').addEventListener('click', (e) => {
     return;
   }
   clearTimeout(clearArmed); clearArmed = 0; b.textContent = 'Clear all questions';
-  exam.docs = {};
+  exam.docs = {}; exam.started = {};
   for (const k of Object.keys(qHistories)) delete qHistories[k];
   exam.q = 1; history.stack = []; history.idx = -1;
   loadDoc(emptyDoc());
   updateQuestionList();
   toast('All questions cleared.');
 });
+
+/* ----- Exam code gate ----- */
+function showGate() {
+  $('#code-gate').hidden = false;
+  $('#code-error').hidden = true;
+  $('#code-input').value = '';
+  $('#gate-name').value = exam.name;
+  setTimeout(() => $('#code-input').focus(), 30);
+}
+function startSession(code, name) {
+  const saved = readExamStore();
+  const resume = isFresh(saved) && saved.code === code;
+  if (commitTimer) commit();
+  exam.code = code; exam.name = name;
+  if (resume) {
+    exam.docs = saved.docs && typeof saved.docs === 'object' ? saved.docs : {};
+    exam.started = saved.started && typeof saved.started === 'object' ? saved.started : {};
+    exam.q = Math.min(QUESTIONS, Math.max(1, Number(saved.q) || 1));
+  } else {
+    // a different code (or old data): start empty; saving below replaces anything stored before
+    exam.docs = {}; exam.started = {}; exam.q = 1;
+  }
+  for (const k of Object.keys(qHistories)) delete qHistories[k];
+  history.stack = []; history.idx = -1;
+  loadDoc(isDocShape(exam.docs[exam.q]) ? exam.docs[exam.q] : emptyDoc());
+  $('#exam-name').value = name;
+  $('#exam-code-show').textContent = code;
+  updateQuestionList();
+  $('#code-gate').hidden = true;
+  canvas.focus({ preventScroll: true });
+  toast(resume ? `Welcome back. Your drawings for ${code} are restored.` : `Exam ${code} started. Good luck!`);
+}
+$('#code-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const code = normCode($('#code-input').value);
+  const name = $('#gate-name').value.trim();
+  const err = $('#code-error');
+  if (!/^[A-Z0-9][A-Z0-9_-]{1,29}$/.test(code)) { err.textContent = 'Type the exam code exactly as shown in Canvas (letters, numbers and dashes).'; err.hidden = false; $('#code-input').focus(); return; }
+  if (!name) { err.textContent = 'Type your full name.'; err.hidden = false; $('#gate-name').focus(); return; }
+  startSession(code, name);
+});
+$('#code-input').addEventListener('input', () => { $('#code-error').hidden = true; });
+$('#btn-change-code').addEventListener('click', () => { if (commitTimer) commit(); showGate(); });
+
 function examInit(saved) {
   const opts = [];
   for (let i = 1; i <= QUESTIONS; i++) opts.push(`<option value="${i}">Question ${i}</option>`);
   $('#exam-q').innerHTML = opts.join('');
-  if (saved) {
-    exam.name = typeof saved.name === 'string' ? saved.name : '';
-    exam.docs = saved.docs && typeof saved.docs === 'object' ? saved.docs : {};
-    exam.q = Math.min(QUESTIONS, Math.max(1, Number(saved.q) || 1));
-  }
-  $('#exam-name').value = exam.name;
-  loadDoc(isDocShape(exam.docs[exam.q]) ? exam.docs[exam.q] : emptyDoc());
+  try { window.localStorage.removeItem('deltadraw-exam:v1'); } catch (e) { /* old format without codes */ }
+  // automatic cleanup: anything not touched for 24 hours is deleted
+  if (saved && !isFresh(saved)) store.set(EXAM_KEY, JSON.stringify({ settings: saved.settings || settings }));
+  exam.name = saved && isFresh(saved) && typeof saved.name === 'string' ? saved.name : '';
+  loadDoc(emptyDoc()); // nothing is shown until the exam code is entered
   updateQuestionList();
+  showGate();
 }
 
 /* ---------------- Startup ---------------- */
