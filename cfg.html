@@ -276,6 +276,23 @@ details.batch[open] summary{margin-bottom:8px}
 .ttable td.state{text-align:left}
 .ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
 
+/* ---------- Pushdown automata ---------- */
+.pda-run{display:flex;gap:14px;align-items:flex-start}
+.pda-run .sim-lines{display:grid;gap:6px;min-width:0;flex:1}
+.pda-stack{display:flex;flex-direction:column;align-items:stretch;min-width:48px;flex:none}
+.pda-stack .cap{font:600 10.5px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:3px}
+.pda-stack .well{display:flex;flex-direction:column;border:1.5px solid var(--ink);border-top:0;border-radius:0 0 6px 6px;min-height:34px;justify-content:flex-end}
+.pda-stack .sc{font:italic 17px/1.2 var(--font-math);text-align:center;padding:3px 10px;border-top:1px solid var(--line)}
+.pda-stack .sc.top{background:var(--hl-soft);border-top-color:var(--hl)}
+.pda-stack .sc.more{font:12px var(--font-ui);color:var(--muted);font-style:normal}
+.pda-stack .none{font:12px var(--font-ui);color:var(--muted);text-align:center;padding:8px 4px}
+.move{font-size:13px}
+.trace td.cur{background:var(--hl-soft);box-shadow:none}
+.trace{font-size:12.5px}
+.trace th,.trace td{text-align:left;padding:4px 7px}
+.trace .lbl{font-size:14.5px}
+.pda-def{display:grid;gap:3px;font-size:13.5px}
+.pda-def .math{font-size:15px}
 /* ---------- Modals & toast ---------- */
 .modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(10,14,22,.5)}
 .dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(780px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;grid-template-rows:auto 1fr}
@@ -417,7 +434,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 }
 </style>
 
-<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item active" aria-current="page" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 2</span>Pushdown automata</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 3</span>Turing machines</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
+<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item active" aria-current="page" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><a class="nav-item" href="pda.html"><span class="nav-ch">Ch 2</span>Pushdown automata</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 3</span>Turing machines</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
 <div class="cfg-app" data-page="cfg">
   <header class="topbar">
     <div class="brand">

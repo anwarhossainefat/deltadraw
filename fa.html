@@ -276,6 +276,23 @@ details.batch[open] summary{margin-bottom:8px}
 .ttable td.state{text-align:left}
 .ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
 
+/* ---------- Pushdown automata ---------- */
+.pda-run{display:flex;gap:14px;align-items:flex-start}
+.pda-run .sim-lines{display:grid;gap:6px;min-width:0;flex:1}
+.pda-stack{display:flex;flex-direction:column;align-items:stretch;min-width:48px;flex:none}
+.pda-stack .cap{font:600 10.5px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:3px}
+.pda-stack .well{display:flex;flex-direction:column;border:1.5px solid var(--ink);border-top:0;border-radius:0 0 6px 6px;min-height:34px;justify-content:flex-end}
+.pda-stack .sc{font:italic 17px/1.2 var(--font-math);text-align:center;padding:3px 10px;border-top:1px solid var(--line)}
+.pda-stack .sc.top{background:var(--hl-soft);border-top-color:var(--hl)}
+.pda-stack .sc.more{font:12px var(--font-ui);color:var(--muted);font-style:normal}
+.pda-stack .none{font:12px var(--font-ui);color:var(--muted);text-align:center;padding:8px 4px}
+.move{font-size:13px}
+.trace td.cur{background:var(--hl-soft);box-shadow:none}
+.trace{font-size:12.5px}
+.trace th,.trace td{text-align:left;padding:4px 7px}
+.trace .lbl{font-size:14.5px}
+.pda-def{display:grid;gap:3px;font-size:13.5px}
+.pda-def .math{font-size:15px}
 /* ---------- Modals & toast ---------- */
 .modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(10,14,22,.5)}
 .dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(780px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;grid-template-rows:auto 1fr}
@@ -343,7 +360,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 </style>
 
 <div class="app" id="app">
-<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item active" aria-current="page" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 2</span>Pushdown automata</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 3</span>Turing machines</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
+<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item active" aria-current="page" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><a class="nav-item" href="pda.html"><span class="nav-ch">Ch 2</span>Pushdown automata</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 3</span>Turing machines</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
   <header class="topbar">
     <div class="brand">
       <span class="brand-delta" aria-hidden="true">δ</span>
@@ -783,7 +800,7 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 const TAU = Math.PI * 2;
 const PAGE = 'fa';
 // each tool page keeps its own drawing; the theme is shared by all pages
-const STORE_KEY = PAGE === 'regex' ? 'deltadraw:regex:v1' : 'deltadraw:v2';
+const STORE_KEY = PAGE === 'regex' ? 'deltadraw:regex:v1' : PAGE === 'pda' ? 'deltadraw:pda:v1' : 'deltadraw:v2';
 const THEME_KEY = 'deltadraw:theme';
 const VERSION = '1.7';
 const NODE_MIN_R = 26;
@@ -820,7 +837,7 @@ const TEX_OF = { 'ε':'\\epsilon','∅':'\\emptyset','→':'\\to','·':'\\cdot',
 for (const [k, v] of Object.entries(SYMBOLS)) if (!TEX_OF[v]) TEX_OF[v] = '\\' + k;
 
 function convertSymbols(t) {
-  return t.replace(/\\([A-Za-z]+)/g, (m, name) => {
+  return t.replace(/->/g, '→').replace(/\\([A-Za-z]+)/g, (m, name) => {
     if (SYMBOLS[name]) return SYMBOLS[name];
     // allow "\epsilon" glued to following text, e.g. \epsilona -> longest known prefix
     for (let i = name.length - 1; i > 1; i--) if (SYMBOLS[name.slice(0, i)]) return SYMBOLS[name.slice(0, i)] + name.slice(i);
@@ -888,20 +905,28 @@ function fontFor(k) {
 }
 const measureCtx = document.createElement('canvas').getContext('2d');
 const measureCache = new Map();
+const LINE_H = 24;
+// "a,b→c; d,e→f" (PDA and Turing machine labels) is drawn as one rule per line
+const labelLines = (text) => (text.includes(';') ? text.split(';').map((x) => x.trim()).filter((x) => x.length) : [text]);
 function measureLabel(text) {
   const key = settings.labelStyle + '\u0000' + text;
   let m = measureCache.get(key);
   if (m) return m;
-  const runs = parseLabel(text);
-  let w = 0;
-  const parts = runs.map((r) => {
-    measureCtx.font = fontFor(r.k);
-    const rw = measureCtx.measureText(r.t).width;
-    const p = { t: r.t, k: r.k, x: w, w: rw };
-    w += rw;
-    return p;
+  const lines = labelLines(text).map((line) => {
+    let w = 0;
+    const parts = parseLabel(line).map((r) => {
+      measureCtx.font = fontFor(r.k);
+      const rw = measureCtx.measureText(r.t).width;
+      const p = { t: r.t, k: r.k, x: w, w: rw };
+      w += rw;
+      return p;
+    });
+    return { w, parts };
   });
-  m = { w, h: 22, parts };
+  const w = Math.max(0, ...lines.map((l) => l.w)), k = lines.length;
+  const parts = [];
+  lines.forEach((l, i) => { for (const p of l.parts) parts.push({ ...p, x: p.x + (w - l.w) / 2, dy: (i - (k - 1) / 2) * LINE_H, line: i }); });
+  m = { w, h: 22 + (k - 1) * LINE_H, parts, lines: lines.length };
   measureCache.set(key, m);
   return m;
 }
@@ -1033,7 +1058,8 @@ class CanvasPen {
     c.fillStyle = o.color; c.textBaseline = 'alphabetic'; c.textAlign = 'left';
     for (const p of m.parts) {
       c.font = fontFor(p.k);
-      c.fillText(p.t, x0 + p.x, p.k === 1 ? base + 5 : p.k === 2 ? base - 8 : base);
+      c.fillStyle = o.hlLine != null && p.line === o.hlLine ? o.hlColor : o.color;
+      c.fillText(p.t, x0 + p.x, (p.k === 1 ? base + 5 : p.k === 2 ? base - 8 : base) + p.dy);
     }
   }
 }
@@ -1063,7 +1089,7 @@ class SvgPen {
     const fam = settings.labelStyle === 'math' ? `'STIX Two Text','Times New Roman',Times,serif` : `'IBM Plex Sans',Arial,Helvetica,sans-serif`;
     const style = settings.labelStyle === 'math' ? ' font-style="italic"' : '';
     for (const p of m.parts) {
-      const yy = p.k === 1 ? base + 5 : p.k === 2 ? base - 8 : base;
+      const yy = (p.k === 1 ? base + 5 : p.k === 2 ? base - 8 : base) + p.dy;
       this.out.push(`<text x="${f2(x0 + p.x)}" y="${f2(yy)}" font-family="${fam}"${style} font-size="${p.k ? SUB_SIZE : FONT_SIZE}" fill="${o.color}">${escXML(p.t)}</text>`);
     }
   }
@@ -1087,7 +1113,12 @@ class TikzPen {
     const p = arrowPts(x, y, ang);
     this.out.push(`\\fill ${this.P(p[0][0], p[0][1])} -- ${this.P(p[1][0], p[1][1])} -- ${this.P(p[2][0], p[2][1])} -- cycle;`);
   }
-  text(text, x, y) { if (text) this.out.push(`\\draw ${this.P(x, y)} node {$${labelTeX(text)}$};`); }
+  text(text, x, y) {
+    if (!text) return;
+    const lines = labelLines(text);
+    if (lines.length > 1) this.out.push(`\\draw ${this.P(x, y)} node[align=center] {${lines.map((l) => `$${labelTeX(l)}$`).join('\\\\ ')}};`);
+    else this.out.push(`\\draw ${this.P(x, y)} node {$${labelTeX(text)}$};`);
+  }
 }
 
 class BBoxPen {
@@ -1111,7 +1142,7 @@ function drawLink(pen, l, g, st) {
   if (g.kind === 'line') pen.line(g.sx, g.sy, g.ex, g.ey, o);
   else pen.arc(g.cx, g.cy, g.r, g.sa, g.ea, g.ccw, o);
   pen.arrow(g.ex, g.ey, g.arrow, { fill: st.stroke });
-  if (g.label) pen.text(l.text, g.label.x, g.label.y, { color: st.text });
+  if (g.label) pen.text(l.text, g.label.x, g.label.y, { color: st.text, hlLine: st.hlLine, hlColor: st.hlColor });
 }
 function drawNode(pen, n, st) {
   const r = R(n);
@@ -1128,7 +1159,12 @@ function drawDiagram(pen, opts) {
   for (const l of doc.links) {
     let st = base;
     if (opts.dim && opts.dim(l.id)) st = faint;
-    if (opts.hlLinks && opts.hlLinks.has(l.id)) st = { stroke: P.hl, text: P.hl, lw: 2.6 };
+    if (opts.hlLinks && opts.hlLinks.has(l.id)) {
+      st = { stroke: P.hl, text: P.hl, lw: 2.6 };
+      // a PDA arrow with several rules: only the rule being used is highlighted
+      const line = opts.hlRule && opts.hlRule.get(l.id);
+      if (line != null && labelLines(l.text || '').length > 1) st = { ...st, text: P.ink, hlLine: line, hlColor: P.hl };
+    }
     if (opts.sel && opts.sel.kind === 'link' && opts.sel.id === l.id) st = { stroke: P.accent, text: P.accent, lw: 2.4 };
     drawLink(pen, l, linkGeom(l), st);
   }
@@ -1194,7 +1230,7 @@ function paint() {
   const step2 = (walk && walk.steps[walk.idx]) || (sim && sim.steps[sim.idx]);
   const drawAll = () => drawDiagram(pen, {
     P: PAL, sel: selection, nodeFill: PAL.node, colors: settings.colorStates,
-    hlNodes: step2 && step2.set, hlLinks: step2 && step2.used,
+    hlNodes: step2 && step2.set, hlLinks: step2 && step2.used, hlRule: step2 && step2.rule,
     dim: step2 && step2.dimFrom ? (id) => id >= step2.dimFrom : null,
   });
   if (step2 && step2.doc) withDoc(step2.doc, drawAll); else drawAll();
@@ -1640,6 +1676,7 @@ function updateSelectionPanel() {
     ? 'Type q_0 for q₀. Click the canvas and type to rename quickly.'
     : isStart ? 'Drag the arrow tail to move it. Delete removes the initial state.'
     : 'Symbols separated by commas, e.g. a,b. Use ε for an empty move.';
+  if (PAGE === 'pda' && !isNode && !isStart) $('#sel-help').innerHTML = 'Rules like <span class="math">0,ε→0</span>: read, pop → push. Type <code>-&gt;</code> for the arrow. Use “; new rule” to stack another rule on this arrow.';
   if (isNode) {
     $('#sel-accept').checked = !!o.accept;
     $('#sel-initial').checked = doc.links.some((l) => l.type === 'start' && l.node === o.id);
@@ -3062,7 +3099,7 @@ function updateExport() {
     $('#export-download').textContent = 'Download .tex';
   } else {
     $('#export-code').value = makeJFF();
-    note.textContent = 'Opens in JFLAP 7 as a finite automaton.';
+    note.textContent = PAGE === 'pda' ? 'Opens in JFLAP 7 as a pushdown automaton. JFLAP starts with Z on the stack (Sipser starts with an empty stack).' : 'Opens in JFLAP 7 as a finite automaton.';
     $('#export-download').textContent = 'Download .jff';
   }
 }
@@ -3074,7 +3111,7 @@ function downloadBlob(name, blob) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 function doExportDownload() {
-  const base = 'deltadraw-automaton';
+  const base = PAGE === 'pda' ? 'deltadraw-pda' : 'deltadraw-automaton';
   if (exportFmt === 'png') {
     const scale = Number(document.querySelector('input[name="png-scale"]:checked').value);
     const bg = document.querySelector('input[name="png-bg"]:checked').value;
@@ -3097,8 +3134,8 @@ $('#export-copy').addEventListener('click', () => copyText($('#export-code').val
 function saveShortcut() { saveFile(); }
 function saveFile() {
   const data = { app: 'DeltaDraw', version: 1, nodes: doc.nodes, links: doc.links, nextId: doc.nextId };
-  downloadBlob('deltadraw-automaton.json', new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-  toast('Saved as deltadraw-automaton.json');
+  downloadBlob(PAGE === 'pda' ? 'deltadraw-pda.json' : 'deltadraw-automaton.json', new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  toast(PAGE === 'pda' ? 'Saved as deltadraw-pda.json' : 'Saved as deltadraw-automaton.json');
 }
 function parseJFF(text) {
   const xml = new DOMParser().parseFromString(text, 'application/xml');
@@ -3119,15 +3156,17 @@ function parseJFF(text) {
   const pairs = new Map();
   for (const t of auto.querySelectorAll('transition')) {
     const from = idMap.get(t.querySelector('from').textContent.trim()), to = idMap.get(t.querySelector('to').textContent.trim());
-    const rd = t.querySelector('read'); const sym = rd && rd.textContent.trim() ? rd.textContent.trim() : 'ε';
+    const txt = (tag) => { const e = t.querySelector(tag); return e && e.textContent.trim() ? e.textContent.trim() : 'ε'; };
+    const sym = t.querySelector('pop') || t.querySelector('push') ? `${txt('read')},${txt('pop')}→${txt('push')}` : txt('read');
     const k = from + '>' + to;
     if (!pairs.has(k)) pairs.set(k, []);
     if (!pairs.get(k).includes(sym)) pairs.get(k).push(sym);
   }
   for (const [k, syms] of pairs) {
     const [from, to] = k.split('>').map(Number);
-    if (from === to) d.links.push({ id: d.nextId++, type: 'self', node: from, angle: -Math.PI / 2, text: syms.join(',') });
-    else d.links.push({ id: d.nextId++, type: 'link', from, to, par: 0.5, perp: pairs.has(to + '>' + from) ? 30 : 0, text: syms.join(',') });
+    const text = syms.some((x) => x.includes('→')) ? syms.join('; ') : syms.join(',');
+    if (from === to) d.links.push({ id: d.nextId++, type: 'self', node: from, angle: -Math.PI / 2, text });
+    else d.links.push({ id: d.nextId++, type: 'link', from, to, par: 0.5, perp: pairs.has(to + '>' + from) ? 30 : 0, text });
   }
   return d;
 }
@@ -3345,6 +3384,7 @@ function pngReadText(png, keyword) {
 function isDocShape(d) {
   return !!d && Array.isArray(d.nodes) && Array.isArray(d.links) && d.nodes.every((n) => typeof n.id === 'number' && isFinite(n.x) && isFinite(n.y));
 }
+
 
 
 

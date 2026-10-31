@@ -12,9 +12,10 @@ DeltaDraw is a free, browser-based companion for a Theory of Computation course.
 | `fa.html` | Ch 1: finite automata (DFA, NFA, ε-NFA) | Live |
 | `regex.html` | Ch 1.3: regular expressions (regex ⇄ NFA, step by step) | Live |
 | `cfg.html` | Ch 2.1: context-free grammars (parse trees, CNF, CYK) | Live |
+| `pda.html` | Ch 2.2: pushdown automata (draw, run with the stack, grammar → PDA) | Live |
 | `practice.html` | Chapter 1 practice exercises with exact checking | Live |
 | `exam.html` | Exam mode (drawing only, for proctored exams) | Live |
-| `pda.html`, `tm.html`, `decide.html`, `complexity.html` | Later chapters | Planned |
+| `tm.html`, `decide.html`, `complexity.html` | Later chapters | Planned |
 
 ## Context-free grammars (`cfg.html`)
 
@@ -24,6 +25,15 @@ DeltaDraw is a free, browser-based companion for a Theory of Computation course.
 - **Chomsky normal form, step by step** (Sipser, Theorem 2.9): new start variable, remove ε-rules, remove unit rules, give terminals their own variables, split long rules. Added rules are green, removed rules are struck out.
 - **CYK table**, filled row by row for the tested string.
 - **Shortest strings** the grammar generates.
+
+## Pushdown automata (`pda.html`)
+
+- Draw a PDA with Sipser's labels: `a,b→c` reads a, pops b and pushes c (type `->` for the arrow, `ε` or nothing for "none"). Put several rules on one arrow with `;`; they are drawn one per line.
+- The stack starts empty, and pushing a string puts its first symbol on top (Sipser's shorthand, e.g. `ε,ε→S$`).
+- **Test:** accepted or rejected, decided exactly (also for PDAs whose stack can grow forever). Step through an accepting computation with the input tape, the stack drawn beside it, and the rule in use highlighted on the arrow. The whole computation is listed as a table of configurations.
+- **Definition:** the 6-tuple (Q, Σ, Γ, δ, q₀, F) with δ as a table; copy it as Markdown or LaTeX.
+- **From grammar:** Sipser's construction (Lemma 2.21) builds a 3-state PDA from any context-free grammar.
+- Examples from Sipser (2.14, 2.16, 2.18) and balanced parentheses. Export PNG, SVG, LaTeX (TikZ) or JFLAP; JFLAP `.jff` PDAs can be opened too (JFLAP starts with Z on the stack, DeltaDraw with an empty stack).
 
 ## Practice (`practice.html`)
 
