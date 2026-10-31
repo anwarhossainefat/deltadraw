@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Time Complexity – Big-O Growth, Running Time, SAT and the 3SAT to CLIQUE Reduction | DeltaDraw</title>
+<meta name="description" content="Time complexity for Theory of Computation (Sipser Chapter 7): compare growth rates, measure a Turing machine's running time, check SAT assignments versus searching for them, and see the 3SAT to CLIQUE reduction.">
+<link rel="canonical" href="https://anwarhossainefat.github.io/deltadraw/complexity.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Time Complexity – Big-O Growth, Running Time, SAT and the 3SAT to CLIQUE Reduction | DeltaDraw">
+<meta property="og:description" content="Time complexity for Theory of Computation (Sipser Chapter 7): compare growth rates, measure a Turing machine's running time, check SAT assignments versus searching for them, and see the 3SAT to CLIQUE reduction.">
+<meta property="og:url" content="https://anwarhossainefat.github.io/deltadraw/complexity.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#2a55c9">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a55c9'/%3E%3Ctext x='32' y='45' font-family='Times New Roman,serif' font-style='italic' font-size='42' text-anchor='middle' fill='white'%3E%CE%B4%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,500;1,400;1,500&display=swap">
+</head>
+<body>
+<style>
+/* Layout: toolbar band on top, drawing stage left, inspector panel right (stacks under the stage on phones); about/how-to text below the fold */
+:root{
+  --bg:#f2f4f8;
+  --surface:#ffffff;
+  --surface-2:#eef1f6;
+  --ink:#151922;
+  --muted:#5a6375;
+  --line:#d7dce5;
+  --accent:#2a55c9;
+  --accent-ink:#ffffff;
+  --accent-soft:#e3eafb;
+  --hl:#c27400;
+  --hl-soft:#ffefcc;
+  --ok:#1a7a45;
+  --ok-soft:#dff2e6;
+  --bad:#b8321f;
+  --bad-soft:#fbe4e0;
+  --stage:#fbfcfe;
+  --grid:#c9d1de;
+  --start-fill:#d4e1ff;
+  --accept-fill:#cdeedb;
+  --shadow:0 10px 30px rgba(20,28,45,.14);
+  --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --font-math:"STIX Two Text","Times New Roman",Times,serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1117; --surface:#161a22; --surface-2:#1d222c; --ink:#e5e8ee; --muted:#97a0b0; --line:#2b313d;
+    --accent:#86a6ff; --accent-ink:#0e1117; --accent-soft:#1f2944;
+    --hl:#f2a93b; --hl-soft:#3b2d12; --ok:#55c98a; --ok-soft:#163323; --bad:#ff8173; --bad-soft:#3d1c18;
+    --stage:#11151c; --grid:#2a313d; --shadow:0 10px 30px rgba(0,0,0,.5);
+    --start-fill:#1e2a47; --accept-fill:#173322;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1117; --surface:#161a22; --surface-2:#1d222c; --ink:#e5e8ee; --muted:#97a0b0; --line:#2b313d;
+  --accent:#86a6ff; --accent-ink:#0e1117; --accent-soft:#1f2944;
+  --hl:#f2a93b; --hl-soft:#3b2d12; --ok:#55c98a; --ok-soft:#163323; --bad:#ff8173; --bad-soft:#3d1c18;
+  --stage:#11151c; --grid:#2a313d; --shadow:0 10px 30px rgba(0,0,0,.5);
+  --start-fill:#1e2a47; --accept-fill:#173322;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--font-ui);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Site menu (chapters), shared by every page except exam mode ---------- */
+.sitenav{
+  display:flex;align-items:center;gap:6px 18px;min-height:40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--bg);border-bottom:1px solid var(--line);font-size:13px;
+}
+.sitenav-brand{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink);text-decoration:none;white-space:nowrap}
+.mini-delta{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font:italic 500 15px/1 var(--font-math);padding-bottom:2px}
+.sitenav-links{display:flex;gap:2px;overflow-x:auto;min-width:0;scrollbar-width:none;flex:1}
+.sitenav-links::-webkit-scrollbar{display:none}
+.nav-item{display:inline-flex;align-items:center;gap:6px;padding:10px 9px 8px;color:var(--muted);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}
+a.nav-item:hover{color:var(--ink)}
+.nav-item.active{color:var(--ink);border-bottom-color:var(--accent)}
+.nav-item.soon{opacity:.5;cursor:default}
+.nav-ch{font:500 11px var(--font-mono);color:var(--muted);letter-spacing:.02em}
+
+/* ---------- App shell ---------- */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:560px}
+.topbar{
+  display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap;
+  padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--surface);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;margin-right:6px}
+.brand-delta{
+  width:34px;height:34px;border-radius:8px;display:grid;place-items:center;
+  background:var(--accent);color:var(--accent-ink);
+  font:italic 500 24px/1 var(--font-math);padding-bottom:3px;
+}
+.brand-text{display:grid;line-height:1.1}
+.brand-name{margin:0;font:600 17px/1.1 var(--font-ui);letter-spacing:-.01em}
+.brand-sub{margin:0;font-size:11.5px;color:var(--muted)}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1}
+.toolbar .spacer{flex:1}
+.group{display:inline-flex;gap:4px}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:34px;padding:0 11px;border:1px solid var(--line);border-radius:7px;
+  background:var(--surface);color:var(--ink);font:500 13px/1 var(--font-ui);cursor:pointer;white-space:nowrap;
+  text-decoration:none;
+}
+.gate{width:min(440px,100%);height:auto;align-self:center}
+.gate .input{height:auto}
+.code-chip{font:600 13px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;letter-spacing:.04em}
+.input.code-field{text-transform:uppercase;letter-spacing:.06em}
+.btn:hover{background:var(--surface-2)}
+.btn:disabled{opacity:.42;cursor:default;background:var(--surface)}
+.btn svg{width:16px;height:16px;flex:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad)}
+.btn.small{height:28px;padding:0 9px;font-size:12px}
+.btn.icon{width:34px;padding:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg .btn{border:0;border-radius:0;height:32px}
+.seg .btn+.btn{border-left:1px solid var(--line)}
+.seg .btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.select{height:34px;border:1px solid var(--line);border-radius:7px;background:var(--surface);padding:0 8px;font:500 13px var(--font-ui);cursor:pointer}
+
+.workspace{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px}
+.stage{position:relative;overflow:hidden;background:var(--stage);min-height:0}
+#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;outline:none}
+.hint{
+  position:absolute;left:12px;bottom:12px;max-width:calc(100% - 210px);
+  font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);
+  border-radius:7px;padding:6px 10px;pointer-events:none;
+}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;align-items:center}
+.welcome{position:absolute;inset:0;display:grid;place-items:center;padding:16px 16px 80px;pointer-events:none}
+.welcome-card{pointer-events:auto;text-align:center;display:grid;justify-items:center;gap:10px;max-width:360px;padding:26px 24px;border:1.5px dashed var(--line);border-radius:14px;background:var(--surface)}
+.welcome-card h2{margin:4px 0 0;font:500 24px/1.2 var(--font-math)}
+.welcome-card p{margin:0;color:var(--muted);font-size:14px}
+.welcome-card .row{justify-content:center;margin-top:6px}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--ink);vertical-align:-1px;margin:0 2px}
+.swatch.start{background:var(--start-fill)}
+.swatch.accept{background:var(--accept-fill)}
+.zoom .btn{height:30px;min-width:30px;padding:0 8px;font-variant-numeric:tabular-nums}
+.zoom-level{min-width:54px}
+
+/* ---------- Inspector panel ---------- */
+.panel{background:var(--surface);border-left:1px solid var(--line);overflow:auto;display:flex;flex-direction:column;min-height:0}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line);display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+.sec-title{margin:0;font:600 11px/1 var(--font-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.small-text{font-size:12.5px;margin:0}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.field{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+.input,textarea.input{
+  width:100%;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);color:var(--ink);
+  padding:7px 10px;font:15px/1.35 var(--font-mono);
+}
+.input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+textarea.input{resize:vertical;font-size:14px}
+.checks{display:grid;gap:6px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer}
+.check input{width:16px;height:16px;accent-color:var(--accent);margin:0}
+.symbols{display:flex;gap:4px;flex-wrap:wrap}
+.symbols .btn{height:26px;min-width:30px;padding:0 7px;font:italic 15px/1 var(--font-math)}
+.symbols .btn.plain{font:500 11.5px/1 var(--font-ui)}
+
+.machine-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.type-badge{font:600 12px/1 var(--font-mono);padding:5px 9px;border-radius:999px;letter-spacing:.04em}
+.type-badge.dfa{background:var(--ok-soft);color:var(--ok)}
+.type-badge.nfa{background:var(--accent-soft);color:var(--accent)}
+.type-badge.none{background:var(--surface-2);color:var(--muted)}
+.sigma{font:15px var(--font-math);margin:0}
+.notes{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12.5px;color:var(--muted)}
+.notes li.warn{color:var(--bad)}
+
+.tabs{display:flex;border-bottom:1px solid var(--line);padding:0 8px;position:sticky;top:0;background:var(--surface);z-index:1}
+.tab{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:11px 6px 9px;font:500 13px var(--font-ui);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabpanel{padding:14px 16px 20px;display:grid;gap:12px;align-content:start}
+
+.tape{display:flex;flex-wrap:wrap;gap:3px;font:14px var(--font-mono)}
+.cell{min-width:24px;height:28px;padding:0 5px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;background:var(--surface-2)}
+.cell.done{color:var(--muted);opacity:.7}
+.cell.cur{border-color:var(--hl);background:var(--hl-soft);color:var(--ink);font-weight:500}
+.cell.eps{font-family:var(--font-math);font-style:italic}
+.sim-out{display:grid;gap:8px}
+.sim-line{font-size:13px}
+.math{font-family:var(--font-math);font-size:15px}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--font-ui);padding:6px 10px;border-radius:999px}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.run{background:var(--hl-soft);color:var(--hl)}
+details.batch{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+details.batch summary{cursor:pointer;font-weight:500;font-size:13px}
+details.batch[open] summary{margin-bottom:8px}
+.batch-body{display:grid;gap:8px}
+.batch-out{list-style:none;margin:0;padding:0;display:grid;gap:4px;font:13px var(--font-mono)}
+.batch-out li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:3px 0}
+.batch-out .ok{color:var(--ok)} .batch-out .bad{color:var(--bad)}
+
+.conv-card{border:1px solid var(--line);border-radius:9px;padding:12px;display:grid;gap:8px}
+.conv-card h3{margin:0;font:600 14px var(--font-ui)}
+.conv-card p{margin:0;font-size:12.5px;color:var(--muted)}
+.result-note{font-size:12.5px;margin:0;padding:8px 10px;border-radius:7px;background:var(--surface-2)}
+.walk-list{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+.re-input{font:italic 18px var(--font-math);letter-spacing:.02em}
+.re-read{margin:0;min-height:1.4em}
+.re-read .math{font-size:16px}
+.re-read.err{color:var(--bad)}
+.re-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.re-opts .select{width:100%;height:32px}
+.re-opts .input{font-size:13px;padding:5px 8px}
+.re-out{display:grid;gap:6px}
+.re-out .chips{display:flex;flex-wrap:wrap;gap:4px}
+.re-out .chip{font:14px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+.regex-result{font:italic 17px var(--font-math);word-break:break-word;background:var(--surface-2);border-radius:6px;padding:6px 9px}
+.app[data-page="regex"] #tab-regex{order:-1}
+/* practice page: no solving tools, just drawing, Test and Table */
+.app[data-page="practice"] #tab-convert,.app[data-page="practice"] #tab-combine,.app[data-page="practice"] #tab-regex,
+.app[data-page="practice"] #examples,.app[data-page="practice"] #btn-exam,.app[data-page="practice"] #welcome-example,
+.app[data-page="practice"] #btn-open{display:none}
+.ex-sec{background:var(--surface)}
+.ex-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ex-nav{display:flex;gap:4px}
+.ex-nav .select{flex:1;min-width:0;width:0;height:32px}
+.ex-nav .btn{height:32px;width:32px}
+.ex-card{display:grid;gap:9px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.ex-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ex-card h3{margin:0;font:600 15.5px/1.3 var(--font-ui)}
+.ex-text{margin:0;font-size:14px;line-height:1.55}
+.ex-text .lbl{font:italic 16px var(--font-math)}
+.ex-rules{margin:0}
+.ex-figure{border:1px solid var(--line);border-radius:8px;background:var(--stage);padding:6px;color:var(--ink)}
+.ex-figure svg{display:block;width:100%;height:auto;max-height:200px}
+.ex-hints{margin:0;padding-left:18px;display:grid;gap:5px;font-size:13px}
+.ex-hints:empty{display:none}
+.slots{display:grid;gap:8px}
+.slot{border:1px solid var(--line);border-radius:9px;padding:9px 10px;display:grid;gap:8px}
+.slot-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.slot-head b{font:600 15px var(--font-mono)}
+.eq-out{display:grid;gap:6px;justify-items:start}
+
+/* ---------- Step-by-step walkthrough card (over the canvas) ---------- */
+.walk{position:absolute;left:12px;right:12px;bottom:52px;max-height:min(48%,440px);overflow:auto;z-index:3;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:grid;gap:10px}
+.walk-head{display:flex;align-items:center;gap:10px}
+.walk-head strong{flex:1;font-size:14px}
+.walk-text{margin:0;font-size:14px;line-height:1.6;max-width:90ch}
+.walk-text .lbl,.walk-text b.lbl{font:italic 16px var(--font-math)}
+.grow{flex:1}
+.ttable td.cur{background:var(--hl-soft);box-shadow:inset 0 0 0 2px var(--hl)}
+.ttable tr.newrow td.state{background:var(--accent-soft)}
+.walk .ttable{min-width:0;width:auto}
+.ttable.pairs{min-width:0}
+.ttable.pairs td{min-width:42px;height:30px}
+.ttable.pairs td.void{border:0;background:transparent}
+.ttable.pairs th{background:transparent;border:0;font-family:var(--font-math);font-style:italic;font-size:15px}
+.mk{color:var(--bad);font-weight:600}
+.mk sub{font:500 10px var(--font-mono)}
+@media (max-width: 860px){ .walk{bottom:12px;max-height:62%} }
+
+.table-wrap{overflow-x:auto}
+.ttable{border-collapse:collapse;font:13px var(--font-mono);min-width:100%}
+.ttable th,.ttable td{border:1px solid var(--line);padding:5px 9px;text-align:center;white-space:nowrap}
+.ttable th{background:var(--surface-2);font-weight:500}
+.ttable .lbl{font-family:var(--font-math);font-style:italic;font-size:15px}
+.ttable td.state{text-align:left}
+.ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
+
+/* ---------- Practice inside the PDA and TM pages ---------- */
+.pr-banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:var(--accent-soft);border-radius:8px;padding:7px 10px;font-size:13px}
+.pr-banner .grow{flex:1}
+/* ---------- Turing machines ---------- */
+.tm-tape{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
+.tm-tape .cell{position:relative;min-width:28px;text-align:center}
+.tm-tape .cell.blank{color:var(--muted)}
+.tm-tape .cell.head{background:var(--hl-soft);border-color:var(--hl);box-shadow:inset 0 0 0 1px var(--hl)}
+.tm-tape .cell.head::before{content:"▼";position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--hl)}
+.tm-trace{margin:0;padding-left:28px;display:grid;gap:2px;font:15px/1.5 var(--font-math);max-height:280px;overflow:auto}
+.tm-trace li.cur{background:var(--hl-soft);border-radius:4px}
+.tm-trace .st{font-style:italic;color:var(--accent);margin:0 3px}
+.cfg-line{font:16px var(--font-math)}
+.cfg-line .st{font-style:italic;color:var(--accent);margin:0 3px}
+/* ---------- Pushdown automata ---------- */
+.pda-run{display:flex;gap:14px;align-items:flex-start}
+.pda-run .sim-lines{display:grid;gap:6px;min-width:0;flex:1}
+.pda-stack{display:flex;flex-direction:column;align-items:stretch;min-width:48px;flex:none}
+.pda-stack .cap{font:600 10.5px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:3px}
+.pda-stack .well{display:flex;flex-direction:column;border:1.5px solid var(--ink);border-top:0;border-radius:0 0 6px 6px;min-height:34px;justify-content:flex-end}
+.pda-stack .sc{font:italic 17px/1.2 var(--font-math);text-align:center;padding:3px 10px;border-top:1px solid var(--line)}
+.pda-stack .sc.top{background:var(--hl-soft);border-top-color:var(--hl)}
+.pda-stack .sc.more{font:12px var(--font-ui);color:var(--muted);font-style:normal}
+.pda-stack .none{font:12px var(--font-ui);color:var(--muted);text-align:center;padding:8px 4px}
+.move{font-size:13px}
+.trace td.cur{background:var(--hl-soft);box-shadow:none}
+.trace{font-size:12.5px}
+.trace th,.trace td{text-align:left;padding:4px 7px}
+.trace .lbl{font-size:14.5px}
+.pda-def{display:grid;gap:3px;font-size:13.5px}
+.pda-def .math{font-size:15px}
+/* ---------- Modals & toast ---------- */
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(10,14,22,.5)}
+.dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(780px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;grid-template-rows:auto 1fr}
+.dialog-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.dialog-head h2{margin:0;font:600 16px var(--font-ui);flex:1}
+.dialog-body{padding:16px;display:grid;gap:14px;min-width:0;align-content:start}
+.preview{border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:46vh;display:grid;place-items:center;padding:12px;
+  background-color:#fff;background-image:linear-gradient(45deg,#e9ecf1 25%,transparent 25%),linear-gradient(-45deg,#e9ecf1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e9ecf1 75%),linear-gradient(-45deg,transparent 75%,#e9ecf1 75%);
+  background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+.preview img{max-width:100%;height:auto;display:block}
+.code{width:100%;min-height:220px;font:12.5px/1.45 var(--font-mono);border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);padding:10px;resize:vertical;white-space:pre}
+.opt-row{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:center;font-size:13px}
+.opt-row .label{color:var(--muted);font-size:12px}
+.radio{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.radio input{accent-color:var(--accent);margin:0}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;
+  display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--bg);border-radius:9px;padding:9px 12px 9px 14px;box-shadow:var(--shadow);font-size:13px;max-width:calc(100% - 32px)}
+.toast button{background:none;border:0;color:var(--bg);font-weight:600;text-decoration:underline;cursor:pointer;padding:2px 4px}
+
+/* ---------- About / how-to (below the app) ---------- */
+.about{max-width:1020px;margin:0 auto;padding-block:56px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+.about h2{margin:0 0 10px;font:500 30px/1.15 var(--font-math);text-wrap:balance;letter-spacing:-.005em}
+.about h3{margin:0 0 6px;font:600 15px var(--font-ui)}
+.about p,.about li{font-size:15px;line-height:1.6;max-width:68ch}
+.about p{margin:0 0 10px}
+.lead{font-size:17px!important;color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 32px}
+.cols>div{min-width:0}
+.about ol,.about ul{margin:0;padding-left:20px;display:grid;gap:6px}
+kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:var(--surface)}
+.syntax{border-collapse:collapse;font-size:14px;width:100%}
+.syntax td,.syntax th{border-bottom:1px solid var(--line);padding:7px 10px 7px 0;text-align:left;vertical-align:top}
+.syntax th{font:600 11px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.syntax code{font:13px var(--font-mono);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.syntax .out{font:italic 17px var(--font-math)}
+.faq dt{font-weight:600;margin-top:12px}
+.faq dd{margin:4px 0 0;color:var(--muted);max-width:68ch}
+.foot{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);display:flex;gap:8px 18px;flex-wrap:wrap}
+.foot a{color:var(--accent)}
+
+@media (max-width: 1020px){
+  .btn .lbl-wide{display:none}
+}
+@media (max-width: 860px){
+  .app{height:auto;min-height:0}
+  .workspace{grid-template-columns:1fr;grid-template-rows:64vh auto}
+  .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  .tabs{position:static}
+  .hint{max-width:calc(100% - 24px);bottom:52px}
+  .about h2{font-size:25px}
+}
+@media (max-width: 560px){
+  .topbar{gap:8px}
+  .brand-sub{display:none}
+  .toolbar{gap:6px}
+  .toolbar .spacer{display:none}
+  .btn{height:32px;padding:0 9px}
+  .btn.icon{width:32px}
+  .seg .btn{height:30px}
+  .select{height:32px;max-width:132px}
+  .hint{font-size:11.5px;padding:5px 8px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>
+/* ---------- Time complexity page (Chapter 7) ---------- */
+/* chart series: the validated default palette, fixed order (light and dark steps) */
+:root{--series-1:#2a78d6;--series-2:#eb6834;--series-3:#1baf7a;--series-4:#eda100;--series-5:#e87ba4;--series-6:#008300}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--series-1:#3987e5;--series-2:#d95926;--series-3:#199e70;--series-4:#c98500;--series-5:#d55181;--series-6:#008300}}
+:root[data-theme="dark"]{--series-1:#3987e5;--series-2:#d95926;--series-3:#199e70;--series-4:#c98500;--series-5:#d55181;--series-6:#008300}
+.dc-app{min-height:calc(100dvh - 44px)}
+.dc-main{padding:16px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));max-width:1320px;margin:0 auto;display:grid;gap:16px}
+.dtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.dtab{background:none;border:0;border-bottom:2px solid transparent;padding:10px 14px 9px;font:500 14px var(--font-ui);color:var(--muted);cursor:pointer;white-space:nowrap}
+.dtab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.dtab .ch{font:11px var(--font-mono);color:var(--muted);margin-right:6px}
+.dc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:16px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px;min-width:0;align-content:start}
+.card h2{margin:0;font:600 16px var(--font-ui)}
+.card>p{margin:0;font-size:13.5px;line-height:1.55}
+.card .sub{color:var(--muted)}
+.wide{grid-column:1/-1}
+.controls{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+.legend-row{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13.5px}
+.lg{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.lg input{margin:0;accent-color:var(--accent)}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:2px}
+.sw.dash{background:none;border-top:2px dashed;height:0;width:16px;border-radius:0;vertical-align:3px}
+.chart-wrap{position:relative}
+.chart{display:block;width:100%;height:auto}
+.chart .grid{stroke:var(--line);stroke-width:1}
+.chart .axis{stroke:var(--muted);stroke-width:1}
+.chart .tick{fill:var(--muted);font:11px var(--font-ui)}
+.chart .axis-label{fill:var(--muted);font:12px var(--font-ui)}
+.chart .line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.chart .line.dashed{stroke-dasharray:6 5}
+.chart .dot{stroke:var(--surface);stroke-width:2}
+.chart .cross{stroke:var(--muted);stroke-width:1;stroke-dasharray:3 3}
+.chart .hit{fill:transparent;cursor:crosshair}
+.tip{position:absolute;top:8px;background:var(--surface);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:7px 10px;font-size:12.5px;pointer-events:none;display:grid;gap:2px;min-width:140px}
+.tip[hidden]{display:none}
+.ctable{font-family:var(--font-ui)}
+.ctable td,.ctable th{text-align:right}
+.ctable td:first-child,.ctable th:first-child{text-align:left}
+.warn-text{color:var(--bad)}
+.mono{font-family:var(--font-mono)}
+.verdict{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-radius:8px;padding:9px 12px;font-size:13.5px;line-height:1.5}
+.verdict.ok{background:var(--ok-soft)}
+.verdict.bad{background:var(--bad-soft)}
+.formula{font:15px/1.5 var(--font-mono);min-height:64px}
+#sat-read{font:17px/1.6 var(--font-math);overflow-wrap:anywhere}
+.ov{text-decoration:overline}
+.vbtn{font-family:var(--font-math);font-size:14px}
+.vbtn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.var-row{display:flex;flex-wrap:wrap;gap:6px}
+.clauses{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font:17px var(--font-math)}
+.clause{padding:2px 6px;border-radius:6px}
+.cl-ok{background:var(--ok-soft)}
+.cl-bad{background:var(--bad-soft)}
+.lit-t{font-weight:700;color:var(--ok)}
+.and{color:var(--muted)}
+.cgraph-wrap{overflow-x:auto}
+.cgraph{display:block;width:100%;max-width:600px;height:auto;margin:0 auto}
+.cgraph .e{stroke:var(--line);stroke-width:1}
+.cgraph .e-on{stroke:var(--accent);stroke-width:2.5}
+.cgraph .n circle{fill:var(--surface);stroke:var(--ink);stroke-width:1.5}
+.cgraph .n-on circle{fill:var(--accent-soft);stroke:var(--accent);stroke-width:2.5}
+.cgraph text{fill:var(--ink);font:italic 14px var(--font-math)}
+.cgraph .glabel{fill:var(--muted);font:12px var(--font-ui)}
+</style>
+
+<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item" href="pumping.html"><span class="nav-ch">Ch 1–2</span>Pumping lemma</a><a class="nav-item" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><a class="nav-item" href="pda.html"><span class="nav-ch">Ch 2</span>Pushdown automata</a><a class="nav-item" href="tm.html"><span class="nav-ch">Ch 3</span>Turing machines</a><a class="nav-item" href="decide.html"><span class="nav-ch">Ch 4–5</span>Decidability</a><a class="nav-item active" aria-current="page" href="complexity.html"><span class="nav-ch">Ch 7</span>Complexity</a><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
+<div class="dc-app" data-page="complexity">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-delta" aria-hidden="true">δ</span>
+      <div class="brand-text">
+        <h1 class="brand-name">Time complexity</h1>
+        <p class="brand-sub">Growth rates, P and NP · Chapter 7</p>
+      </div>
+    </div>
+    <div class="toolbar">
+      <span class="spacer"></span>
+      <div class="group">
+        <button class="btn icon" id="btn-theme" title="Theme: follows your system" aria-label="Change theme">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11" /><path d="M8 2.5a5.5 5.5 0 010 11z" fill="currentColor"/></svg>
+        </button>
+        <button class="btn icon" id="btn-help" title="About this page" aria-label="About this page">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 113 1.4c-.7.4-1.3.8-1.3 1.6"/><circle cx="8" cy="11.4" r=".4" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="dc-main">
+    <div class="dtabs" role="tablist" aria-label="Sections">
+      <button class="dtab" role="tab" data-tab="growth" aria-controls="sec-growth" aria-selected="true"><span class="ch">7.1</span>Growth rates</button>
+      <button class="dtab" role="tab" data-tab="steps" aria-controls="sec-steps" aria-selected="false"><span class="ch">7.1</span>Counting steps</button>
+      <button class="dtab" role="tab" data-tab="np" aria-controls="sec-np" aria-selected="false"><span class="ch">7.2–7.4</span>P, NP and SAT</button>
+    </div>
+
+    <!-- ================= Growth rates ================= -->
+    <section id="sec-growth" role="tabpanel" class="dc-grid">
+      <div class="card wide">
+        <h2>How fast do running times grow?</h2>
+        <div class="controls">
+          <div class="legend-row" id="fn-legend" aria-label="Functions to show"></div>
+          <span class="spacer"></span>
+          <label class="small-text">n up to <select class="select" id="nmax"><option value="10">10</option><option value="20">20</option><option value="30">30</option><option value="50">50</option><option value="100">100</option></select></label>
+          <div class="seg" role="group" aria-label="Scale">
+            <button class="btn small" data-scale="linear">Linear</button>
+            <button class="btn small" data-scale="log">Log scale</button>
+          </div>
+        </div>
+        <div id="growth-chart"></div>
+        <p class="small-text muted" id="growth-note"></p>
+      </div>
+      <div class="card wide">
+        <h2>How long is that, at a billion steps per second?</h2>
+        <div class="table-wrap" id="time-table"></div>
+        <p class="small-text muted">Hover the chart to read exact step counts.</p>
+      </div>
+      <div class="card">
+        <h2>Big-O, in Sipser's words</h2>
+        <p><b>f(n) = O(g(n))</b> if there are c &gt; 0 and n<sub>0</sub> such that f(n) ≤ c·g(n) for every n ≥ n<sub>0</sub> (Definition 7.2). Constants and lower-order terms don't matter: 5n<sup>3</sup> + 2n + 22 = O(n<sup>3</sup>).</p>
+        <p><b>f(n) = o(g(n))</b> if f(n)/g(n) → 0 (Definition 7.5). For example n log n = o(n<sup>2</sup>), and every polynomial n<sup>k</sup> is o(2<sup>n</sup>).</p>
+        <p><b>P</b> is the class of languages decidable in polynomial time, O(n<sup>k</sup>) for some k, on a single-tape deterministic Turing machine (Definition 7.12).</p>
+      </div>
+    </section>
+
+    <!-- ================= Counting steps ================= -->
+    <section id="sec-steps" role="tabpanel" class="dc-grid" hidden>
+      <div class="card wide">
+        <h2>Measure a Turing machine's running time</h2>
+        <div class="controls">
+          <label class="small-text">Machine
+            <select class="select" id="machine">
+              <option value="zeroone">0ⁿ1ⁿ: cross off one 0 and one 1 per pass</option>
+              <option value="pow2">0 repeated 2ⁿ times (Sipser 3.7)</option>
+              <option value="pal">Palindromes: erase both ends</option>
+              <option value="end0">Ends with 0: one pass</option>
+              <option value="mine">My drawing on the Turing machines page</option>
+            </select>
+          </label>
+          <label class="small-text" id="mine-row" hidden>Σ <input class="input" id="mine-sigma" value="01" style="width:80px" spellcheck="false"></label>
+          <span class="spacer"></span>
+          <span class="small-text muted">Compare with</span>
+          <div class="seg" role="group" aria-label="Reference curve">
+            <button class="btn small" data-ref="n">n</button>
+            <button class="btn small" data-ref="nlogn">n log n</button>
+            <button class="btn small" data-ref="n2">n²</button>
+          </div>
+        </div>
+        <div class="legend-row" id="steps-legend"></div>
+        <div id="steps-chart"></div>
+        <div id="steps-out"></div>
+      </div>
+    </section>
+
+    <!-- ================= P, NP, SAT ================= -->
+    <section id="sec-np" role="tabpanel" class="dc-grid" hidden>
+      <div class="card">
+        <h2>SAT: checking is easy, finding is hard</h2>
+        <p class="sub">A formula in conjunctive normal form: clauses in parentheses joined by ∧.</p>
+        <textarea class="input formula" id="formula" spellcheck="false" aria-label="Formula"></textarea>
+        <div class="symbols" id="sat-sym" aria-label="Insert">
+          <button class="btn" data-ins=" ∧ " title="and">∧</button>
+          <button class="btn" data-ins=" ∨ " title="or">∨</button>
+          <button class="btn" data-ins="¬" title="not">¬</button>
+          <select class="select" id="sat-examples" aria-label="Examples"><option value="">Examples…</option><option value="sipser">Sipser’s Figure 7.33 formula</option><option value="unsat">An unsatisfiable formula</option><option value="four">Four clauses, three variables</option></select>
+        </div>
+        <div id="sat-read"></div>
+        <p class="small-text muted">Click a variable to flip it between 0 and 1.</p>
+        <div class="var-row" id="sat-vars"></div>
+        <div id="sat-clauses"></div>
+        <div class="row"><button class="btn primary small" id="sat-search">Search every assignment</button></div>
+        <div class="small-text" id="sat-search-out"></div>
+      </div>
+      <div class="card">
+        <h2>3SAT reduces to CLIQUE (Theorem 7.32)</h2>
+        <div id="clique"></div>
+      </div>
+      <div class="card wide">
+        <h2>P, NP and NP-completeness</h2>
+        <p><b>NP</b> is the class of languages with a polynomial-time <b>verifier</b>: a yes-answer comes with a certificate that can be checked quickly (Definitions 7.18–7.19). For SAT the certificate is a satisfying assignment, and checking it is one pass over the formula.</p>
+        <p>A language is <b>NP-complete</b> if it is in NP and every language in NP reduces to it in polynomial time (Definition 7.34). SAT is NP-complete (the Cook–Levin theorem, Theorem 7.37), and so is 3SAT. The reduction on this page shows CLIQUE is NP-complete too: a polynomial-time algorithm for CLIQUE would give one for 3SAT, and then P = NP. Whether P = NP is still unknown.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<section class="about" id="how-to">
+  <div>
+    <h2>Time complexity, hands on</h2>
+    <p class="lead">Chapter 7 of Sipser measures how many steps a Turing machine needs as the input grows. This page compares growth rates, measures real machines from the Turing machines page, and shows why SAT answers are easy to check but seem hard to find.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Growth rates</h3>
+      <ol>
+        <li>Tick the functions to compare and choose how far n goes.</li>
+        <li>The log scale shows the difference between polynomial and exponential growth.</li>
+        <li>The table turns step counts into time at a billion steps per second.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Counting steps</h3>
+      <ol>
+        <li>Pick a machine, or the one you drew on the Turing machines page.</li>
+        <li>The page runs it on every input of each length and records the worst case.</li>
+        <li>Compare with n, n log n or n²: the ratio that levels off shows the growth rate.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Writing a formula</h3>
+      <table class="syntax">
+        <thead><tr><th>Type</th><th>Means</th></tr></thead>
+        <tbody>
+          <tr><td><code>∧</code>, <code>&amp;</code>, <code>and</code></td><td>and (between clauses)</td></tr>
+          <tr><td><code>∨</code>, <code>|</code>, <code>or</code></td><td>or (inside a clause)</td></tr>
+          <tr><td><code>¬x</code>, <code>~x</code>, <code>!x</code>, <code>x'</code></td><td>not x</td></tr>
+          <tr><td><code>x1</code>, <code>x_2</code>, <code>a</code></td><td>variables</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <footer class="foot">
+    <span>DeltaDraw v1.8 · time complexity</span>
+    <a href="index.html">All chapters</a>
+    <a href="tm.html">Turing machines</a>
+    <a href="decide.html">Decidability</a>
+  </footer>
+</section>
+
+<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden></button></div>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   DeltaDraw · Time complexity (Sipser Chapter 7)
+   ===================================================================== */
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const store = {
+  get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
+};
+const KEY = 'deltadraw:complexity:v1', THEME_KEY = 'deltadraw:theme';
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// variable names: x1, x_1, x_{12} → x with a subscript
+const sub = (s) => { const m = /^([A-Za-z]+)(?:_\{([^}]*)\}|_?(\w+))?$/.exec(s); if (!m || (m[2] == null && m[3] == null)) return esc(s); const tail = m[2] != null ? m[2] : m[3]; return /^\d+$/.test(tail) || m[2] != null || s.includes('_') ? `${esc(m[1])}<sub>${esc(tail)}</sub>` : esc(s); };
+let state = { tab: 'growth', fns: ['n', 'nlogn', 'n2', 'n3', 'n2n'], nmax: 20, scale: 'log', machine: 'zeroone', ref: 'n2', formula: '' };
+function save() { store.set(KEY, JSON.stringify(state)); }
+function toast(msg) {
+  const t = $('#toast');
+  $('#toast-msg').textContent = msg;
+  $('#toast-action').hidden = true;
+  t.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => { t.hidden = true; }, 3200);
+}
+const fmtNum = (v) => {
+  if (!isFinite(v)) return '∞';
+  if (v < 1e6) return Math.round(v).toLocaleString();
+  const e = Math.floor(Math.log10(v)), m = v / Math.pow(10, e);
+  return `${m.toFixed(1)}×10<sup>${e}</sup>`;
+};
+const fmtPlain = (v) => (v < 1e6 ? Math.round(v).toLocaleString() : v.toExponential(1).replace('e+', '×10^'));
+
+/* =====================================================================
+   Chart (plain SVG): one y-axis, thin lines, legend, hover crosshair
+   ===================================================================== */
+function seriesColor(slot) { return getComputedStyle(document.documentElement).getPropertyValue(`--series-${slot}`).trim() || '#2a78d6'; }
+function lineChart(el, { xs, series, logY, xLabel, yLabel }) {
+  const W = Math.round(Math.max(300, Math.min(el.clientWidth || 680, 1100))), H = W < 500 ? 260 : 320, L = 64, R = 16, T = 14, B = 40;
+  const vals = series.flatMap((s) => s.ys.filter((v) => isFinite(v) && (!logY || v > 0)));
+  if (!vals.length) { el.innerHTML = ''; return; }
+  let y0 = logY ? Math.max(1, Math.min(...vals)) : 0, y1 = Math.max(...vals);
+  if (logY) { y0 = Math.pow(10, Math.floor(Math.log10(y0))); y1 = Math.pow(10, Math.ceil(Math.log10(y1))); if (y1 <= y0) y1 = y0 * 10; }
+  else { const step = Math.pow(10, Math.floor(Math.log10(y1 || 1))); y1 = Math.ceil(y1 / step) * step || 1; }
+  const x0 = xs[0], x1 = xs[xs.length - 1];
+  const X = (x) => L + (x1 === x0 ? 0 : (x - x0) / (x1 - x0)) * (W - L - R);
+  const Y = (y) => { if (logY) { const t = (Math.log10(Math.max(y, y0)) - Math.log10(y0)) / (Math.log10(y1) - Math.log10(y0)); return H - B - Math.min(1, t) * (H - T - B); } return H - B - Math.min(1, y / y1) * (H - T - B); };
+  // gridlines and ticks
+  const ticks = [];
+  if (logY) { const a = Math.log10(y0), b = Math.log10(y1), every = Math.max(1, Math.ceil((b - a) / 6)); for (let e = a; e <= b; e += every) ticks.push(Math.pow(10, e)); }
+  else for (let k = 0; k <= 5; k++) ticks.push((y1 * k) / 5);
+  const xt = []; const xStep = Math.max(1, Math.ceil((x1 - x0) / 10)); for (let x = x0; x <= x1; x += xStep) xt.push(x);
+  let svg = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(yLabel)} against ${esc(xLabel)}">`;
+  svg += ticks.map((v) => `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tick" x="${L - 8}" y="${Y(v) + 4}" text-anchor="end">${logY ? `10${String(Math.round(Math.log10(v))).split('').map((c) => '⁰¹²³⁴⁵⁶⁷⁸⁹'[c] || '⁻').join('')}` : fmtPlain(v)}</text>`).join('');
+  svg += xt.map((x) => `<text class="tick" x="${X(x)}" y="${H - B + 18}" text-anchor="middle">${x}</text>`).join('');
+  svg += `<line class="axis" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>`;
+  svg += `<text class="axis-label" x="${(L + W - R) / 2}" y="${H - 4}" text-anchor="middle">${esc(xLabel)}</text>`;
+  for (const s of series) {
+    let d = '', pen = false;
+    s.ys.forEach((v, i) => {
+      if (!isFinite(v) || v > y1 * 1.0001 || (logY && v <= 0)) { pen = false; return; }
+      d += `${pen ? 'L' : 'M'}${X(xs[i]).toFixed(1)} ${Y(v).toFixed(1)}`; pen = true;
+    });
+    svg += `<path class="line${s.dashed ? ' dashed' : ''}" d="${d}" stroke="${seriesColor(s.slot)}"/>`;
+    if (s.dots) svg += s.ys.map((v, i) => (isFinite(v) && v <= y1 ? `<circle class="dot" cx="${X(xs[i])}" cy="${Y(v)}" r="4" fill="${seriesColor(s.slot)}"/>` : '')).join('');
+  }
+  svg += `<line class="cross" id="${el.id}-cross" x1="0" x2="0" y1="${T}" y2="${H - B}" visibility="hidden"/>`;
+  svg += `<rect class="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}"/></svg>`;
+  el.innerHTML = `<div class="chart-wrap">${svg}<div class="tip" hidden></div></div>`;
+  const hit = el.querySelector('.hit'), tip = el.querySelector('.tip'), cross = el.querySelector('.cross'), svgEl = el.querySelector('svg');
+  const show = (evt) => {
+    const r = svgEl.getBoundingClientRect(), px = ((evt.clientX - r.left) / r.width) * W;
+    let best = 0; xs.forEach((x, i) => { if (Math.abs(X(x) - px) < Math.abs(X(xs[best]) - px)) best = i; });
+    cross.setAttribute('x1', X(xs[best])); cross.setAttribute('x2', X(xs[best])); cross.setAttribute('visibility', 'visible');
+    tip.hidden = false;
+    tip.innerHTML = `<b>${esc(xLabel)} = ${xs[best]}</b>${series.map((s) => `<div><span class="sw" style="background:${seriesColor(s.slot)}"></span>${s.label}: ${fmtNum(s.ys[best])}</div>`).join('')}`;
+    const left = (X(xs[best]) / W) * r.width;
+    tip.style.left = `${Math.min(Math.max(8, left + 12), r.width - tip.offsetWidth - 8)}px`;
+  };
+  hit.addEventListener('mousemove', show);
+  hit.addEventListener('mouseleave', () => { tip.hidden = true; cross.setAttribute('visibility', 'hidden'); });
+}
+
+/* =====================================================================
+   Tab 1: growth rates (7.1)
+   ===================================================================== */
+const FNS = [
+  { id: 'n', label: 'n', slot: 1, f: (n) => n },
+  { id: 'nlogn', label: 'n log<sub>2</sub> n', slot: 2, f: (n) => (n <= 1 ? 0 : n * Math.log2(n)) },
+  { id: 'n2', label: 'n<sup>2</sup>', slot: 3, f: (n) => n * n },
+  { id: 'n3', label: 'n<sup>3</sup>', slot: 4, f: (n) => n * n * n },
+  { id: 'n2n', label: '2<sup>n</sup>', slot: 5, f: (n) => Math.pow(2, n) },
+  { id: 'fact', label: 'n!', slot: 6, f: (n) => { let p = 1; for (let k = 2; k <= n; k++) p *= k; return p; } },
+];
+function duration(steps) { // at 10^9 steps per second
+  const s = steps / 1e9;
+  if (s < 1e-6) return `${(s * 1e9).toFixed(0)} ns`;
+  if (s < 1e-3) return `${(s * 1e6).toFixed(1)} µs`;
+  if (s < 1) return `${(s * 1e3).toFixed(1)} ms`;
+  if (s < 60) return `${s.toFixed(1)} s`;
+  if (s < 3600) return `${(s / 60).toFixed(1)} min`;
+  if (s < 86400) return `${(s / 3600).toFixed(1)} hours`;
+  if (s < 3.15e7) return `${(s / 86400).toFixed(1)} days`;
+  const y = s / 3.156e7;
+  if (y < 1.38e10) return `${fmtNum(y)} years`;
+  return '<span class="warn-text">&gt; age of the universe</span>';
+}
+function renderGrowth() {
+  const on = FNS.filter((f) => state.fns.includes(f.id));
+  const xs = []; for (let n = 1; n <= state.nmax; n++) xs.push(n);
+  $('#fn-legend').innerHTML = FNS.map((f) => `<label class="lg"><input type="checkbox" data-fn="${f.id}"${state.fns.includes(f.id) ? ' checked' : ''}><span class="sw" style="background:${seriesColor(f.slot)}"></span><span>${f.label}</span></label>`).join('');
+  for (const c of $$('[data-fn]')) c.addEventListener('change', () => { state.fns = $$('[data-fn]').filter((x) => x.checked).map((x) => x.dataset.fn); save(); renderGrowth(); });
+  for (const b of $$('[data-scale]')) b.setAttribute('aria-pressed', String(b.dataset.scale === state.scale));
+  $('#nmax').value = String(state.nmax);
+  lineChart($('#growth-chart'), { xs, series: on.map((f) => ({ label: f.label, slot: f.slot, ys: xs.map(f.f) })), logY: state.scale === 'log', xLabel: 'n (input length)', yLabel: 'steps' });
+  $('#growth-note').innerHTML = state.scale === 'log'
+    ? 'On a logarithmic scale every polynomial n<sup>k</sup> bends toward a straight line, while 2<sup>n</sup> is a straight line that keeps climbing: exponential growth outruns every polynomial.'
+    : 'On a linear scale the fastest-growing function hides all the others. Switch to the log scale to compare them.';
+  const ns = [10, 20, 50, 100, 1000];
+  $('#time-table').innerHTML = `<table class="ttable ctable"><thead><tr><th>steps</th>${ns.map((n) => `<th>n = ${n}</th>`).join('')}</tr></thead><tbody>${FNS.map((f) => `<tr><td><span class="sw" style="background:${seriesColor(f.slot)}"></span>${f.label}</td>${ns.map((n) => `<td>${duration(f.f(n))}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+}
+for (const b of $$('[data-scale]')) b.addEventListener('click', () => { state.scale = b.dataset.scale; save(); renderGrowth(); });
+$('#nmax').addEventListener('change', (e) => { state.nmax = Number(e.target.value); save(); renderGrowth(); });
+
+/* =====================================================================
+   Tab 2: counting a Turing machine's steps (7.1)
+   Labels as on the Turing machines page: 0→x,R  x→R  0,1→L   (␣ = blank; ; separates rules)
+   ===================================================================== */
+const BLANK = '␣';
+const normSym = (x) => { const t = x.trim().replace(/\\(blank|square|sqcup)/g, '␣'); return t === '□' || t === '⊔' ? BLANK : t; };
+function buildTM(d) {
+  const name = new Map(d.nodes.map((n) => [n.id, String(n.text || '')]));
+  const plain = (s) => s.replace(/[_{}]/g, '');
+  const startLink = d.links.find((l) => l.type === 'start');
+  const accept = new Set(d.nodes.filter((n) => n.accept || /accept/i.test(plain(name.get(n.id)))).map((n) => n.id));
+  const reject = new Set(d.nodes.filter((n) => /reject/i.test(plain(name.get(n.id))) && !accept.has(n.id)).map((n) => n.id));
+  const delta = new Map(), bad = [];
+  for (const l of d.links) {
+    if (l.type === 'start') continue;
+    const from = l.type === 'self' ? l.node : l.from, to = l.type === 'self' ? l.node : l.to;
+    for (const part of String(l.text || '').replace(/->/g, '→').split(';')) {
+      if (!part.trim()) continue;
+      const k = part.indexOf('→');
+      if (k < 0) { bad.push(part.trim()); continue; }
+      const reads = part.slice(0, k).split(',').map(normSym), right = part.slice(k + 1).split(',').map((x) => x.trim());
+      const move = (right[right.length - 1] || '').toUpperCase();
+      if (!['L', 'R', 'S'].includes(move) || right.length > 2) { bad.push(part.trim()); continue; }
+      for (const a of reads) { const key = from + '|' + a; if (!delta.has(key)) delta.set(key, { to, write: right.length === 2 ? normSym(right[0]) : a, move }); }
+    }
+  }
+  return { start: startLink ? startLink.node : null, accept, reject, delta, bad };
+}
+function runTM(M, input, cap = 200000) {
+  let q = M.start, head = 0;
+  const tape = [...input];
+  for (let n = 0; ; n++) {
+    if (M.accept.has(q)) return { verdict: 'accept', steps: n };
+    if (M.reject.has(q)) return { verdict: 'reject', steps: n };
+    const a = head < tape.length ? tape[head] : BLANK, r = M.delta.get(q + '|' + a);
+    if (!r) return { verdict: 'reject', steps: n };
+    if (n >= cap) return { verdict: 'limit', steps: n };
+    while (tape.length <= head) tape.push(BLANK);
+    tape[head] = r.write;
+    head = r.move === 'L' ? Math.max(0, head - 1) : r.move === 'R' ? head + 1 : head;
+    q = r.to;
+  }
+}
+function makeDoc(nodes, links) {
+  let id = 1; const ids = {}, d = { nodes: [], links: [] };
+  for (const [nm, x, y, acc] of nodes) { ids[nm] = id; d.nodes.push({ id: id++, x, y, text: nm, accept: !!acc }); }
+  for (const l of links) {
+    if (l[0] === 'start') d.links.push({ id: id++, type: 'start', node: ids[l[1]] });
+    else if (l[0] === l[1]) d.links.push({ id: id++, type: 'self', node: ids[l[0]], text: l[2] });
+    else d.links.push({ id: id++, type: 'link', from: ids[l[0]], to: ids[l[1]], text: l[2] });
+  }
+  return d;
+}
+// The machines from the Turing machines page
+const MACHINES = {
+  zeroone: { name: '0ⁿ1ⁿ: cross off one 0 and one 1 per pass', sigma: '01', ref: 'n2', note: 'Like Sipser’s M<sub>1</sub> in Example 7.1, each pass walks across the input and crosses off one 0 and one 1. About n/2 passes of up to n steps each: O(n<sup>2</sup>).',
+    doc: () => makeDoc([['q_1'], ['q_2'], ['q_3'], ['q_4'], ['q_{accept}']], [['start', 'q_1'], ['q_1', 'q_2', '0→x,R'], ['q_2', 'q_2', '0,y→R'], ['q_2', 'q_3', '1→y,L'], ['q_3', 'q_3', '0,y→L'], ['q_3', 'q_1', 'x→R'], ['q_1', 'q_4', 'y→R'], ['q_4', 'q_4', 'y→R'], ['q_4', 'q_{accept}', '␣→R'], ['q_1', 'q_{accept}', '␣→R']]) },
+  pow2: { name: '0 repeated 2ⁿ times (Sipser 3.7)', sigma: '0', ref: 'nlogn', note: 'Each pass crosses off every other 0, so there are about log<sub>2</sub> n passes of O(n) steps each: O(n log n), the same idea as Sipser’s M<sub>2</sub> in Example 7.1.',
+    doc: () => makeDoc([['q_1'], ['q_2'], ['q_3'], ['q_4'], ['q_5'], ['q_{accept}'], ['q_{reject}']], [['start', 'q_1'], ['q_1', 'q_2', '0→␣,R'], ['q_1', 'q_{reject}', '␣→R; x→R'], ['q_2', 'q_2', 'x→R'], ['q_2', 'q_{accept}', '␣→R'], ['q_2', 'q_3', '0→x,R'], ['q_3', 'q_3', 'x→R'], ['q_3', 'q_4', '0→R'], ['q_4', 'q_3', '0→x,R'], ['q_4', 'q_4', 'x→R'], ['q_3', 'q_5', '␣→L'], ['q_4', 'q_{reject}', '␣→R'], ['q_5', 'q_5', '0,x→L'], ['q_5', 'q_2', '␣→R']]) },
+  pal: { name: 'Palindromes: erase both ends', sigma: '01', ref: 'n2', note: 'Each round erases the first and last symbol and walks back: n/2 rounds of up to n steps, O(n<sup>2</sup>).',
+    doc: () => makeDoc([['q_1'], ['q_2'], ['q_3'], ['q_4'], ['q_5'], ['q_6'], ['q_{accept}']], [['start', 'q_1'], ['q_1', 'q_2', '0→␣,R'], ['q_1', 'q_3', '1→␣,R'], ['q_1', 'q_{accept}', '␣→R'], ['q_2', 'q_2', '0,1→R'], ['q_2', 'q_4', '␣→L'], ['q_3', 'q_3', '0,1→R'], ['q_3', 'q_5', '␣→L'], ['q_4', 'q_6', '0→␣,L; ␣→L'], ['q_5', 'q_6', '1→␣,L; ␣→L'], ['q_6', 'q_6', '0,1→L'], ['q_6', 'q_1', '␣→R']]) },
+  end0: { name: 'Ends with 0: one pass', sigma: '01', ref: 'n', note: 'One pass to the right end and one step back: n + 2 steps, O(n).',
+    doc: () => makeDoc([['q_1'], ['q_2'], ['q_{accept}']], [['start', 'q_1'], ['q_1', 'q_1', '0,1→R'], ['q_1', 'q_2', '␣→L'], ['q_2', 'q_{accept}', '0→R']]) },
+};
+const REFS = { n: { label: 'c·n', f: (n) => n }, nlogn: { label: 'c·n log<sub>2</sub> n', f: (n) => (n <= 1 ? n : n * Math.log2(n)) }, n2: { label: 'c·n<sup>2</sup>', f: (n) => n * n } };
+function myMachine() {
+  let saved = null;
+  try { saved = JSON.parse(store.get('deltadraw:tm:v1') || 'null'); } catch (e) { saved = null; }
+  const d = saved && saved.doc;
+  return d && Array.isArray(d.nodes) && d.nodes.length ? d : null;
+}
+function measure(M, sigma, maxRuns = 30000) {
+  const rows = [];
+  let words = [''], total = 0;
+  for (let n = 0; n <= 64; n++) {
+    if (n > 0) { const next = []; for (const w of words) for (const c of sigma) next.push(w + c); words = next; }
+    if (total + words.length > maxRuns) break;
+    total += words.length;
+    let worst = 0, worstW = '', sum = 0, loops = 0;
+    for (const w of words) { const r = runTM(M, w); if (r.verdict === 'limit') loops++; sum += r.steps; if (r.steps > worst) { worst = r.steps; worstW = w; } }
+    rows.push({ n, worst, worstW, avg: sum / words.length, count: words.length, loops });
+    if (sigma.length === 1 && n >= 40) break;
+  }
+  return rows;
+}
+function renderSteps() {
+  const sel = $('#machine');
+  sel.value = state.machine;
+  let doc, sigma, note = '', ref = state.ref;
+  if (state.machine === 'mine') {
+    doc = myMachine();
+    if (!doc) { $('#steps-out').innerHTML = '<p class="warn-text">No saved drawing was found on the Turing machines page in this browser. Draw a machine there first.</p>'; $('#steps-chart').innerHTML = ''; return; }
+    sigma = ($('#mine-sigma').value || '01').replace(/[\s,]/g, '');
+    note = 'Your drawing from the Turing machines page.';
+  } else { const m = MACHINES[state.machine]; doc = m.doc(); sigma = m.sigma; note = m.note; }
+  $('#mine-row').hidden = state.machine !== 'mine';
+  const M = buildTM(doc);
+  if (M.start == null) { $('#steps-out').innerHTML = '<p class="warn-text">This machine has no start state.</p>'; return; }
+  const rows = measure(M, [...new Set(sigma)]).filter((r) => r.n > 0);
+  for (const b of $$('[data-ref]')) b.setAttribute('aria-pressed', String(b.dataset.ref === ref));
+  const R = REFS[ref], last = rows[rows.length - 1];
+  // Definition 7.2: f(n) ≤ c·g(n) for every n ≥ n0. Take n0 = half the range and the smallest such c.
+  const n0 = last ? Math.max(2, Math.floor(last.n / 2)) : 2;
+  const c = Math.max(1e-9, ...rows.filter((r) => r.n >= n0).map((r) => r.worst / R.f(r.n)));
+  const xs = rows.map((r) => r.n);
+  lineChart($('#steps-chart'), { xs, series: [{ label: 'worst case, measured', slot: 1, ys: rows.map((r) => r.worst), dots: true }, { label: `${R.label} with c = ${c.toFixed(2)}`, slot: 2, ys: xs.map((n) => c * R.f(n)), dashed: true }], logY: false, xLabel: 'n (input length)', yLabel: 'steps' });
+  const loops = rows.reduce((t, r) => t + r.loops, 0);
+  $('#steps-legend').innerHTML = `<span class="lg"><span class="sw" style="background:${seriesColor(1)}"></span><span>worst case over all ${sigma.length > 1 ? `${sigma.length}<sup>n</sup>` : ''} inputs of length n, measured</span></span><span class="lg"><span class="sw dash" style="border-color:${seriesColor(2)}"></span><span>${R.label} with c = ${c.toFixed(2)}: the smallest c with f(n) ≤ c·g(n) for every n ≥ ${n0} shown</span></span>`;
+  $('#steps-out').innerHTML = `<p>${note}</p>${loops ? `<p class="warn-text">${loops} input${loops === 1 ? '' : 's'} did not halt within 200,000 steps: this machine is not a decider, so it has no running time.</p>` : ''}
+    <div class="table-wrap"><table class="ttable ctable"><thead><tr><th>n</th><th>worst-case steps</th><th>a worst input</th><th>steps / n</th><th>steps / (n log<sub>2</sub> n)</th><th>steps / n<sup>2</sup></th></tr></thead><tbody>${rows.map((r) => `<tr><td>${r.n}</td><td>${r.worst.toLocaleString()}</td><td class="mono">${esc(r.worstW.length > 14 ? r.worstW.slice(0, 14) + '…' : r.worstW)}</td><td>${(r.worst / r.n).toFixed(2)}</td><td>${r.n > 1 ? (r.worst / (r.n * Math.log2(r.n))).toFixed(2) : '–'}</td><td>${(r.worst / (r.n * r.n)).toFixed(3)}</td></tr>`).join('')}</tbody></table></div>
+    <p class="small-text muted">The running time f(n) is the most steps the machine takes on any input of length n (Sipser, Definition 7.1). The ratio column that levels off to a constant shows the growth rate.</p>`;
+}
+$('#machine').addEventListener('change', (e) => { state.machine = e.target.value; if (MACHINES[state.machine]) state.ref = MACHINES[state.machine].ref; save(); renderSteps(); });
+for (const b of $$('[data-ref]')) b.addEventListener('click', () => { state.ref = b.dataset.ref; save(); renderSteps(); });
+$('#mine-sigma').addEventListener('change', renderSteps);
+
+/* =====================================================================
+   Tab 3: SAT, verifying vs searching, and 3SAT → CLIQUE (Theorem 7.32)
+   Formulas in CNF:  (x1 ∨ x1 ∨ x2) ∧ (¬x1 ∨ ¬x2 ∨ ¬x2) ∧ (¬x1 ∨ x2 ∨ x2)
+   ===================================================================== */
+function parseCNF(text) {
+  const t = text.replace(/\band\b|&&?|∧|\*/gi, '∧').replace(/\bor\b|\|\|?|∨|\+/gi, '∨').replace(/\s+v\s+/g, '∨');
+  const parts = t.split('∧').map((x) => x.trim()).filter((x) => x.length);
+  if (!parts.length) return { error: 'Type a formula in conjunctive normal form, like (x1 ∨ ¬x2) ∧ (x2 ∨ x3).' };
+  const clauses = [], vars = [];
+  for (const raw of parts) {
+    const inner = raw.replace(/^\(+|\)+$/g, '').trim();
+    if (/[()∧]/.test(inner)) return { error: `“${raw}” is not a clause: write the formula as clauses in parentheses joined by ∧.` };
+    const lits = [];
+    for (let lt of inner.split('∨').map((x) => x.trim())) {
+      let neg = false;
+      while (/^[¬~!-]/.test(lt)) { neg = !neg; lt = lt.slice(1).trim(); }
+      if (/'$/.test(lt)) { neg = !neg; lt = lt.slice(0, -1); }
+      if (/̄/.test(lt)) { neg = !neg; lt = lt.replace(/̄/g, ''); }
+      if (!/^[A-Za-z][A-Za-z0-9_{}]*$/.test(lt)) return { error: `“${lt || '(empty)'}” is not a variable. Variables look like x1, x_2 or a; negate with ¬, ~ or !.` };
+      if (!vars.includes(lt)) vars.push(lt);
+      lits.push({ v: lt, neg });
+    }
+    clauses.push(lits);
+  }
+  return { clauses, vars };
+}
+const litTrue = (l, A) => (A[l.v] ? !l.neg : l.neg);
+const satisfies = (F, A) => F.clauses.every((c) => c.some((l) => litTrue(l, A)));
+function bruteSAT(F) {
+  const n = F.vars.length;
+  for (let m = 0; m < (1 << n); m++) {
+    const A = {}; F.vars.forEach((v, i) => { A[v] = !!(m & (1 << (n - 1 - i))); });
+    if (satisfies(F, A)) return { A, tried: m + 1 };
+  }
+  return { A: null, tried: 1 << n };
+}
+// the graph of Theorem 7.32: one node per literal occurrence, edges between consistent literals of different clauses
+function cliqueGraph(F) {
+  const nodes = [];
+  F.clauses.forEach((c, ci) => c.forEach((l, li) => nodes.push({ ci, li, ...l })));
+  const edges = [];
+  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+    const a = nodes[i], b = nodes[j];
+    if (a.ci !== b.ci && !(a.v === b.v && a.neg !== b.neg)) edges.push([i, j]);
+  }
+  return { nodes, edges };
+}
+function findClique(G, k) { // a k-clique must use one node per clause (nodes of one clause are never joined)
+  const adj = new Set(G.edges.map(([i, j]) => i + ',' + j));
+  const joined = (i, j) => adj.has(Math.min(i, j) + ',' + Math.max(i, j));
+  const pick = [];
+  const rec = (ci) => {
+    if (ci === k) return true;
+    for (let i = 0; i < G.nodes.length; i++) if (G.nodes[i].ci === ci && pick.every((p) => joined(p, i))) { pick.push(i); if (rec(ci + 1)) return true; pick.pop(); }
+    return false;
+  };
+  return rec(0) ? pick.slice() : null;
+}
+const litHTML = (l) => (l.neg ? `<span class="ov">${sub(l.v)}</span>` : sub(l.v));
+let F = null, assign = {};
+function renderSAT() {
+  const P = parseCNF($('#formula').value);
+  state.formula = $('#formula').value; save();
+  if (P.error) { $('#sat-read').innerHTML = `<span class="warn-text">${esc(P.error)}</span>`; $('#sat-vars').innerHTML = ''; $('#sat-clauses').innerHTML = ''; $('#clique').innerHTML = ''; F = null; return; }
+  F = P;
+  for (const v of F.vars) if (!(v in assign)) assign[v] = false;
+  $('#sat-read').innerHTML = `φ = ${F.clauses.map((c) => `(${c.map(litHTML).join(' ∨ ')})`).join(' ∧ ')} <span class="muted small-text">· ${F.vars.length} variable${F.vars.length === 1 ? '' : 's'}, ${F.clauses.length} clause${F.clauses.length === 1 ? '' : 's'}</span>`;
+  $('#sat-vars').innerHTML = F.vars.map((v) => `<button class="btn small vbtn${assign[v] ? ' on' : ''}" data-var="${esc(v)}" aria-pressed="${assign[v]}"><span>${sub(v)} = ${assign[v] ? '1' : '0'}</span></button>`).join('');
+  for (const b of $$('[data-var]')) b.addEventListener('click', () => { assign[b.dataset.var] = !assign[b.dataset.var]; renderSAT(); });
+  const ok = F.clauses.map((c) => c.some((l) => litTrue(l, assign)));
+  $('#sat-clauses').innerHTML = `<div class="clauses">${F.clauses.map((c, i) => `<span class="clause ${ok[i] ? 'cl-ok' : 'cl-bad'}">(${c.map((l) => `<span class="${litTrue(l, assign) ? 'lit-t' : ''}">${litHTML(l)}</span>`).join(' ∨ ')})</span>`).join('<span class="and">∧</span>')}</div>`
+    + (ok.every(Boolean)
+      ? '<div class="verdict ok"><span class="pill ok">✓ Satisfied</span><span>Every clause has a true literal. Checking took one pass over the formula: that is the polynomial-time verifier for SAT (a certificate is just the assignment).</span></div>'
+      : `<div class="verdict bad"><span class="pill bad">Not satisfied</span><span>${ok.filter((x) => !x).length} clause${ok.filter((x) => !x).length === 1 ? ' is' : 's are'} false under this assignment. Checking is easy; <b>finding</b> an assignment that works is the hard part.</span></div>`);
+  renderClique();
+}
+function renderClique() {
+  const box = $('#clique');
+  if (!F) { box.innerHTML = ''; return; }
+  const three = F.clauses.every((c) => c.length === 3);
+  if (!three) { box.innerHTML = '<p class="small-text muted">The reduction of Theorem 7.32 starts from a 3cnf-formula: every clause needs exactly three literals (repeats are fine, like (x<sub>1</sub> ∨ x<sub>1</sub> ∨ x<sub>2</sub>)).</p>'; return; }
+  if (F.clauses.length > 8) { box.innerHTML = '<p class="small-text muted">The graph is drawn for up to 8 clauses.</p>'; return; }
+  const G = cliqueGraph(F), k = F.clauses.length;
+  const satNow = satisfies(F, assign);
+  // with a satisfying assignment, one true literal per clause gives the clique
+  let clique = null, why = '';
+  if (satNow) { clique = F.clauses.map((c, ci) => G.nodes.findIndex((nd) => nd.ci === ci && litTrue(nd, assign))); why = 'From your assignment: in each clause, take one true literal. True literals never contradict each other, so all of them are joined: a k-clique.'; }
+  else if (showFound) { clique = findClique(G, k); why = clique ? 'A k-clique the search found. Setting its literals true satisfies every clause, so φ is satisfiable.' : `There is no ${k}-clique, so φ is not satisfiable.`; }
+  const set = new Set(clique || []);
+  const W = 600, H = 420, cx = W / 2, cy = H / 2 + 6, Rg = k === 2 ? 135 : 150;
+  const pos = G.nodes.map((nd) => {
+    const ang = -Math.PI / 2 + (2 * Math.PI * nd.ci) / k, gx = cx + Rg * Math.cos(ang), gy = cy + Rg * Math.sin(ang);
+    const tx = -Math.sin(ang), ty = Math.cos(ang), off = (nd.li - 1) * 46;
+    return { x: gx + tx * off, y: gy + ty * off, ang };
+  });
+  let svg = `<svg class="cgraph" viewBox="0 0 ${W} ${H}" role="img" aria-label="Graph for the clique reduction with ${G.nodes.length} nodes">`;
+  svg += G.edges.map(([i, j]) => `<line class="${set.has(i) && set.has(j) ? 'e-on' : 'e'}" x1="${pos[i].x}" y1="${pos[i].y}" x2="${pos[j].x}" y2="${pos[j].y}"/>`).join('');
+  F.clauses.forEach((c, ci) => { const ang = -Math.PI / 2 + (2 * Math.PI * ci) / k; svg += `<text class="glabel" x="${cx + (Rg + 52) * Math.cos(ang)}" y="${cy + (Rg + 52) * Math.sin(ang) + 4}" text-anchor="middle">clause ${ci + 1}</text>`; });
+  svg += G.nodes.map((nd, i) => `<g class="${set.has(i) ? 'n-on' : 'n'}"><circle cx="${pos[i].x}" cy="${pos[i].y}" r="17"/><text x="${pos[i].x}" y="${pos[i].y + 5}" text-anchor="middle">${nd.neg ? '¬' : ''}${esc(nd.v.replace(/_|\{|\}/g, ''))}</text></g>`).join('');
+  svg += '</svg>';
+  box.innerHTML = `<p class="small-text">Each clause becomes a group of three nodes, one per literal. Two nodes are joined unless they are in the same clause or are opposite literals (x and ¬x). φ is satisfiable exactly when the graph has a clique of size k = ${k}, the number of clauses.</p>
+    <div class="cgraph-wrap">${svg}</div>
+    <div class="row"><button class="btn small" id="clique-find">Search for a ${k}-clique</button><span class="small-text muted">${G.nodes.length} nodes, ${G.edges.length} edges: the graph is built in polynomial time.</span></div>
+    ${why ? `<p class="small-text">${why}</p>` : '<p class="small-text muted">Make the assignment above satisfy φ to see its clique, or search for one.</p>'}`;
+  $('#clique-find').addEventListener('click', () => { showFound = true; renderClique(); });
+  showFound = false;
+}
+let showFound = false;
+$('#formula').addEventListener('input', () => { clearTimeout(renderSAT.t); renderSAT.t = setTimeout(renderSAT, 250); });
+$('#sat-search').addEventListener('click', () => {
+  if (!F) return;
+  const out = $('#sat-search-out');
+  if (F.vars.length > 22) { out.innerHTML = `<span class="warn-text">${F.vars.length} variables means 2<sup>${F.vars.length}</sup> assignments: too many to try here.</span>`; return; }
+  const R = bruteSAT(F), total = Math.pow(2, F.vars.length);
+  if (R.A) { assign = R.A; renderSAT(); out.innerHTML = `<span class="pill ok">Found</span> after trying ${R.tried.toLocaleString()} of the ${total.toLocaleString()} assignments.`; }
+  else out.innerHTML = `<span class="pill bad">Unsatisfiable</span> All ${total.toLocaleString()} assignments fail. With n variables the search tries up to 2<sup>n</sup> assignments: exponential time.`;
+});
+$('#sat-sym').addEventListener('mousedown', (e) => { if (e.target.closest('[data-ins]')) e.preventDefault(); });
+$('#sat-sym').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ins]'); if (!b) return;
+  const ta = $('#formula'), s = ta.selectionStart, en = ta.selectionEnd, ins = b.dataset.ins;
+  ta.value = ta.value.slice(0, s) + ins + ta.value.slice(en); ta.focus(); ta.setSelectionRange(s + ins.length, s + ins.length); renderSAT();
+});
+const FORMULAS = {
+  sipser: '(x1 ∨ x1 ∨ x2) ∧ (¬x1 ∨ ¬x2 ∨ ¬x2) ∧ (¬x1 ∨ x2 ∨ x2)',
+  unsat: '(x ∨ x ∨ y) ∧ (x ∨ x ∨ ¬y) ∧ (¬x ∨ ¬x ∨ y) ∧ (¬x ∨ ¬x ∨ ¬y)',
+  four: '(a ∨ b ∨ c) ∧ (¬a ∨ ¬b ∨ c) ∧ (a ∨ ¬b ∨ ¬c) ∧ (¬a ∨ b ∨ ¬c)',
+};
+$('#sat-examples').addEventListener('change', (e) => { const f = FORMULAS[e.target.value]; e.target.value = ''; if (!f) return; $('#formula').value = f; assign = {}; $('#sat-search-out').innerHTML = ''; renderSAT(); });
+
+/* ---------------- tabs, theme, start ---------------- */
+function showTab(name) {
+  state.tab = name; save();
+  for (const t of $$('.dtab')) { const on = t.dataset.tab === name; t.setAttribute('aria-selected', String(on)); $('#' + t.getAttribute('aria-controls')).hidden = !on; }
+  try { history.replaceState(null, '', '#' + name); } catch (e) { /* file:// */ }
+  if (name === 'growth') renderGrowth(); else if (name === 'steps') renderSteps();
+}
+for (const t of $$('.dtab')) t.addEventListener('click', () => showTab(t.dataset.tab));
+const THEMES = ['system', 'light', 'dark'];
+let theme = store.get(THEME_KEY) || 'system';
+function applyTheme() {
+  if (theme === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', theme);
+  $('#btn-theme').title = 'Theme: ' + (theme === 'system' ? 'follows your system' : theme);
+}
+$('#btn-theme').addEventListener('click', () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; store.set(THEME_KEY, theme); applyTheme(); toast('Theme: ' + (theme === 'system' ? 'same as your system' : theme)); showTab(state.tab); });
+$('#btn-help').addEventListener('click', () => $('#how-to').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+let rz = 0;
+window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (state.tab === 'growth') renderGrowth(); else if (state.tab === 'steps') renderSteps(); }, 150); });
+if (window.matchMedia) { try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => showTab(state.tab)); } catch (e) { /* old browsers */ } }
+
+applyTheme();
+try { const s = JSON.parse(store.get(KEY) || 'null'); if (s && typeof s === 'object') state = { ...state, ...s }; } catch (e) { /* ignore */ }
+if (!MACHINES[state.machine] && state.machine !== 'mine') state.machine = 'zeroone';
+$('#formula').value = state.formula || FORMULAS.sipser;
+renderSAT();
+const hash = (location.hash || '').slice(1);
+showTab(['growth', 'steps', 'np'].includes(hash) ? hash : ['growth', 'steps', 'np'].includes(state.tab) ? state.tab : 'growth');
+window.DeltaDrawComplexity = { FNS, duration, buildTM, runTM, measure, MACHINES, parseCNF, satisfies, bruteSAT, cliqueGraph, findClique };
+})();
+</script>
+</body>
+</html>

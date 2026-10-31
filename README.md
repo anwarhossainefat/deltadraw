@@ -15,11 +15,11 @@ DeltaDraw is a free, browser-based companion for a Theory of Computation course.
 | `cfg.html` | Ch 2.1: context-free grammars (parse trees, CNF, CYK) | Live |
 | `pda.html` | Ch 2.2: pushdown automata (draw, run with the stack, grammar → PDA) | Live |
 | `tm.html` | Ch 3.1: Turing machines (run on the tape, configurations, formal definition) | Live |
+| `complexity.html` | Ch 7: growth rates, measured running times, SAT and the 3SAT → CLIQUE reduction | Live |
 | `decide.html` | Ch 4.1, 4.2, 5.2: deciders, diagonalization, the A_TM proof, PCP puzzle | Live |
 | `practice.html` | Chapter 1 practice exercises with exact checking | Live |
 | Practice tabs | Chapters 2–3 practice inside `cfg.html` (13), `pda.html` (8) and `tm.html` (7) | Live |
 | `exam.html` | Exam mode (drawing only, for proctored exams) | Live |
-| `complexity.html` | Chapter 7 | Planned |
 
 ## Pumping lemma (`pumping.html`)
 
@@ -56,6 +56,14 @@ A proof game for the pumping lemma for regular languages (Sipser, Theorem 1.70) 
 - Nondeterministic machines are explored branch by branch, and an accepting branch is shown.
 - **Definition:** the 7-tuple with δ as a table (copy as Markdown or LaTeX).
 - Examples: Sipser 3.7 (0 repeated 2ⁿ times), 3.9 (w#w) and a 0ⁿ1ⁿ decider. Export PNG, SVG, LaTeX (TikZ) or JFLAP.
+
+## Time complexity (`complexity.html`)
+
+Three tabs (open `complexity.html#growth`, `#steps` or `#np` directly):
+
+- **Growth rates (7.1):** n, n log n, n², n³, 2ⁿ and n! on one chart, with a log-scale option and hover values, and a table of how long each takes at a billion steps per second. Big-O, small-o and P as Sipser defines them.
+- **Counting steps (7.1):** runs a Turing machine on every input of each length and plots the worst-case number of steps (Definition 7.1), with a reference curve c·n, c·n log n or c·n² that bounds it. Use the built-in machines or your own drawing from the Turing machines page.
+- **P, NP and SAT (7.2–7.4):** type a CNF formula, flip variables to check an assignment (the polynomial-time verifier), or search all 2ⁿ assignments. For a 3cnf formula, the graph of Theorem 7.32 is drawn; a satisfying assignment lights up a k-clique.
 
 ## Decidability (`decide.html`)
 
