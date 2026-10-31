@@ -276,6 +276,17 @@ details.batch[open] summary{margin-bottom:8px}
 .ttable td.state{text-align:left}
 .ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
 
+/* ---------- Turing machines ---------- */
+.tm-tape{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
+.tm-tape .cell{position:relative;min-width:28px;text-align:center}
+.tm-tape .cell.blank{color:var(--muted)}
+.tm-tape .cell.head{background:var(--hl-soft);border-color:var(--hl);box-shadow:inset 0 0 0 1px var(--hl)}
+.tm-tape .cell.head::before{content:"▼";position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--hl)}
+.tm-trace{margin:0;padding-left:28px;display:grid;gap:2px;font:15px/1.5 var(--font-math);max-height:280px;overflow:auto}
+.tm-trace li.cur{background:var(--hl-soft);border-radius:4px}
+.tm-trace .st{font-style:italic;color:var(--accent);margin:0 3px}
+.cfg-line{font:16px var(--font-math)}
+.cfg-line .st{font-style:italic;color:var(--accent);margin:0 3px}
 /* ---------- Pushdown automata ---------- */
 .pda-run{display:flex;gap:14px;align-items:flex-start}
 .pda-run .sim-lines{display:grid;gap:6px;min-width:0;flex:1}
@@ -434,7 +445,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 }
 </style>
 
-<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item active" aria-current="page" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><a class="nav-item" href="pda.html"><span class="nav-ch">Ch 2</span>Pushdown automata</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 3</span>Turing machines</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
+<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item active" aria-current="page" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><a class="nav-item" href="pda.html"><span class="nav-ch">Ch 2</span>Pushdown automata</a><a class="nav-item" href="tm.html"><span class="nav-ch">Ch 3</span>Turing machines</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
 <div class="cfg-app" data-page="cfg">
   <header class="topbar">
     <div class="brand">

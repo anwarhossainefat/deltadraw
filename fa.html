@@ -276,6 +276,17 @@ details.batch[open] summary{margin-bottom:8px}
 .ttable td.state{text-align:left}
 .ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
 
+/* ---------- Turing machines ---------- */
+.tm-tape{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
+.tm-tape .cell{position:relative;min-width:28px;text-align:center}
+.tm-tape .cell.blank{color:var(--muted)}
+.tm-tape .cell.head{background:var(--hl-soft);border-color:var(--hl);box-shadow:inset 0 0 0 1px var(--hl)}
+.tm-tape .cell.head::before{content:"▼";position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--hl)}
+.tm-trace{margin:0;padding-left:28px;display:grid;gap:2px;font:15px/1.5 var(--font-math);max-height:280px;overflow:auto}
+.tm-trace li.cur{background:var(--hl-soft);border-radius:4px}
+.tm-trace .st{font-style:italic;color:var(--accent);margin:0 3px}
+.cfg-line{font:16px var(--font-math)}
+.cfg-line .st{font-style:italic;color:var(--accent);margin:0 3px}
 /* ---------- Pushdown automata ---------- */
 .pda-run{display:flex;gap:14px;align-items:flex-start}
 .pda-run .sim-lines{display:grid;gap:6px;min-width:0;flex:1}
@@ -360,7 +371,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 </style>
 
 <div class="app" id="app">
-<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item active" aria-current="page" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><a class="nav-item" href="pda.html"><span class="nav-ch">Ch 2</span>Pushdown automata</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 3</span>Turing machines</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
+<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item active" aria-current="page" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><a class="nav-item" href="pda.html"><span class="nav-ch">Ch 2</span>Pushdown automata</a><a class="nav-item" href="tm.html"><span class="nav-ch">Ch 3</span>Turing machines</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
   <header class="topbar">
     <div class="brand">
       <span class="brand-delta" aria-hidden="true">δ</span>
@@ -800,7 +811,7 @@ const $$ = (s) => Array.from(document.querySelectorAll(s));
 const TAU = Math.PI * 2;
 const PAGE = 'fa';
 // each tool page keeps its own drawing; the theme is shared by all pages
-const STORE_KEY = PAGE === 'regex' ? 'deltadraw:regex:v1' : PAGE === 'pda' ? 'deltadraw:pda:v1' : 'deltadraw:v2';
+const STORE_KEY = PAGE === 'regex' ? 'deltadraw:regex:v1' : PAGE === 'pda' ? 'deltadraw:pda:v1' : PAGE === 'tm' ? 'deltadraw:tm:v1' : 'deltadraw:v2';
 const THEME_KEY = 'deltadraw:theme';
 const VERSION = '1.7';
 const NODE_MIN_R = 26;
@@ -1676,6 +1687,8 @@ function updateSelectionPanel() {
     ? 'Type q_0 for q₀. Click the canvas and type to rename quickly.'
     : isStart ? 'Drag the arrow tail to move it. Delete removes the initial state.'
     : 'Symbols separated by commas, e.g. a,b. Use ε for an empty move.';
+  if (PAGE === 'tm' && !isNode && !isStart) $('#sel-help').innerHTML = 'Rules like <span class="math">0→x,R</span> (read → write, move) or <span class="math">x→R</span>. Type <code>-&gt;</code> for the arrow and use ␣ for blank. Use “; new rule” to stack another rule on this arrow.';
+  if (PAGE === 'tm' && isNode) $('#sel-help').textContent = 'Name a state q_{accept} or q_{reject} to make it halt. Click the canvas and type to rename quickly.';
   if (PAGE === 'pda' && !isNode && !isStart) $('#sel-help').innerHTML = 'Rules like <span class="math">0,ε→0</span>: read, pop → push. Type <code>-&gt;</code> for the arrow. Use “; new rule” to stack another rule on this arrow.';
   if (isNode) {
     $('#sel-accept').checked = !!o.accept;
@@ -2938,6 +2951,7 @@ function resetSim(fromEdit) {
   if (!sim) return;
   sim = null;
   if (fromEdit) $('#sim-out').innerHTML = '';
+  for (const id of ['#sim-back', '#sim-step', '#sim-play']) { const b = $(id); if (b) b.disabled = false; }
   render();
 }
 function startSim() {
@@ -3099,7 +3113,9 @@ function updateExport() {
     $('#export-download').textContent = 'Download .tex';
   } else {
     $('#export-code').value = makeJFF();
-    note.textContent = PAGE === 'pda' ? 'Opens in JFLAP 7 as a pushdown automaton. JFLAP starts with Z on the stack (Sipser starts with an empty stack).' : 'Opens in JFLAP 7 as a finite automaton.';
+    note.textContent = PAGE === 'pda' ? 'Opens in JFLAP 7 as a pushdown automaton. JFLAP starts with Z on the stack (Sipser starts with an empty stack).'
+      : PAGE === 'tm' ? 'Opens in JFLAP 7 as a Turing machine. JFLAP’s tape is infinite in both directions, so a move left from the first cell behaves differently there.'
+      : 'Opens in JFLAP 7 as a finite automaton.';
     $('#export-download').textContent = 'Download .jff';
   }
 }
@@ -3111,7 +3127,7 @@ function downloadBlob(name, blob) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 function doExportDownload() {
-  const base = PAGE === 'pda' ? 'deltadraw-pda' : 'deltadraw-automaton';
+  const base = PAGE === 'pda' ? 'deltadraw-pda' : PAGE === 'tm' ? 'deltadraw-tm' : 'deltadraw-automaton';
   if (exportFmt === 'png') {
     const scale = Number(document.querySelector('input[name="png-scale"]:checked').value);
     const bg = document.querySelector('input[name="png-bg"]:checked').value;
@@ -3134,8 +3150,8 @@ $('#export-copy').addEventListener('click', () => copyText($('#export-code').val
 function saveShortcut() { saveFile(); }
 function saveFile() {
   const data = { app: 'DeltaDraw', version: 1, nodes: doc.nodes, links: doc.links, nextId: doc.nextId };
-  downloadBlob(PAGE === 'pda' ? 'deltadraw-pda.json' : 'deltadraw-automaton.json', new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
-  toast(PAGE === 'pda' ? 'Saved as deltadraw-pda.json' : 'Saved as deltadraw-automaton.json');
+  downloadBlob(PAGE === 'pda' ? 'deltadraw-pda.json' : PAGE === 'tm' ? 'deltadraw-tm.json' : 'deltadraw-automaton.json', new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  toast(PAGE === 'pda' ? 'Saved as deltadraw-pda.json' : PAGE === 'tm' ? 'Saved as deltadraw-tm.json' : 'Saved as deltadraw-automaton.json');
 }
 function parseJFF(text) {
   const xml = new DOMParser().parseFromString(text, 'application/xml');
@@ -3157,7 +3173,9 @@ function parseJFF(text) {
   for (const t of auto.querySelectorAll('transition')) {
     const from = idMap.get(t.querySelector('from').textContent.trim()), to = idMap.get(t.querySelector('to').textContent.trim());
     const txt = (tag) => { const e = t.querySelector(tag); return e && e.textContent.trim() ? e.textContent.trim() : 'ε'; };
-    const sym = t.querySelector('pop') || t.querySelector('push') ? `${txt('read')},${txt('pop')}→${txt('push')}` : txt('read');
+    const blank = (tag) => { const e = t.querySelector(tag); return e && e.textContent.trim() ? e.textContent.trim() : '␣'; };
+    const sym = t.querySelector('move') ? `${blank('read')}→${blank('write')},${txt('move')}`
+      : t.querySelector('pop') || t.querySelector('push') ? `${txt('read')},${txt('pop')}→${txt('push')}` : txt('read');
     const k = from + '>' + to;
     if (!pairs.has(k)) pairs.set(k, []);
     if (!pairs.get(k).includes(sym)) pairs.get(k).push(sym);
@@ -3384,6 +3402,7 @@ function pngReadText(png, keyword) {
 function isDocShape(d) {
   return !!d && Array.isArray(d.nodes) && Array.isArray(d.links) && d.nodes.every((n) => typeof n.id === 'number' && isFinite(n.x) && isFinite(n.y));
 }
+
 
 
 

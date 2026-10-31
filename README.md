@@ -13,9 +13,10 @@ DeltaDraw is a free, browser-based companion for a Theory of Computation course.
 | `regex.html` | Ch 1.3: regular expressions (regex ⇄ NFA, step by step) | Live |
 | `cfg.html` | Ch 2.1: context-free grammars (parse trees, CNF, CYK) | Live |
 | `pda.html` | Ch 2.2: pushdown automata (draw, run with the stack, grammar → PDA) | Live |
+| `tm.html` | Ch 3.1: Turing machines (run on the tape, configurations, formal definition) | Live |
 | `practice.html` | Chapter 1 practice exercises with exact checking | Live |
 | `exam.html` | Exam mode (drawing only, for proctored exams) | Live |
-| `tm.html`, `decide.html`, `complexity.html` | Later chapters | Planned |
+| `decide.html`, `complexity.html` | Later chapters | Planned |
 
 ## Context-free grammars (`cfg.html`)
 
@@ -34,6 +35,15 @@ DeltaDraw is a free, browser-based companion for a Theory of Computation course.
 - **Definition:** the 6-tuple (Q, Σ, Γ, δ, q₀, F) with δ as a table; copy it as Markdown or LaTeX.
 - **From grammar:** Sipser's construction (Lemma 2.21) builds a 3-state PDA from any context-free grammar.
 - Examples from Sipser (2.14, 2.16, 2.18) and balanced parentheses. Export PNG, SVG, LaTeX (TikZ) or JFLAP; JFLAP `.jff` PDAs can be opened too (JFLAP starts with Z on the stack, DeltaDraw with an empty stack).
+
+## Turing machines (`tm.html`)
+
+- Draw a Turing machine with Sipser's labels: `0→x,R` reads 0, writes x and moves right; `x→R` leaves the symbol as it is; `0,1,x→L` covers several symbols. Use `␣` for blank, `L`/`R` (and `S` to stay, a common variant). Several rules on one arrow are separated by `;`.
+- States named `q_accept` / `q_reject` (or drawn as accepting) halt. As in Sipser's diagrams, a missing rule means the machine rejects. The tape is infinite to the right; moving left from the first cell leaves the head in place.
+- **Run:** step, play or run to the end, with the tape and head, the rule in use highlighted on the arrow, and Sipser's configurations `u q v` for every step (the trace for Example 3.7 on 0000 matches the book). A machine that repeats a configuration is reported as looping forever; otherwise the run stops at a step limit you choose.
+- Nondeterministic machines are explored branch by branch, and an accepting branch is shown.
+- **Definition:** the 7-tuple with δ as a table (copy as Markdown or LaTeX).
+- Examples: Sipser 3.7 (0 repeated 2ⁿ times), 3.9 (w#w) and a 0ⁿ1ⁿ decider. Export PNG, SVG, LaTeX (TikZ) or JFLAP.
 
 ## Practice (`practice.html`)
 
