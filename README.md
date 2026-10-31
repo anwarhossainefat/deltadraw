@@ -31,6 +31,14 @@ DeltaDraw is a free, browser-based tool for drawing finite automata (DFA, NFA an
 | Delete | `Delete` key or the trash button |
 | Undo / redo | `Ctrl+Z` / `Ctrl+Shift+Z` |
 
+## Exam mode
+
+**https://anwarhossainefat.github.io/deltadraw/exam.html** is a drawing-only version for online exams (for example in a Canvas quiz proctored with Honorlock). It doesn't include string testing, NFA → DFA conversion, minimization, the transition table, the DFA/NFA checker, examples or file opening; that code isn't part of the page at all.
+
+- Each question number keeps its own drawing (auto-saved in the browser).
+- **Download answer** saves a PNG named `DeltaDraw_Q<number>_<Name>.png` with the student's name, question number and time printed at the top. Students upload it to the matching Canvas question.
+- The PNG also carries the drawing data, so a grader can open it in the full DeltaDraw (**Open** → choose the PNG) to inspect the exact automaton.
+
 ## Run it yourself
 
 DeltaDraw is one self-contained `index.html` file. Download it and double-click to open it in any modern browser, or host it on GitHub Pages.

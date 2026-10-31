@@ -321,7 +321,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <button class="btn" id="btn-new" title="Start a new empty drawing">New</button>
         <button class="btn" id="btn-open" title="Open a saved DeltaDraw (.json) or JFLAP (.jff) file">Open</button>
         <button class="btn" id="btn-save" title="Save the drawing as a file (Ctrl+S)">Save</button>
-        <input type="file" id="file-input" accept=".json,.jff,.xml,application/json" hidden>
+        <input type="file" id="file-input" accept=".json,.jff,.xml,.png,application/json,image/png" hidden>
       </div>
 
       <span class="spacer"></span>
@@ -384,6 +384,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
             <button class="btn" data-ins="∅" title="Empty set">∅</button>
             <button class="btn" data-ins="Σ" title="Sigma">Σ</button>
             <button class="btn" data-ins="δ" title="Delta">δ</button>
+            <button class="btn" data-ins="→" title="Arrow, for PDA and Turing machine labels like a,b→c">→</button>
             <button class="btn plain" data-ins="_" title="Subscript: q_1 becomes q₁">x₁</button>
           </div>
           <p class="small-text muted" id="sel-help"></p>
@@ -534,7 +535,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
   </div>
 
   <footer class="foot">
-    <span>DeltaDraw · finite automata drawer</span>
+    <span>DeltaDraw v1.1 · finite automata drawer</span>
     <a href="https://github.com/anwarhossainefat/deltadraw" rel="noopener" target="_blank">Source on GitHub</a>
   </footer>
 </section>
@@ -589,14 +590,19 @@ const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 const TAU = Math.PI * 2;
 const STORE_KEY = 'deltadraw:v2';
+const VERSION = '1.1';
 const NODE_MIN_R = 26;
 const GRID = 20;
+let sim = null; // active string simulation (full version only)
 
 /* ---------------- Storage (wrapped: may be unavailable) ---------------- */
 const store = {
   get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
   set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
 };
+function persist() {
+  store.set(STORE_KEY, JSON.stringify({ doc: { nodes: doc.nodes, links: doc.links, nextId: doc.nextId }, settings }));
+}
 
 /* ---------------- Settings ---------------- */
 const settings = { theme: 'system', labelStyle: 'math', colorStates: true };
@@ -1092,7 +1098,7 @@ function undo() { if (commitTimer) commit(); if (history.idx > 0) { history.idx-
 function redo() { if (history.idx < history.stack.length - 1) { history.idx++; restore(history.stack[history.idx]); } }
 function docChanged() {
   measureCache.size > 2000 && measureCache.clear();
-  store.set(STORE_KEY, JSON.stringify({ doc: { nodes: doc.nodes, links: doc.links, nextId: doc.nextId }, settings }));
+  persist();
   resetSim(true);
   updateMachineInfo();
   updateTable();
@@ -1340,7 +1346,7 @@ function isTyping(el) { return el && (el.tagName === 'INPUT' || el.tagName === '
 document.addEventListener('keydown', (e) => {
   const mod = e.ctrlKey || e.metaKey;
   if (!$('#export-modal').hidden) { if (e.key === 'Escape') closeExport(); return; }
-  if (mod && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveFile(); return; }
+  if (mod && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveShortcut(); return; }
   if (isTyping(e.target)) {
     // In the label box, Ctrl+Z / Ctrl+Y act on the drawing (label edits are part of the drawing's history)
     if (e.target.id === 'sel-label' && mod && /^[zZyY]$/.test(e.key)) {
@@ -1795,7 +1801,7 @@ $('#table-copy').addEventListener('click', () => copyText(tableMarkdown(), 'Tabl
 $('#table-copy-tex').addEventListener('click', () => copyText(tableLaTeX(), 'Table copied as LaTeX.'));
 
 /* ---------------- Simulation UI ---------------- */
-let sim = null; // {A, tokens, steps, idx, accepted, bad}
+// sim: {A, tokens, steps, idx, accepted, bad}
 function resetSim(fromEdit) {
   if (!sim) return;
   sim = null;
@@ -1992,6 +1998,7 @@ $('#export-download').addEventListener('click', doExportDownload);
 $('#export-copy').addEventListener('click', () => copyText($('#export-code').value, 'Copied to clipboard.'));
 
 /* ---------------- Save / open files ---------------- */
+function saveShortcut() { saveFile(); }
 function saveFile() {
   const data = { app: 'DeltaDraw', version: 1, nodes: doc.nodes, links: doc.links, nextId: doc.nextId };
   downloadBlob('deltadraw-automaton.json', new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
@@ -2037,6 +2044,25 @@ $('#file-input').addEventListener('change', (e) => {
   const f = e.target.files && e.target.files[0];
   e.target.value = '';
   if (!f) return;
+  if (/\.png$/i.test(f.name) || f.type === 'image/png') {
+    // An answer image from exam mode (or an export) carries its drawing inside the PNG
+    const rb = new FileReader();
+    rb.onload = () => {
+      try {
+        const raw = pngReadText(new Uint8Array(rb.result), 'DeltaDraw');
+        if (!raw) throw new Error('none');
+        const d = JSON.parse(b64decodeUTF8(raw));
+        if (!isDocShape(d)) throw new Error('invalid');
+        loadDoc(d);
+        const who = d.name ? `${d.name}, ` : '';
+        toast(d.mode === 'exam' ? `Opened answer: ${who}Question ${d.question}` : `Opened ${f.name}`, 'Undo', undo);
+      } catch (err) {
+        toast('This PNG has no DeltaDraw drawing inside. Only images downloaded from DeltaDraw can be opened.');
+      }
+    };
+    rb.readAsArrayBuffer(f);
+    return;
+  }
   const rd = new FileReader();
   rd.onload = () => {
     try {
@@ -2092,6 +2118,7 @@ $('#examples').addEventListener('change', (e) => {
   toast('Example loaded.', 'Undo', undo);
 });
 
+
 /* ---------------- Tool & misc buttons ---------------- */
 for (const b of $$('[data-tool]')) b.addEventListener('click', () => setTool(b.dataset.tool));
 $('#btn-undo').addEventListener('click', undo);
@@ -2110,7 +2137,7 @@ $('#welcome-add').addEventListener('click', () => {
 $('#welcome-example').addEventListener('click', () => { loadDoc(EXAMPLES.ends01()); toast('Example loaded. Press New to clear it.', 'Undo', undo); });
 $('#opt-color').addEventListener('change', (e) => {
   settings.colorStates = e.target.checked;
-  store.set(STORE_KEY, JSON.stringify({ doc: { nodes: doc.nodes, links: doc.links, nextId: doc.nextId }, settings }));
+  persist();
   render();
 });
 
@@ -2127,7 +2154,7 @@ function applyTheme() {
 $('#btn-theme').addEventListener('click', () => {
   settings.theme = THEMES[(THEMES.indexOf(settings.theme) + 1) % THEMES.length];
   applyTheme();
-  store.set(STORE_KEY, JSON.stringify({ doc: { nodes: doc.nodes, links: doc.links, nextId: doc.nextId }, settings }));
+  persist();
   toast('Theme: ' + (settings.theme === 'system' ? 'same as your system' : settings.theme));
 });
 try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readPalette(); render(); }); } catch (e) { /* old browsers */ }
@@ -2162,6 +2189,65 @@ function copyText(text, msg) {
   } catch (e) { fallback(); }
 }
 
+/* ---------------- PNG metadata: the drawing travels inside the image ---------------- */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+function b64encodeUTF8(s) {
+  const bytes = new TextEncoder().encode(s);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+function b64decodeUTF8(b) {
+  const bin = atob(b), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+function pngAddText(png, keyword, text) {
+  const enc = (s) => Uint8Array.from(s, (c) => c.charCodeAt(0) & 0xff);
+  const kw = enc(keyword), tx = enc(text);
+  const body = new Uint8Array(4 + kw.length + 1 + tx.length); // chunk type + data
+  body.set(enc('tEXt'), 0); body.set(kw, 4); body[4 + kw.length] = 0; body.set(tx, 5 + kw.length);
+  const chunk = new Uint8Array(body.length + 8);
+  const dv = new DataView(chunk.buffer);
+  dv.setUint32(0, body.length - 4);
+  chunk.set(body, 4);
+  dv.setUint32(4 + body.length, crc32(body));
+  const iend = png.length - 12; // IEND is always the last 12 bytes
+  const out = new Uint8Array(png.length + chunk.length);
+  out.set(png.subarray(0, iend), 0); out.set(chunk, iend); out.set(png.subarray(iend), iend + chunk.length);
+  return out;
+}
+function pngReadText(png, keyword) {
+  if (png.length < 20 || png[1] !== 0x50 || png[2] !== 0x4e || png[3] !== 0x47) return null;
+  const dv = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  let p = 8;
+  while (p + 8 <= png.length) {
+    const len = dv.getUint32(p);
+    const type = String.fromCharCode(png[p + 4], png[p + 5], png[p + 6], png[p + 7]);
+    if (type === 'tEXt') {
+      const d = png.subarray(p + 8, p + 8 + len), z = d.indexOf(0);
+      let kw = ''; for (let i = 0; i < z; i++) kw += String.fromCharCode(d[i]);
+      if (kw === keyword) { let s = ''; for (let i = z + 1; i < d.length; i++) s += String.fromCharCode(d[i]); return s; }
+    }
+    if (type === 'IEND') break;
+    p += 12 + len;
+  }
+  return null;
+}
+function isDocShape(d) {
+  return !!d && Array.isArray(d.nodes) && Array.isArray(d.links) && d.nodes.every((n) => typeof n.id === 'number' && isFinite(n.x) && isFinite(n.y));
+}
+
+
 /* ---------------- Startup ---------------- */
 function init() {
   readPalette();
@@ -2181,7 +2267,10 @@ function init() {
   // redraw once the label fonts arrive (canvas text needs them loaded)
   if (document.fonts && document.fonts.load) {
     Promise.all([document.fonts.load('italic 20px "STIX Two Text"'), document.fonts.load('italic 14px "STIX Two Text"')])
-      .then(() => { measureCache.clear(); fitView(); updateMachineInfo(); })
+      .then(() => {
+        measureCache.clear(); fitView();
+        updateMachineInfo();
+      })
       .catch(() => {});
   }
   window.DeltaDraw = { get doc() { return doc; }, buildAutomaton, runSim, tokenize, determinize, minimizeDFA, makeSVG, makeTikZ, makeJFF, makePNG, loadDoc, EXAMPLES };

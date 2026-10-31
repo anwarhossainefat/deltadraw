@@ -1,0 +1,1660 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DeltaDraw Exam Mode</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#2a55c9">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a55c9'/%3E%3Ctext x='32' y='45' font-family='Times New Roman,serif' font-style='italic' font-size='42' text-anchor='middle' fill='white'%3E%CE%B4%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,500;1,400;1,500&display=swap">
+</head>
+<body>
+<style>
+/* Layout: toolbar band on top, drawing stage left, inspector panel right (stacks under the stage on phones); about/how-to text below the fold */
+:root{
+  --bg:#f2f4f8;
+  --surface:#ffffff;
+  --surface-2:#eef1f6;
+  --ink:#151922;
+  --muted:#5a6375;
+  --line:#d7dce5;
+  --accent:#2a55c9;
+  --accent-ink:#ffffff;
+  --accent-soft:#e3eafb;
+  --hl:#c27400;
+  --hl-soft:#ffefcc;
+  --ok:#1a7a45;
+  --ok-soft:#dff2e6;
+  --bad:#b8321f;
+  --bad-soft:#fbe4e0;
+  --stage:#fbfcfe;
+  --grid:#c9d1de;
+  --start-fill:#d4e1ff;
+  --accept-fill:#cdeedb;
+  --shadow:0 10px 30px rgba(20,28,45,.14);
+  --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --font-math:"STIX Two Text","Times New Roman",Times,serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1117; --surface:#161a22; --surface-2:#1d222c; --ink:#e5e8ee; --muted:#97a0b0; --line:#2b313d;
+    --accent:#86a6ff; --accent-ink:#0e1117; --accent-soft:#1f2944;
+    --hl:#f2a93b; --hl-soft:#3b2d12; --ok:#55c98a; --ok-soft:#163323; --bad:#ff8173; --bad-soft:#3d1c18;
+    --stage:#11151c; --grid:#2a313d; --shadow:0 10px 30px rgba(0,0,0,.5);
+    --start-fill:#1e2a47; --accept-fill:#173322;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1117; --surface:#161a22; --surface-2:#1d222c; --ink:#e5e8ee; --muted:#97a0b0; --line:#2b313d;
+  --accent:#86a6ff; --accent-ink:#0e1117; --accent-soft:#1f2944;
+  --hl:#f2a93b; --hl-soft:#3b2d12; --ok:#55c98a; --ok-soft:#163323; --bad:#ff8173; --bad-soft:#3d1c18;
+  --stage:#11151c; --grid:#2a313d; --shadow:0 10px 30px rgba(0,0,0,.5);
+  --start-fill:#1e2a47; --accept-fill:#173322;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--font-ui);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- App shell ---------- */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:560px}
+.topbar{
+  display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap;
+  padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--surface);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;margin-right:6px}
+.brand-delta{
+  width:34px;height:34px;border-radius:8px;display:grid;place-items:center;
+  background:var(--accent);color:var(--accent-ink);
+  font:italic 500 24px/1 var(--font-math);padding-bottom:3px;
+}
+.brand-text{display:grid;line-height:1.1}
+.brand-name{margin:0;font:600 17px/1.1 var(--font-ui);letter-spacing:-.01em}
+.brand-sub{margin:0;font-size:11.5px;color:var(--muted)}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1}
+.toolbar .spacer{flex:1}
+.group{display:inline-flex;gap:4px}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:34px;padding:0 11px;border:1px solid var(--line);border-radius:7px;
+  background:var(--surface);color:var(--ink);font:500 13px/1 var(--font-ui);cursor:pointer;white-space:nowrap;
+}
+.btn:hover{background:var(--surface-2)}
+.btn:disabled{opacity:.42;cursor:default;background:var(--surface)}
+.btn svg{width:16px;height:16px;flex:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad)}
+.btn.small{height:28px;padding:0 9px;font-size:12px}
+.btn.icon{width:34px;padding:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg .btn{border:0;border-radius:0;height:32px}
+.seg .btn+.btn{border-left:1px solid var(--line)}
+.seg .btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.select{height:34px;border:1px solid var(--line);border-radius:7px;background:var(--surface);padding:0 8px;font:500 13px var(--font-ui);cursor:pointer}
+
+.workspace{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px}
+.stage{position:relative;overflow:hidden;background:var(--stage);min-height:0}
+#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;outline:none}
+.hint{
+  position:absolute;left:12px;bottom:12px;max-width:calc(100% - 210px);
+  font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);
+  border-radius:7px;padding:6px 10px;pointer-events:none;
+}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;align-items:center}
+.welcome{position:absolute;inset:0;display:grid;place-items:center;padding:16px 16px 80px;pointer-events:none}
+.welcome-card{pointer-events:auto;text-align:center;display:grid;justify-items:center;gap:10px;max-width:360px;padding:26px 24px;border:1.5px dashed var(--line);border-radius:14px;background:var(--surface)}
+.welcome-card h2{margin:4px 0 0;font:500 24px/1.2 var(--font-math)}
+.welcome-card p{margin:0;color:var(--muted);font-size:14px}
+.welcome-card .row{justify-content:center;margin-top:6px}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--ink);vertical-align:-1px;margin:0 2px}
+.swatch.start{background:var(--start-fill)}
+.swatch.accept{background:var(--accept-fill)}
+.zoom .btn{height:30px;min-width:30px;padding:0 8px;font-variant-numeric:tabular-nums}
+.zoom-level{min-width:54px}
+
+/* ---------- Inspector panel ---------- */
+.panel{background:var(--surface);border-left:1px solid var(--line);overflow:auto;display:flex;flex-direction:column;min-height:0}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line);display:grid;gap:10px}
+.sec-title{margin:0;font:600 11px/1 var(--font-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.small-text{font-size:12.5px;margin:0}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.field{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+.input,textarea.input{
+  width:100%;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);color:var(--ink);
+  padding:7px 10px;font:15px/1.35 var(--font-mono);
+}
+.input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+textarea.input{resize:vertical;font-size:14px}
+.checks{display:grid;gap:6px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer}
+.check input{width:16px;height:16px;accent-color:var(--accent);margin:0}
+.symbols{display:flex;gap:4px;flex-wrap:wrap}
+.symbols .btn{height:26px;min-width:30px;padding:0 7px;font:italic 15px/1 var(--font-math)}
+.symbols .btn.plain{font:500 11.5px/1 var(--font-ui)}
+
+.machine-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.type-badge{font:600 12px/1 var(--font-mono);padding:5px 9px;border-radius:999px;letter-spacing:.04em}
+.type-badge.dfa{background:var(--ok-soft);color:var(--ok)}
+.type-badge.nfa{background:var(--accent-soft);color:var(--accent)}
+.type-badge.none{background:var(--surface-2);color:var(--muted)}
+.sigma{font:15px var(--font-math);margin:0}
+.notes{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12.5px;color:var(--muted)}
+.notes li.warn{color:var(--bad)}
+
+.tabs{display:flex;border-bottom:1px solid var(--line);padding:0 8px;position:sticky;top:0;background:var(--surface);z-index:1}
+.tab{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:11px 6px 9px;font:500 13px var(--font-ui);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabpanel{padding:14px 16px 20px;display:grid;gap:12px;align-content:start}
+
+.tape{display:flex;flex-wrap:wrap;gap:3px;font:14px var(--font-mono)}
+.cell{min-width:24px;height:28px;padding:0 5px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;background:var(--surface-2)}
+.cell.done{color:var(--muted);opacity:.7}
+.cell.cur{border-color:var(--hl);background:var(--hl-soft);color:var(--ink);font-weight:500}
+.cell.eps{font-family:var(--font-math);font-style:italic}
+.sim-out{display:grid;gap:8px}
+.sim-line{font-size:13px}
+.math{font-family:var(--font-math);font-size:15px}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--font-ui);padding:6px 10px;border-radius:999px}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.run{background:var(--hl-soft);color:var(--hl)}
+details.batch{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+details.batch summary{cursor:pointer;font-weight:500;font-size:13px}
+details.batch[open] summary{margin-bottom:8px}
+.batch-body{display:grid;gap:8px}
+.batch-out{list-style:none;margin:0;padding:0;display:grid;gap:4px;font:13px var(--font-mono)}
+.batch-out li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:3px 0}
+.batch-out .ok{color:var(--ok)} .batch-out .bad{color:var(--bad)}
+
+.conv-card{border:1px solid var(--line);border-radius:9px;padding:12px;display:grid;gap:8px}
+.conv-card h3{margin:0;font:600 14px var(--font-ui)}
+.conv-card p{margin:0;font-size:12.5px;color:var(--muted)}
+.result-note{font-size:12.5px;margin:0;padding:8px 10px;border-radius:7px;background:var(--surface-2)}
+
+.table-wrap{overflow-x:auto}
+.ttable{border-collapse:collapse;font:13px var(--font-mono);min-width:100%}
+.ttable th,.ttable td{border:1px solid var(--line);padding:5px 9px;text-align:center;white-space:nowrap}
+.ttable th{background:var(--surface-2);font-weight:500}
+.ttable .lbl{font-family:var(--font-math);font-style:italic;font-size:15px}
+.ttable td.state{text-align:left}
+.ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
+
+/* ---------- Modals & toast ---------- */
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(10,14,22,.5)}
+.dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(780px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;grid-template-rows:auto 1fr}
+.dialog-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.dialog-head h2{margin:0;font:600 16px var(--font-ui);flex:1}
+.dialog-body{padding:16px;display:grid;gap:14px;min-width:0}
+.preview{border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:46vh;display:grid;place-items:center;padding:12px;
+  background-color:#fff;background-image:linear-gradient(45deg,#e9ecf1 25%,transparent 25%),linear-gradient(-45deg,#e9ecf1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e9ecf1 75%),linear-gradient(-45deg,transparent 75%,#e9ecf1 75%);
+  background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+.preview img{max-width:100%;height:auto;display:block}
+.code{width:100%;min-height:220px;font:12.5px/1.45 var(--font-mono);border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);padding:10px;resize:vertical;white-space:pre}
+.opt-row{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:center;font-size:13px}
+.opt-row .label{color:var(--muted);font-size:12px}
+.radio{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.radio input{accent-color:var(--accent);margin:0}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;
+  display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--bg);border-radius:9px;padding:9px 12px 9px 14px;box-shadow:var(--shadow);font-size:13px;max-width:calc(100% - 32px)}
+.toast button{background:none;border:0;color:var(--bg);font-weight:600;text-decoration:underline;cursor:pointer;padding:2px 4px}
+
+/* ---------- About / how-to (below the app) ---------- */
+.about{max-width:1020px;margin:0 auto;padding-block:56px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+.about h2{margin:0 0 10px;font:500 30px/1.15 var(--font-math);text-wrap:balance;letter-spacing:-.005em}
+.about h3{margin:0 0 6px;font:600 15px var(--font-ui)}
+.about p,.about li{font-size:15px;line-height:1.6;max-width:68ch}
+.about p{margin:0 0 10px}
+.lead{font-size:17px!important;color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 32px}
+.cols>div{min-width:0}
+.about ol,.about ul{margin:0;padding-left:20px;display:grid;gap:6px}
+kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:var(--surface)}
+.syntax{border-collapse:collapse;font-size:14px;width:100%}
+.syntax td,.syntax th{border-bottom:1px solid var(--line);padding:7px 10px 7px 0;text-align:left;vertical-align:top}
+.syntax th{font:600 11px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.syntax code{font:13px var(--font-mono);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.syntax .out{font:italic 17px var(--font-math)}
+.faq dt{font-weight:600;margin-top:12px}
+.faq dd{margin:4px 0 0;color:var(--muted);max-width:68ch}
+.foot{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);display:flex;gap:8px 18px;flex-wrap:wrap}
+.foot a{color:var(--accent)}
+
+@media (max-width: 1020px){
+  .btn .lbl-wide{display:none}
+}
+@media (max-width: 860px){
+  .app{height:auto;min-height:0}
+  .workspace{grid-template-columns:1fr;grid-template-rows:64vh auto}
+  .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  .tabs{position:static}
+  .hint{max-width:calc(100% - 24px);bottom:52px}
+  .about h2{font-size:25px}
+}
+@media (max-width: 560px){
+  .topbar{gap:8px}
+  .brand-sub{display:none}
+  .toolbar{gap:6px}
+  .toolbar .spacer{display:none}
+  .btn{height:32px;padding:0 9px}
+  .btn.icon{width:32px}
+  .seg .btn{height:30px}
+  .select{height:32px;max-width:132px}
+  .hint{font-size:11.5px;padding:5px 8px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="app" id="app">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-delta" aria-hidden="true">δ</span>
+      <div class="brand-text">
+        <h1 class="brand-name">DeltaDraw</h1>
+        <p class="brand-sub">Exam mode · drawing only</p>
+      </div>
+    </div>
+
+    <div class="toolbar" role="toolbar" aria-label="Drawing tools">
+      <div class="seg" role="group" aria-label="Tool">
+        <button class="btn" id="tool-select" data-tool="select" aria-pressed="true" title="Select and move. Drag empty space to pan.">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"><path d="M3 2l9.5 5.2-4.2 1.1L6.6 12.5z"/></svg>
+          <span>Select</span>
+        </button>
+        <button class="btn" id="tool-state" data-tool="state" aria-pressed="false" title="Add states: click on the canvas">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/></svg>
+          <span>State</span>
+        </button>
+        <button class="btn" id="tool-link" data-tool="link" aria-pressed="false" title="Add transitions: drag from one state to another">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12C5 4 10 4 13.5 8.5"/><path d="M14 5v4h-4"/></svg>
+          <span>Transition</span>
+        </button>
+      </div>
+
+      <div class="group">
+        <button class="btn icon" id="btn-undo" title="Undo (Ctrl+Z)" aria-label="Undo">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 3.5L2.5 6.5l3 3"/><path d="M2.5 6.5H10a3.5 3.5 0 010 7H7"/></svg>
+        </button>
+        <button class="btn icon" id="btn-redo" title="Redo (Ctrl+Shift+Z)" aria-label="Redo">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 3.5l3 3-3 3"/><path d="M13.5 6.5H6a3.5 3.5 0 000 7h3"/></svg>
+        </button>
+        <button class="btn icon" id="btn-delete" title="Delete selected (Delete)" aria-label="Delete selected">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 4.5h11M6 4.5V3h4v1.5M4 4.5l.7 9h6.6l.7-9"/></svg>
+        </button>
+      </div>
+
+      <div class="group">
+        <label class="sr-only" for="exam-q">Question</label>
+        <select class="select" id="exam-q" title="Each question has its own drawing"></select>
+        <button class="btn" id="btn-clear-q" title="Erase the drawing for this question">Clear</button>
+      </div>
+
+      <span class="spacer"></span>
+
+      <div class="group">
+        <button class="btn icon" id="btn-theme" title="Theme: follows your system" aria-label="Change theme">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11" /><path d="M8 2.5a5.5 5.5 0 010 11z" fill="currentColor"/></svg>
+        </button>
+        <button class="btn icon" id="btn-help" title="How to use DeltaDraw" aria-label="How to use">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 113 1.4c-.7.4-1.3.8-1.3 1.6"/><circle cx="8" cy="11.4" r=".4" fill="currentColor"/></svg>
+        </button>
+        <button class="btn primary" id="btn-answer" title="Save this question's drawing as an image to upload to Canvas (Ctrl+S)">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2.5v8M4.8 7.5L8 10.7l3.2-3.2M3 13.5h10"/></svg>
+          Download answer
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <section class="stage" id="stage" aria-label="Drawing canvas">
+      <canvas id="canvas" tabindex="0" aria-label="Automaton drawing area"></canvas>
+      <div class="welcome" id="welcome" hidden>
+        <div class="welcome-card">
+          <span class="brand-delta" aria-hidden="true">δ</span>
+          <h2>Question <span id="welcome-q">1</span></h2>
+          <p id="welcome-tip">Double-click anywhere on the canvas to add your first state.</p>
+          <div class="row">
+            <button class="btn primary" id="welcome-add">Add a state</button>
+          </div>
+        </div>
+      </div>
+      <div class="hint" id="hint"></div>
+      <div class="zoom seg">
+        <button class="btn" id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
+        <button class="btn zoom-level" id="zoom-level" title="Reset zoom to 100%">100%</button>
+        <button class="btn" id="zoom-in" title="Zoom in" aria-label="Zoom in">+</button>
+        <button class="btn" id="zoom-fit" title="Fit drawing to screen">Fit</button>
+      </div>
+    </section>
+
+    <aside class="panel" aria-label="Inspector">
+      <section class="sec" id="exam-sec">
+        <h2 class="sec-title">Your answer</h2>
+        <label class="field" for="exam-name">Your full name
+          <input class="input" id="exam-name" type="text" autocomplete="name" spellcheck="false" placeholder="First and last name">
+        </label>
+        <p class="small-text">You are drawing <strong>Question <span id="ans-q">1</span></strong>. Pick another question from the menu at the top.</p>
+        <button class="btn primary" id="side-answer">Download answer for this question</button>
+        <p class="small-text muted">Exam mode is drawing only. String testing, conversion, tables and examples are not available.</p>
+        <label class="check"><input type="checkbox" id="opt-color" checked> Color states: <span class="swatch start" aria-hidden="true"></span> start, <span class="swatch accept" aria-hidden="true"></span> accepting</label>
+      </section>
+
+      <section class="sec" id="sel-sec">
+        <h2 class="sec-title" id="sel-title">Selection</h2>
+        <p class="small-text muted" id="sel-empty">Nothing selected. Click a state or an arrow to edit it.</p>
+        <div id="sel-edit" class="checks" hidden>
+          <label class="field" for="sel-label" id="sel-label-wrap">Label
+            <input class="input" id="sel-label" type="text" autocomplete="off" spellcheck="false">
+          </label>
+          <div class="symbols" id="sel-symbols" aria-label="Insert symbol">
+            <button class="btn" data-ins="ε" title="Epsilon (empty move)">ε</button>
+            <button class="btn" data-ins="λ" title="Lambda">λ</button>
+            <button class="btn" data-ins="∅" title="Empty set">∅</button>
+            <button class="btn" data-ins="Σ" title="Sigma">Σ</button>
+            <button class="btn" data-ins="δ" title="Delta">δ</button>
+            <button class="btn" data-ins="→" title="Arrow, for PDA and Turing machine labels like a,b→c">→</button>
+            <button class="btn plain" data-ins="_" title="Subscript: q_1 becomes q₁">x₁</button>
+          </div>
+          <p class="small-text muted" id="sel-help"></p>
+          <div class="checks" id="sel-node-opts">
+            <label class="check"><input type="checkbox" id="sel-accept"> Accepting state (double circle)</label>
+            <label class="check"><input type="checkbox" id="sel-initial"> Initial state (start arrow)</label>
+          </div>
+          <div class="row">
+            <button class="btn small" id="sel-straighten">Straighten arrow</button>
+            <button class="btn small danger" id="sel-del">Delete</button>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+  </main>
+</div>
+
+<section class="about" id="how-to">
+  <div>
+    <h2>How to answer in exam mode</h2>
+    <ol>
+      <li>Type your <strong>full name</strong> in the panel on the right.</li>
+      <li>Choose the <strong>question number</strong> from the menu at the top. Each question keeps its own drawing.</li>
+      <li>Draw your automaton. Double-click to add a state, hold <kbd>Shift</kbd> and drag between states to add a transition, and double-click a state to make it accepting.</li>
+      <li>Click <strong>Download answer</strong>. A PNG file named like <code>DeltaDraw_Q2_Your_Name.png</code> is saved to your Downloads folder.</li>
+      <li>In Canvas, upload that file to the <strong>matching question</strong>.</li>
+    </ol>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Labels</h3>
+      <table class="syntax">
+        <tbody>
+          <tr><td><code>q_0</code></td><td class="out">q<sub>0</sub></td></tr>
+          <tr><td><code>\epsilon</code></td><td class="out">ε</td></tr>
+          <tr><td><code>a,b\to c</code></td><td class="out">a,b→c</td></tr>
+          <tr><td><code>0\to x,R</code></td><td class="out">0→x,R</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Keyboard</h3>
+      <table class="syntax">
+        <tbody>
+          <tr><td><kbd>Shift</kbd> + drag</td><td>New transition</td></tr>
+          <tr><td><kbd>Delete</kbd></td><td>Delete selected</td></tr>
+          <tr><td><kbd>Ctrl</kbd> <kbd>Z</kbd></td><td>Undo</td></tr>
+          <tr><td><kbd>Ctrl</kbd> <kbd>S</kbd></td><td>Download answer</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Before the exam starts</h3>
+      <p class="small-text">Your drawings are kept in this browser, even if the page reloads. To start with empty questions, clear everything here.</p>
+      <p><button class="btn danger" id="btn-clear-all">Clear all questions</button></p>
+    </div>
+  </div>
+  <footer class="foot"><span>DeltaDraw exam mode v1.1</span></footer>
+</section>
+
+<div class="modal" id="export-modal" hidden>
+  <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="ans-title">
+    <div class="dialog-head">
+      <h2 id="ans-title">Download answer · Question <span id="ans-q2"></span></h2>
+      <button class="btn icon" id="export-close" aria-label="Close">✕</button>
+    </div>
+    <div class="dialog-body">
+      <label class="field" for="ans-name">Your full name (printed on the image)
+        <input class="input" id="ans-name" type="text" autocomplete="name" spellcheck="false" placeholder="First and last name">
+      </label>
+      <p class="small-text" id="ans-error" style="color:var(--bad)" hidden>Type your name before downloading.</p>
+      <p class="small-text" id="ans-empty" style="color:var(--bad)" hidden>This question has no drawing yet.</p>
+      <div class="preview"><img id="export-img" alt="Preview of your answer image"></div>
+      <div class="row">
+        <button class="btn primary" id="ans-download">Download answer</button>
+        <span class="small-text muted">Saves <strong id="ans-file"></strong>. Upload it to this question in Canvas.</span>
+      </div>
+      <p class="small-text muted">If the download does not start, right-click the image and choose “Save image as”.</p>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden></button></div>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   DeltaDraw — DFA & NFA drawer
+   ===================================================================== */
+
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const TAU = Math.PI * 2;
+const STORE_KEY = 'deltadraw:v2';
+const VERSION = '1.1';
+const NODE_MIN_R = 26;
+const GRID = 20;
+let sim = null; // active string simulation (full version only)
+
+/* ---------------- Storage (wrapped: may be unavailable) ---------------- */
+const store = {
+  get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
+};
+function persist() {
+  saveExam();
+}
+
+/* ---------------- Settings ---------------- */
+const settings = { theme: 'system', labelStyle: 'math', colorStates: true };
+
+/* ---------------- Document ---------------- */
+let doc = { nodes: [], links: [], nextId: 1 };
+const nodeMap = new Map();
+function reindex() { nodeMap.clear(); for (const n of doc.nodes) nodeMap.set(n.id, n); }
+const node = (id) => nodeMap.get(id);
+
+/* ---------------- Label text: symbols, sub/superscripts ---------------- */
+const SYMBOLS = {
+  alpha:'α',beta:'β',gamma:'γ',delta:'δ',epsilon:'ε',varepsilon:'ε',eps:'ε',zeta:'ζ',eta:'η',theta:'θ',iota:'ι',kappa:'κ',
+  lambda:'λ',mu:'μ',nu:'ν',xi:'ξ',pi:'π',rho:'ρ',sigma:'σ',tau:'τ',upsilon:'υ',phi:'φ',chi:'χ',psi:'ψ',omega:'ω',
+  Gamma:'Γ',Delta:'Δ',Theta:'Θ',Lambda:'Λ',Xi:'Ξ',Pi:'Π',Sigma:'Σ',Upsilon:'Υ',Phi:'Φ',Psi:'Ψ',Omega:'Ω',
+  emptyset:'∅',varnothing:'∅',to:'→',rightarrow:'→',cdot:'·',times:'×',cup:'∪',cap:'∩',square:'□',blank:'□',
+};
+const TEX_OF = { 'ε':'\\epsilon','∅':'\\emptyset','→':'\\to','·':'\\cdot','×':'\\times','∪':'\\cup','∩':'\\cap','□':'\\square' };
+for (const [k, v] of Object.entries(SYMBOLS)) if (!TEX_OF[v]) TEX_OF[v] = '\\' + k;
+
+function convertSymbols(t) {
+  return t.replace(/\\([A-Za-z]+)/g, (m, name) => {
+    if (SYMBOLS[name]) return SYMBOLS[name];
+    // allow "\epsilon" glued to following text, e.g. \epsilona -> longest known prefix
+    for (let i = name.length - 1; i > 1; i--) if (SYMBOLS[name.slice(0, i)]) return SYMBOLS[name.slice(0, i)] + name.slice(i);
+    return m;
+  });
+}
+
+// runs: [{t, k}] k: 0 normal, 1 subscript, 2 superscript
+function parseLabel(text) {
+  const t = convertSymbols(text || '');
+  const runs = [];
+  let buf = '';
+  for (let i = 0; i < t.length; i++) {
+    const ch = t[i];
+    if ((ch === '_' || ch === '^') && i + 1 < t.length) {
+      if (buf) { runs.push({ t: buf, k: 0 }); buf = ''; }
+      let part;
+      if (t[i + 1] === '{') {
+        const j = t.indexOf('}', i + 2);
+        if (j < 0) { part = t.slice(i + 2); i = t.length; } else { part = t.slice(i + 2, j); i = j; }
+      } else { part = t[i + 1]; i++; }
+      if (part) runs.push({ t: part, k: ch === '_' ? 1 : 2 });
+    } else buf += ch;
+  }
+  if (buf) runs.push({ t: buf, k: 0 });
+  return runs;
+}
+
+const SUB_DIGITS = { '0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉' };
+function plainLabel(text) {
+  return parseLabel(text).map((r) => {
+    if (r.k === 1) return /^[0-9]+$/.test(r.t) ? [...r.t].map((c) => SUB_DIGITS[c]).join('') : '_' + r.t;
+    if (r.k === 2) return '^' + r.t;
+    return r.t;
+  }).join('');
+}
+function escHTML(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function labelHTML(text) {
+  return parseLabel(text).map((r) => r.k === 1 ? `<sub>${escHTML(r.t)}</sub>` : r.k === 2 ? `<sup>${escHTML(r.t)}</sup>` : escHTML(r.t)).join('');
+}
+function texEscapeRun(s) {
+  let out = '';
+  for (const ch of s) {
+    if (TEX_OF[ch]) out += TEX_OF[ch] + ' ';
+    else if ('{}'.includes(ch)) out += '\\' + ch;
+    else if ('#$%&'.includes(ch)) out += '\\' + ch;
+    else if (ch === ' ') out += '\\ ';
+    else if (ch === '\\') out += '\\backslash ';
+    else if (ch === '~') out += '\\sim ';
+    else out += ch;
+  }
+  return out.replace(/ +$/, '');
+}
+function labelTeX(text) {
+  return parseLabel(text).map((r) => r.k === 1 ? `_{${texEscapeRun(r.t)}}` : r.k === 2 ? `^{${texEscapeRun(r.t)}}` : texEscapeRun(r.t)).join('');
+}
+
+/* ---------------- Fonts & measuring ---------------- */
+const FONT_SIZE = 20, SUB_SIZE = 14;
+function fontFor(k) {
+  const size = k ? SUB_SIZE : FONT_SIZE;
+  return settings.labelStyle === 'math'
+    ? `italic ${size}px "STIX Two Text", "Times New Roman", Times, serif`
+    : `${size}px "IBM Plex Sans", Arial, Helvetica, sans-serif`;
+}
+const measureCtx = document.createElement('canvas').getContext('2d');
+const measureCache = new Map();
+function measureLabel(text) {
+  const key = settings.labelStyle + '\u0000' + text;
+  let m = measureCache.get(key);
+  if (m) return m;
+  const runs = parseLabel(text);
+  let w = 0;
+  const parts = runs.map((r) => {
+    measureCtx.font = fontFor(r.k);
+    const rw = measureCtx.measureText(r.t).width;
+    const p = { t: r.t, k: r.k, x: w, w: rw };
+    w += rw;
+    return p;
+  });
+  m = { w, h: 22, parts };
+  measureCache.set(key, m);
+  return m;
+}
+function R(n) {
+  const m = measureLabel(n.text || '');
+  return Math.max(NODE_MIN_R, m.w / 2 + (n.accept ? 14 : 10));
+}
+
+/* ---------------- Geometry ---------------- */
+function closestOnCircle(n, x, y) {
+  const dx = x - n.x, dy = y - n.y, s = Math.hypot(dx, dy) || 1, r = R(n);
+  return { x: n.x + dx * r / s, y: n.y + dy * r / s };
+}
+function det(a, b, c, d, e, f, g, h, i) { return a * e * i + b * f * g + c * d * h - a * f * h - b * d * i - c * e * g; }
+function circleFrom3(x1, y1, x2, y2, x3, y3) {
+  const a = det(x1, y1, 1, x2, y2, 1, x3, y3, 1);
+  const bx = -det(x1 * x1 + y1 * y1, y1, 1, x2 * x2 + y2 * y2, y2, 1, x3 * x3 + y3 * y3, y3, 1);
+  const by = det(x1 * x1 + y1 * y1, x1, 1, x2 * x2 + y2 * y2, x2, 1, x3 * x3 + y3 * y3, x3, 1);
+  const c = -det(x1 * x1 + y1 * y1, x1, y1, x2 * x2 + y2 * y2, x2, y2, x3 * x3 + y3 * y3, x3, y3);
+  return { x: -bx / (2 * a), y: -by / (2 * a), r: Math.sqrt(bx * bx + by * by - 4 * a * c) / (2 * Math.abs(a)) };
+}
+function anchorPoint(l, a, b) {
+  const dx = b.x - a.x, dy = b.y - a.y, sc = Math.hypot(dx, dy) || 1;
+  return { x: a.x + dx * l.par - dy * l.perp / sc, y: a.y + dy * l.par + dx * l.perp / sc };
+}
+function setAnchor(l, a, b, x, y, snap) {
+  const dx = b.x - a.x, dy = b.y - a.y, sc = Math.hypot(dx, dy) || 1;
+  l.par = (dx * (x - a.x) + dy * (y - a.y)) / (sc * sc);
+  l.perp = (dx * (y - a.y) - dy * (x - a.x)) / sc;
+  if (Math.abs(l.perp) < snap) { l.par = 0.5; l.perp = 0; }
+}
+function labelBox(text, px, py, angle) {
+  const m = measureLabel(text);
+  const c = Math.cos(angle), s = Math.sin(angle);
+  const d = Math.abs(c) * m.w / 2 + Math.abs(s) * m.h / 2 + 5;
+  return { x: px + c * d, y: py + s * d, w: m.w, h: m.h };
+}
+
+// Computes everything needed to draw / hit-test a link.
+function linkGeom(l, tmpTarget) {
+  if (l.type === 'link') {
+    const a = node(l.from), b = tmpTarget || node(l.to);
+    if (!a || !b) return null;
+    const straight = () => {
+      const s = closestOnCircle(a, b.x, b.y), e = closestOnCircle(b, a.x, a.y);
+      const ang = Math.atan2(-(e.x - s.x), e.y - s.y);
+      const g = { kind: 'line', sx: s.x, sy: s.y, ex: e.x, ey: e.y, arrow: Math.atan2(e.y - s.y, e.x - s.x) };
+      g.label = l.text ? labelBox(l.text, (s.x + e.x) / 2, (s.y + e.y) / 2, ang) : null;
+      return g;
+    };
+    if (!l.perp) return straight();
+    const an = anchorPoint(l, a, b);
+    const c = circleFrom3(a.x, a.y, b.x, b.y, an.x, an.y);
+    if (!isFinite(c.r) || c.r > 1e5 || c.r < 1) return straight();
+    const rev = l.perp > 0, rs = rev ? 1 : -1;
+    const sa = Math.atan2(a.y - c.y, a.x - c.x) - rs * R(a) / c.r;
+    const ea = Math.atan2(b.y - c.y, b.x - c.x) + rs * R(b) / c.r;
+    const g = {
+      kind: 'arc', cx: c.x, cy: c.y, r: c.r, sa, ea, ccw: rev,
+      sx: c.x + c.r * Math.cos(sa), sy: c.y + c.r * Math.sin(sa),
+      ex: c.x + c.r * Math.cos(ea), ey: c.y + c.r * Math.sin(ea),
+      arrow: ea - rs * Math.PI / 2,
+    };
+    let s2 = sa, e2 = ea;
+    if (e2 < s2) e2 += TAU;
+    const ta = (s2 + e2) / 2 + (rev ? Math.PI : 0);
+    g.label = l.text ? labelBox(l.text, c.x + c.r * Math.cos(ta), c.y + c.r * Math.sin(ta), ta) : null;
+    return g;
+  }
+  if (l.type === 'self') {
+    const n = node(l.node);
+    if (!n) return null;
+    const r = R(n), lr = 0.75 * Math.min(r, 30);
+    const d = 0.809 * lr + Math.sqrt(Math.max(0, r * r - Math.pow(0.588 * lr, 2)));
+    const cx = n.x + d * Math.cos(l.angle), cy = n.y + d * Math.sin(l.angle);
+    const sa = l.angle - Math.PI * 0.8, ea = l.angle + Math.PI * 0.8;
+    const g = {
+      kind: 'arc', cx, cy, r: lr, sa, ea, ccw: false, self: true,
+      ex: cx + lr * Math.cos(ea), ey: cy + lr * Math.sin(ea), arrow: ea + Math.PI * 0.4,
+    };
+    g.label = l.text ? labelBox(l.text, cx + lr * Math.cos(l.angle), cy + lr * Math.sin(l.angle), l.angle) : null;
+    return g;
+  }
+  if (l.type === 'start') {
+    const n = node(l.node);
+    if (!n) return null;
+    const sx = n.x + l.dx, sy = n.y + l.dy;
+    const e = closestOnCircle(n, sx, sy);
+    const g = { kind: 'line', sx, sy, ex: e.x, ey: e.y, arrow: Math.atan2(e.y - sy, e.x - sx) };
+    g.label = l.text ? labelBox(l.text, sx, sy, Math.atan2(sy - e.y, sx - e.x)) : null;
+    return g;
+  }
+  return null;
+}
+
+/* ---------------- Pens: canvas, SVG, TikZ, bounding box ---------------- */
+function arcSpan(a0, a1, ccw) {
+  let span = ccw ? a0 - a1 : a1 - a0;
+  span = ((span % TAU) + TAU) % TAU;
+  return span;
+}
+function arrowPts(x, y, ang, size = 10) {
+  const dx = Math.cos(ang), dy = Math.sin(ang), w = size * 0.55;
+  return [[x, y], [x - size * dx + w * dy, y - size * dy - w * dx], [x - size * dx - w * dy, y - size * dy + w * dx]];
+}
+
+class CanvasPen {
+  constructor(c) { this.c = c; }
+  circle(x, y, r, o) {
+    const c = this.c; c.beginPath(); c.arc(x, y, r, 0, TAU);
+    if (o.fill && o.fill !== 'none') { c.fillStyle = o.fill; c.fill(); }
+    if (o.stroke) { c.lineWidth = o.lw; c.strokeStyle = o.stroke; c.stroke(); }
+  }
+  line(x1, y1, x2, y2, o) {
+    const c = this.c; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2);
+    c.lineWidth = o.lw; c.strokeStyle = o.stroke; if (o.dash) c.setLineDash(o.dash); c.stroke(); c.setLineDash([]);
+  }
+  arc(cx, cy, r, a0, a1, ccw, o) {
+    const c = this.c; c.beginPath(); c.arc(cx, cy, r, a0, a1, ccw);
+    c.lineWidth = o.lw; c.strokeStyle = o.stroke; if (o.dash) c.setLineDash(o.dash); c.stroke(); c.setLineDash([]);
+  }
+  arrow(x, y, ang, o) {
+    const c = this.c, p = arrowPts(x, y, ang);
+    c.beginPath(); c.moveTo(p[0][0], p[0][1]); c.lineTo(p[1][0], p[1][1]); c.lineTo(p[2][0], p[2][1]); c.closePath();
+    c.fillStyle = o.fill; c.fill();
+  }
+  text(text, x, y, o) {
+    const c = this.c, m = measureLabel(text), x0 = x - m.w / 2, base = y + 6.5;
+    c.fillStyle = o.color; c.textBaseline = 'alphabetic'; c.textAlign = 'left';
+    for (const p of m.parts) {
+      c.font = fontFor(p.k);
+      c.fillText(p.t, x0 + p.x, p.k === 1 ? base + 5 : p.k === 2 ? base - 8 : base);
+    }
+  }
+}
+
+const f2 = (v) => (Math.round(v * 100) / 100).toString();
+function escXML(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c])); }
+
+class SvgPen {
+  constructor() { this.out = []; }
+  circle(x, y, r, o) {
+    this.out.push(`<circle cx="${f2(x)}" cy="${f2(y)}" r="${f2(r)}" fill="${o.fill && o.fill !== 'none' ? o.fill : 'none'}" stroke="${o.stroke}" stroke-width="${o.lw}"/>`);
+  }
+  line(x1, y1, x2, y2, o) {
+    this.out.push(`<path d="M${f2(x1)} ${f2(y1)}L${f2(x2)} ${f2(y2)}" fill="none" stroke="${o.stroke}" stroke-width="${o.lw}"/>`);
+  }
+  arc(cx, cy, r, a0, a1, ccw, o) {
+    const span = arcSpan(a0, a1, ccw);
+    const x1 = cx + r * Math.cos(a0), y1 = cy + r * Math.sin(a0), x2 = cx + r * Math.cos(a1), y2 = cy + r * Math.sin(a1);
+    this.out.push(`<path d="M${f2(x1)} ${f2(y1)}A${f2(r)} ${f2(r)} 0 ${span > Math.PI ? 1 : 0} ${ccw ? 0 : 1} ${f2(x2)} ${f2(y2)}" fill="none" stroke="${o.stroke}" stroke-width="${o.lw}"/>`);
+  }
+  arrow(x, y, ang, o) {
+    const p = arrowPts(x, y, ang);
+    this.out.push(`<path d="M${f2(p[0][0])} ${f2(p[0][1])}L${f2(p[1][0])} ${f2(p[1][1])}L${f2(p[2][0])} ${f2(p[2][1])}Z" fill="${o.fill}"/>`);
+  }
+  text(text, x, y, o) {
+    const m = measureLabel(text), x0 = x - m.w / 2, base = y + 6.5;
+    const fam = settings.labelStyle === 'math' ? `'STIX Two Text','Times New Roman',Times,serif` : `'IBM Plex Sans',Arial,Helvetica,sans-serif`;
+    const style = settings.labelStyle === 'math' ? ' font-style="italic"' : '';
+    for (const p of m.parts) {
+      const yy = p.k === 1 ? base + 5 : p.k === 2 ? base - 8 : base;
+      this.out.push(`<text x="${f2(x0 + p.x)}" y="${f2(yy)}" font-family="${fam}"${style} font-size="${p.k ? SUB_SIZE : FONT_SIZE}" fill="${o.color}">${escXML(p.t)}</text>`);
+    }
+  }
+}
+
+const TIKZ_SCALE = 50; // 50 px = 1 cm
+class TikzPen {
+  constructor() { this.out = []; }
+  P(x, y) { return `(${f2(x / TIKZ_SCALE)},${f2(-y / TIKZ_SCALE)})`; }
+  circle(x, y, r, o) {
+    const cmd = o && o.fillTex ? `\\filldraw[fill=${o.fillTex}]` : '\\draw';
+    this.out.push(`${cmd} ${this.P(x, y)} circle (${f2(r / TIKZ_SCALE)});`);
+  }
+  line(x1, y1, x2, y2) { this.out.push(`\\draw ${this.P(x1, y1)} -- ${this.P(x2, y2)};`); }
+  arc(cx, cy, r, a0, a1, ccw) {
+    const span = arcSpan(a0, a1, ccw) * 180 / Math.PI;
+    const s = -a0 * 180 / Math.PI, e = ccw ? s + span : s - span;
+    this.out.push(`\\draw ${this.P(cx + r * Math.cos(a0), cy + r * Math.sin(a0))} arc (${f2(s)}:${f2(e)}:${f2(r / TIKZ_SCALE)});`);
+  }
+  arrow(x, y, ang) {
+    const p = arrowPts(x, y, ang);
+    this.out.push(`\\fill ${this.P(p[0][0], p[0][1])} -- ${this.P(p[1][0], p[1][1])} -- ${this.P(p[2][0], p[2][1])} -- cycle;`);
+  }
+  text(text, x, y) { if (text) this.out.push(`\\draw ${this.P(x, y)} node {$${labelTeX(text)}$};`); }
+}
+
+class BBoxPen {
+  constructor() { this.x0 = Infinity; this.y0 = Infinity; this.x1 = -Infinity; this.y1 = -Infinity; }
+  add(x, y) { this.x0 = Math.min(this.x0, x); this.y0 = Math.min(this.y0, y); this.x1 = Math.max(this.x1, x); this.y1 = Math.max(this.y1, y); }
+  circle(x, y, r, o) { const p = (o && o.lw) || 0; this.add(x - r - p, y - r - p); this.add(x + r + p, y + r + p); }
+  line(x1, y1, x2, y2) { this.add(x1, y1); this.add(x2, y2); }
+  arc(cx, cy, r, a0, a1, ccw) {
+    const span = arcSpan(a0, a1, ccw), dir = ccw ? -1 : 1;
+    for (let i = 0; i <= 36; i++) { const a = a0 + dir * span * i / 36; this.add(cx + r * Math.cos(a), cy + r * Math.sin(a)); }
+  }
+  arrow(x, y, ang) { for (const p of arrowPts(x, y, ang)) this.add(p[0], p[1]); }
+  text(text, x, y) { const m = measureLabel(text); this.add(x - m.w / 2, y - m.h / 2 - 4); this.add(x + m.w / 2, y + m.h / 2 + 4); }
+  get box() { return isFinite(this.x0) ? { x: this.x0, y: this.y0, w: this.x1 - this.x0, h: this.y1 - this.y0 } : null; }
+}
+
+/* ---------------- Drawing the diagram with any pen ---------------- */
+function drawLink(pen, l, g, st) {
+  if (!g) return;
+  const o = { stroke: st.stroke, lw: st.lw, dash: st.dash };
+  if (g.kind === 'line') pen.line(g.sx, g.sy, g.ex, g.ey, o);
+  else pen.arc(g.cx, g.cy, g.r, g.sa, g.ea, g.ccw, o);
+  pen.arrow(g.ex, g.ey, g.arrow, { fill: st.stroke });
+  if (g.label) pen.text(l.text, g.label.x, g.label.y, { color: st.text });
+}
+function drawNode(pen, n, st) {
+  const r = R(n);
+  pen.circle(n.x, n.y, r, { fill: st.fill, stroke: st.stroke, lw: st.lw, fillTex: st.fillTex });
+  if (n.accept) pen.circle(n.x, n.y, r - 5, { stroke: st.stroke, lw: st.lw });
+  if (n.text) pen.text(n.text, n.x, n.y, { color: st.text });
+}
+// opts: { P: palette, sel, hlNodes:Set, hlLinks:Set, nodeFill, colors }
+function drawDiagram(pen, opts) {
+  const P = opts.P;
+  const base = { stroke: P.ink, text: P.ink, lw: 1.6 };
+  const startIds = new Set(doc.links.filter((l) => l.type === 'start').map((l) => l.node));
+  for (const l of doc.links) {
+    let st = base;
+    if (opts.hlLinks && opts.hlLinks.has(l.id)) st = { stroke: P.hl, text: P.hl, lw: 2.6 };
+    if (opts.sel && opts.sel.kind === 'link' && opts.sel.id === l.id) st = { stroke: P.accent, text: P.accent, lw: 2.4 };
+    drawLink(pen, l, linkGeom(l), st);
+  }
+  for (const n of doc.nodes) {
+    let st = { ...base, fill: opts.nodeFill };
+    if (opts.colors) {
+      if (n.accept) st = { ...st, fill: P.acceptFill, fillTex: 'green!15' };
+      else if (startIds.has(n.id)) st = { ...st, fill: P.startFill, fillTex: 'blue!12' };
+    }
+    if (opts.hlNodes && opts.hlNodes.has(n.id)) st = { stroke: P.hl, text: P.ink, lw: 2.6, fill: P.hlSoft };
+    if (opts.sel && opts.sel.kind === 'node' && opts.sel.id === n.id) st = { ...st, stroke: P.accent, lw: 2.4 };
+    drawNode(pen, n, st);
+  }
+}
+
+/* ---------------- Canvas, view & rendering ---------------- */
+const stage = $('#stage');
+const canvas = $('#canvas');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, dpr = 1;
+const view = { s: 1, tx: 0, ty: 0 };
+let PAL = {};
+function readPalette() {
+  const cs = getComputedStyle(document.documentElement);
+  const g = (n) => cs.getPropertyValue(n).trim();
+  PAL = { ink: g('--ink'), stage: g('--stage'), node: g('--surface'), accent: g('--accent'), hl: g('--hl'), hlSoft: g('--hl-soft'), grid: g('--grid'), muted: g('--muted'), startFill: g('--start-fill'), acceptFill: g('--accept-fill') };
+}
+function resize() {
+  const r = stage.getBoundingClientRect();
+  dpr = window.devicePixelRatio || 1;
+  W = r.width; H = r.height;
+  canvas.width = Math.max(1, Math.round(W * dpr));
+  canvas.height = Math.max(1, Math.round(H * dpr));
+  render();
+}
+const toWorld = (cx, cy) => ({ x: (cx - view.tx) / view.s, y: (cy - view.ty) / view.s });
+function eventPoint(e) { const r = canvas.getBoundingClientRect(); return toWorld(e.clientX - r.left, e.clientY - r.top); }
+
+let rafId = 0;
+function render() { if (!rafId) rafId = requestAnimationFrame(() => { rafId = 0; paint(); }); }
+function paint() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = PAL.stage; ctx.fillRect(0, 0, W, H);
+  // dot grid
+  const step = GRID * view.s;
+  if (step >= 9) {
+    ctx.fillStyle = PAL.grid;
+    const ox = ((view.tx % step) + step) % step, oy = ((view.ty % step) + step) % step;
+    const rad = Math.max(0.8, Math.min(1.3, view.s));
+    for (let x = ox; x < W; x += step) for (let y = oy; y < H; y += step) { ctx.fillRect(x - rad / 2, y - rad / 2, rad, rad); }
+  }
+  ctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, dpr * view.tx, dpr * view.ty);
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const pen = new CanvasPen(ctx);
+  const step2 = sim && sim.steps[sim.idx];
+  drawDiagram(pen, { P: PAL, sel: selection, nodeFill: PAL.node, colors: settings.colorStates, hlNodes: step2 && step2.set, hlLinks: step2 && step2.used });
+  // link being created
+  if (drag && (drag.mode === 'newlink' || drag.mode === 'newstart')) {
+    const st = { stroke: PAL.accent, text: PAL.accent, lw: 2, dash: [6, 5] };
+    const tl = tempLink();
+    if (tl) drawLink(pen, tl.l, tl.g, st);
+  }
+  $('#zoom-level').textContent = Math.round(view.s * 100) + '%';
+}
+
+function diagramBBox(forExport) {
+  const bb = new BBoxPen();
+  drawDiagram(bb, { P: { ink: '#000', accent: '#000', hl: '#000', hlSoft: '#000' }, nodeFill: 'none' });
+  return bb.box;
+}
+function fitView() {
+  const bb = diagramBBox();
+  if (!bb) { view.s = 1; view.tx = W / 2; view.ty = H / 2; render(); return; }
+  const pad = 56;
+  const s = Math.min(1.3, Math.max(0.25, Math.min((W - 2 * pad) / Math.max(bb.w, 1), (H - 2 * pad - 30) / Math.max(bb.h, 1))));
+  view.s = s;
+  view.tx = W / 2 - (bb.x + bb.w / 2) * s;
+  view.ty = (H - 30) / 2 - (bb.y + bb.h / 2) * s;
+  render();
+}
+function zoomAt(factor, cx, cy) {
+  const s = Math.min(4, Math.max(0.2, view.s * factor));
+  const k = s / view.s;
+  view.tx = cx - (cx - view.tx) * k;
+  view.ty = cy - (cy - view.ty) * k;
+  view.s = s;
+  render();
+}
+
+/* ---------------- Hit testing ---------------- */
+function nodeAt(p) {
+  for (let i = doc.nodes.length - 1; i >= 0; i--) {
+    const n = doc.nodes[i];
+    if (Math.hypot(p.x - n.x, p.y - n.y) < R(n)) return n;
+  }
+  return null;
+}
+function linkContains(g, p, pad) {
+  if (!g) return false;
+  if (g.label && Math.abs(p.x - g.label.x) <= g.label.w / 2 + 3 && Math.abs(p.y - g.label.y) <= g.label.h / 2 + 2) return true;
+  if (g.kind === 'line') {
+    const dx = g.ex - g.sx, dy = g.ey - g.sy, len = Math.hypot(dx, dy) || 1;
+    const t = ((p.x - g.sx) * dx + (p.y - g.sy) * dy) / (len * len);
+    if (t < -0.02 || t > 1.02) return false;
+    const d = Math.abs((p.x - g.sx) * dy - (p.y - g.sy) * dx) / len;
+    return d < pad;
+  }
+  const dx = p.x - g.cx, dy = p.y - g.cy;
+  if (Math.abs(Math.hypot(dx, dy) - g.r) >= pad) return false;
+  if (g.self) return true;
+  let a = Math.atan2(dy, dx), sa = g.sa, ea = g.ea;
+  if (g.ccw) { const t = sa; sa = ea; ea = t; }
+  if (ea < sa) ea += TAU;
+  if (a < sa) a += TAU; else if (a > ea) a -= TAU;
+  return a > sa && a < ea;
+}
+function linkAt(p) {
+  const pad = Math.max(5, 7 / view.s);
+  for (let i = doc.links.length - 1; i >= 0; i--) {
+    const l = doc.links[i];
+    if (linkContains(linkGeom(l), p, pad)) return l;
+  }
+  return null;
+}
+
+/* ---------------- Selection ---------------- */
+let selection = null; // {kind:'node'|'link', id}
+let replaceOnType = false;
+function selectedObj() {
+  if (!selection) return null;
+  if (selection.kind === 'node') return node(selection.id) || null;
+  return doc.links.find((l) => l.id === selection.id) || null;
+}
+function select(kind, id) {
+  selection = kind ? { kind, id } : null;
+  replaceOnType = kind === 'node';
+  updateSelectionPanel();
+  render();
+}
+
+/* ---------------- History (undo / redo) ---------------- */
+const history = { stack: [], idx: -1 };
+function snapshot() { return JSON.stringify({ nodes: doc.nodes, links: doc.links, nextId: doc.nextId }); }
+let commitTimer = 0;
+function commit() {
+  clearTimeout(commitTimer); commitTimer = 0;
+  const s = snapshot();
+  if (history.stack[history.idx] === s) return;
+  history.stack = history.stack.slice(0, history.idx + 1);
+  history.stack.push(s);
+  if (history.stack.length > 300) history.stack.shift();
+  history.idx = history.stack.length - 1;
+  docChanged();
+}
+function scheduleCommit() { clearTimeout(commitTimer); commitTimer = setTimeout(commit, 450); }
+function restore(s) {
+  const d = JSON.parse(s);
+  doc = { nodes: d.nodes, links: d.links, nextId: d.nextId };
+  reindex();
+  if (selection && !selectedObj()) selection = null;
+  docChanged();
+  updateSelectionPanel();
+}
+function undo() { if (commitTimer) commit(); if (history.idx > 0) { history.idx--; restore(history.stack[history.idx]); } }
+function redo() { if (history.idx < history.stack.length - 1) { history.idx++; restore(history.stack[history.idx]); } }
+function docChanged() {
+  measureCache.size > 2000 && measureCache.clear();
+  persist();
+  $('#welcome').hidden = doc.nodes.length > 0;
+  $('#btn-undo').disabled = history.idx <= 0;
+  $('#btn-redo').disabled = history.idx >= history.stack.length - 1;
+  render();
+}
+function loadDoc(d, keepView) {
+  doc = { nodes: d.nodes.map((n) => ({ ...n })), links: d.links.map((l) => ({ ...l })), nextId: d.nextId || 1 };
+  let maxId = 0;
+  for (const n of doc.nodes) maxId = Math.max(maxId, n.id);
+  for (const l of doc.links) maxId = Math.max(maxId, l.id || 0);
+  for (const l of doc.links) if (!l.id) l.id = ++maxId;
+  doc.nextId = Math.max(doc.nextId, maxId + 1);
+  reindex();
+  selection = null;
+  updateSelectionPanel();
+  commit();
+  if (!keepView) fitView();
+}
+
+/* ---------------- Editing operations ---------------- */
+const newId = () => doc.nextId++;
+function nextStateName() {
+  const used = new Set(doc.nodes.map((n) => plainLabel(n.text)));
+  for (let i = 0; ; i++) if (!used.has('q' + [...String(i)].map((c) => SUB_DIGITS[c]).join(''))) return i > 9 ? `q_{${i}}` : `q_${i}`;
+}
+function addNode(x, y) {
+  const n = { id: newId(), x, y, text: nextStateName(), accept: false };
+  doc.nodes.push(n); nodeMap.set(n.id, n);
+  if (!doc.links.some((l) => l.type === 'start')) doc.links.push({ id: newId(), type: 'start', node: n.id, dx: -(R(n) + 42), dy: 0, text: '' });
+  return n;
+}
+function deleteSelected() {
+  const o = selectedObj();
+  if (!o) return;
+  if (selection.kind === 'node') {
+    doc.nodes = doc.nodes.filter((n) => n !== o);
+    doc.links = doc.links.filter((l) => l.from !== o.id && l.to !== o.id && l.node !== o.id);
+    reindex();
+  } else doc.links = doc.links.filter((l) => l !== o);
+  select(null);
+  commit();
+}
+function setInitial(n, on) {
+  doc.links = doc.links.filter((l) => !(l.type === 'start' && (on || l.node === n.id)));
+  if (on) doc.links.push({ id: newId(), type: 'start', node: n.id, dx: -(R(n) + 42), dy: 0, text: '' });
+}
+function setLabel(o, text) {
+  o.text = text;
+  render();
+  scheduleCommit();
+}
+
+/* ---------------- Pointer interaction ---------------- */
+let tool = 'select';
+let drag = null;
+function setTool(t) {
+  tool = t;
+  for (const b of $$('[data-tool]')) b.setAttribute('aria-pressed', String(b.dataset.tool === t));
+  updateHint();
+  canvas.style.cursor = t === 'state' ? 'crosshair' : 'default';
+}
+function updateHint() {
+  const touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  const hints = touch ? {
+    select: 'Tap a state or arrow to edit it · Drag to move · Use State and Transition to draw',
+    state: 'Tap anywhere to add a state',
+    link: 'Drag from one state to another · Drag from empty space onto a state for the start arrow',
+  } : {
+    select: 'Double-click empty space to add a state · Double-click a state to make it accepting · Shift-drag between states for a transition · Drag empty space to pan',
+    state: 'Click anywhere to add a state · Press Esc when you are done',
+    link: 'Drag from one state to another (or back onto itself for a loop) · Drag from empty space onto a state for the start arrow',
+  };
+  $('#hint').textContent = hints[tool];
+}
+function tempLink() {
+  if (!drag) return null;
+  const p = drag.p;
+  if (drag.mode === 'newlink') {
+    const a = node(drag.from);
+    const over = nodeAt(p);
+    if (over === a) {
+      const ang = Math.hypot(p.x - a.x, p.y - a.y) > 4 ? Math.atan2(p.y - a.y, p.x - a.x) : -Math.PI / 2;
+      const l = { type: 'self', node: a.id, angle: ang, text: '' };
+      return { l, g: linkGeom(l) };
+    }
+    const l = { type: 'link', from: a.id, to: over ? over.id : -1, par: 0.5, perp: 0, text: '' };
+    if (over) return { l, g: linkGeom(l) };
+    const s = closestOnCircle(a, p.x, p.y);
+    return { l, g: { kind: 'line', sx: s.x, sy: s.y, ex: p.x, ey: p.y, arrow: Math.atan2(p.y - s.y, p.x - s.x) } };
+  }
+  if (drag.mode === 'newstart') {
+    const over = nodeAt(p);
+    if (over) {
+      const l = { type: 'start', node: over.id, dx: drag.start.x - over.x, dy: drag.start.y - over.y, text: '' };
+      return { l, g: linkGeom(l) };
+    }
+    return { l: { type: 'start' }, g: { kind: 'line', sx: drag.start.x, sy: drag.start.y, ex: p.x, ey: p.y, arrow: Math.atan2(p.y - drag.start.y, p.x - drag.start.x) } };
+  }
+  return null;
+}
+
+canvas.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 && e.pointerType === 'mouse') {
+    if (e.button === 1) { e.preventDefault(); drag = { mode: 'pan', cx: e.clientX, cy: e.clientY, tx: view.tx, ty: view.ty }; canvas.setPointerCapture(e.pointerId); }
+    return;
+  }
+  if (document.activeElement && document.activeElement !== canvas && document.activeElement.blur) document.activeElement.blur();
+  canvas.focus({ preventScroll: true });
+  canvas.setPointerCapture(e.pointerId);
+  if (commitTimer) commit();
+  const p = eventPoint(e);
+  const hitN = nodeAt(p);
+  const hitL = hitN ? null : linkAt(p);
+  const linkTool = tool === 'link' || e.shiftKey;
+  drag = null;
+
+  if (linkTool && hitN) { drag = { mode: 'newlink', from: hitN.id, p }; select('node', hitN.id); }
+  else if (linkTool && !hitL) { drag = { mode: 'newstart', start: p, p }; select(null); }
+  else if (tool === 'state' && !hitN && !hitL) {
+    const n = addNode(snapPoint(p.x, p.y, null).x, snapPoint(p.x, p.y, null).y);
+    select('node', n.id); commit();
+  } else if (hitN) {
+    select('node', hitN.id);
+    drag = { mode: 'node', id: hitN.id, ox: p.x - hitN.x, oy: p.y - hitN.y, moved: false };
+  } else if (hitL) {
+    select('link', hitL.id);
+    drag = { mode: hitL.type === 'link' ? 'bend' : hitL.type, id: hitL.id, moved: false };
+  } else {
+    select(null);
+    drag = { mode: 'pan', cx: e.clientX, cy: e.clientY, tx: view.tx, ty: view.ty };
+    canvas.style.cursor = 'grabbing';
+  }
+  render();
+});
+
+function snapPoint(x, y, selfId) {
+  const th = 7 / view.s;
+  for (const n of doc.nodes) {
+    if (n.id === selfId) continue;
+    if (Math.abs(x - n.x) < th) x = n.x;
+    if (Math.abs(y - n.y) < th) y = n.y;
+  }
+  return { x, y };
+}
+
+canvas.addEventListener('pointermove', (e) => {
+  const p = eventPoint(e);
+  if (!drag) {
+    if (tool === 'state') return;
+    const over = nodeAt(p) || linkAt(p);
+    canvas.style.cursor = over ? (e.shiftKey || tool === 'link' ? 'crosshair' : 'move') : (tool === 'link' || e.shiftKey ? 'crosshair' : 'default');
+    return;
+  }
+  if (drag.mode === 'pan') {
+    view.tx = drag.tx + (e.clientX - drag.cx);
+    view.ty = drag.ty + (e.clientY - drag.cy);
+    render();
+    return;
+  }
+  drag.p = p;
+  if (drag.mode === 'node') {
+    const n = node(drag.id);
+    const s = snapPoint(p.x - drag.ox, p.y - drag.oy, n.id);
+    if (s.x !== n.x || s.y !== n.y) drag.moved = true;
+    n.x = s.x; n.y = s.y;
+  } else if (drag.mode === 'bend') {
+    const l = doc.links.find((x) => x.id === drag.id);
+    setAnchor(l, node(l.from), node(l.to), p.x, p.y, 6 / view.s);
+    drag.moved = true;
+  } else if (drag.mode === 'self') {
+    const l = doc.links.find((x) => x.id === drag.id), n = node(l.node);
+    let a = Math.atan2(p.y - n.y, p.x - n.x);
+    const sn = Math.round(a / (Math.PI / 2)) * (Math.PI / 2);
+    if (Math.abs(a - sn) < 0.12) a = sn;
+    l.angle = a; drag.moved = true;
+  } else if (drag.mode === 'start') {
+    const l = doc.links.find((x) => x.id === drag.id), n = node(l.node);
+    l.dx = p.x - n.x; l.dy = p.y - n.y;
+    if (Math.abs(l.dx) < 7 / view.s) l.dx = 0;
+    if (Math.abs(l.dy) < 7 / view.s) l.dy = 0;
+    drag.moved = true;
+  }
+  render();
+});
+
+function endDrag(e) {
+  if (!drag) return;
+  const d = drag;
+  drag = null;
+  if (d.mode === 'pan') { canvas.style.cursor = tool === 'state' ? 'crosshair' : 'default'; render(); return; }
+  if (d.mode === 'newlink' || d.mode === 'newstart') {
+    drag = d; const tl = tempLink(); drag = null;
+    if (tl && tl.l.type === 'self') {
+      const dup = doc.links.find((l) => l.type === 'self' && l.node === tl.l.node);
+      if (dup) { select('link', dup.id); toast('This state already has a loop. Add more symbols to its label, separated by commas.'); }
+      else { const l = { id: newId(), ...tl.l }; doc.links.push(l); select('link', l.id); commit(); focusLabel(); }
+    } else if (tl && tl.l.type === 'link' && tl.l.to !== -1) {
+      const dup = doc.links.find((l) => l.type === 'link' && l.from === tl.l.from && l.to === tl.l.to);
+      if (dup) { select('link', dup.id); toast('This transition already exists. Add more symbols to its label, separated by commas.'); }
+      else {
+        const l = { id: newId(), ...tl.l };
+        // curve both arrows when a reverse transition exists
+        const rev = doc.links.find((x) => x.type === 'link' && x.from === l.to && x.to === l.from);
+        if (rev) { l.perp = 28; l.par = 0.5; if (!rev.perp) { rev.perp = 28; rev.par = 0.5; } }
+        doc.links.push(l); select('link', l.id); commit(); focusLabel();
+      }
+    } else if (tl && tl.l.type === 'start' && tl.l.node != null) {
+      doc.links = doc.links.filter((l) => l.type !== 'start');
+      const l = { id: newId(), ...tl.l };
+      doc.links.push(l); select('link', l.id); commit();
+    }
+    render();
+    return;
+  }
+  if (d.moved) commit();
+  render();
+}
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', () => { drag = null; render(); });
+
+canvas.addEventListener('dblclick', (e) => {
+  if (tool === 'state') return;
+  const p = eventPoint(e);
+  const n = nodeAt(p);
+  if (n) { n.accept = !n.accept; select('node', n.id); commit(); return; }
+  if (linkAt(p)) { focusLabel(true); return; }
+  const s = snapPoint(p.x, p.y, null);
+  const nn = addNode(s.x, s.y);
+  select('node', nn.id); commit();
+});
+
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect();
+  const k = e.ctrlKey ? 0.01 : 0.0015;
+  const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+  zoomAt(Math.exp(-dy * k), e.clientX - r.left, e.clientY - r.top);
+}, { passive: false });
+
+/* ---------------- Keyboard ---------------- */
+function isTyping(el) { return el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable); }
+document.addEventListener('keydown', (e) => {
+  const mod = e.ctrlKey || e.metaKey;
+  if (!$('#export-modal').hidden) { if (e.key === 'Escape') closeExport(); return; }
+  if (mod && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveShortcut(); return; }
+  if (isTyping(e.target)) {
+    // In the label box, Ctrl+Z / Ctrl+Y act on the drawing (label edits are part of the drawing's history)
+    if (e.target.id === 'sel-label' && mod && /^[zZyY]$/.test(e.key)) {
+      e.preventDefault();
+      (e.key === 'y' || e.key === 'Y' || e.shiftKey) ? redo() : undo();
+      if (!selectedObj()) { e.target.blur(); canvas.focus({ preventScroll: true }); }
+      return;
+    }
+    if (e.key === 'Escape' || (e.key === 'Enter' && e.target.id === 'sel-label')) { e.target.blur(); canvas.focus({ preventScroll: true }); }
+    return;
+  }
+  if (mod && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
+  if (mod && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); return; }
+  if (mod) return;
+  // only handle canvas-level keys when focus is on the page/canvas, not on buttons in the about section
+  const o = selectedObj();
+  if (e.key === 'Escape') { select(null); setTool('select'); return; }
+  if (e.key === 'Delete') { if (o) { e.preventDefault(); deleteSelected(); } return; }
+  if (!o || !('text' in o) || o.type === 'start') {
+    if (e.key === 'Backspace' && o) { e.preventDefault(); deleteSelected(); }
+    return;
+  }
+  if (e.key === 'Backspace') {
+    e.preventDefault();
+    if (!o.text) { deleteSelected(); return; }
+    replaceOnType = false;
+    setLabel(o, o.text.slice(0, -1));
+    syncLabelInput();
+    return;
+  }
+  if (e.key.length === 1 && !e.altKey) {
+    e.preventDefault();
+    setLabel(o, (replaceOnType ? '' : o.text) + e.key);
+    replaceOnType = false;
+    syncLabelInput();
+  }
+});
+
+/* ---------------- Selection panel ---------------- */
+const selLabel = $('#sel-label');
+// On touch screens, jump into the label box so the keyboard opens. With a mouse, typing
+// on the canvas already edits the label, so focus stays on the canvas (unless forced).
+function focusLabel(force) {
+  const touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  if (touch || force) { selLabel.focus(); selLabel.select(); }
+}
+function syncLabelInput() {
+  const o = selectedObj();
+  if (o && document.activeElement !== selLabel) selLabel.value = o.text || '';
+}
+function updateSelectionPanel() {
+  const o = selectedObj();
+  $('#sel-empty').hidden = !!o;
+  $('#sel-edit').hidden = !o;
+  $('#btn-delete').disabled = !o;
+  if (!o) { $('#sel-title').textContent = 'Selection'; return; }
+  const isNode = selection.kind === 'node';
+  const isStart = o.type === 'start';
+  $('#sel-title').textContent = isNode ? 'State' : isStart ? 'Start arrow' : o.type === 'self' ? 'Self-loop' : 'Transition';
+  $('#sel-node-opts').hidden = !isNode;
+  $('#sel-straighten').hidden = !(o.type === 'link' && o.perp);
+  $('#sel-label-wrap').hidden = isStart;
+  $('#sel-symbols').hidden = isStart;
+  selLabel.value = o.text || '';
+  $('#sel-help').textContent = isNode
+    ? 'Type q_0 for q₀. Click the canvas and type to rename quickly.'
+    : isStart ? 'Drag the arrow tail to move it. Delete removes the initial state.'
+    : 'Symbols separated by commas, e.g. a,b. Use ε for an empty move.';
+  if (isNode) {
+    $('#sel-accept').checked = !!o.accept;
+    $('#sel-initial').checked = doc.links.some((l) => l.type === 'start' && l.node === o.id);
+  }
+}
+selLabel.addEventListener('input', () => { const o = selectedObj(); if (o) setLabel(o, selLabel.value); });
+selLabel.addEventListener('blur', () => { if (commitTimer) commit(); });
+$('#sel-symbols').addEventListener('mousedown', (e) => { if (e.target.closest('[data-ins]')) e.preventDefault(); });
+$('#sel-symbols').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-ins]'); const o = selectedObj();
+  if (!b || !o) return;
+  const ins = b.dataset.ins;
+  const focused = document.activeElement === selLabel;
+  const s = focused ? selLabel.selectionStart : selLabel.value.length, en = focused ? selLabel.selectionEnd : selLabel.value.length;
+  selLabel.value = selLabel.value.slice(0, s) + ins + selLabel.value.slice(en);
+  selLabel.focus(); selLabel.setSelectionRange(s + ins.length, s + ins.length);
+  setLabel(o, selLabel.value);
+});
+$('#sel-accept').addEventListener('change', (e) => { const o = selectedObj(); if (o) { o.accept = e.target.checked; commit(); } });
+$('#sel-initial').addEventListener('change', (e) => { const o = selectedObj(); if (o) { setInitial(o, e.target.checked); commit(); } });
+$('#sel-straighten').addEventListener('click', () => { const o = selectedObj(); if (o) { o.perp = 0; o.par = 0.5; commit(); updateSelectionPanel(); } });
+$('#sel-del').addEventListener('click', deleteSelected);
+$('#btn-delete').addEventListener('click', deleteSelected);
+
+
+/* =====================================================================
+   Export
+   ===================================================================== */
+let exportFmt = 'png';
+let exportURL = null;
+function exportPalette() { return { ink: '#111111', accent: '#111111', hl: '#111111', hlSoft: '#ffffff', startFill: '#d4e1ff', acceptFill: '#cdeedb' }; }
+const exportColors = () => $('#export-colors').checked;
+function exportBox(pad) {
+  const bb = new BBoxPen();
+  drawDiagram(bb, { P: exportPalette(), nodeFill: 'none' });
+  const b = bb.box;
+  if (!b) return null;
+  return { x: Math.floor(b.x - pad), y: Math.floor(b.y - pad), w: Math.ceil(b.w + 2 * pad), h: Math.ceil(b.h + 2 * pad) };
+}
+function makePNG(scale, bg) {
+  const b = exportBox(16);
+  if (!b) return null;
+  const c = document.createElement('canvas');
+  c.width = Math.round(b.w * scale); c.height = Math.round(b.h * scale);
+  const x = c.getContext('2d');
+  if (bg === 'white') { x.fillStyle = '#ffffff'; x.fillRect(0, 0, c.width, c.height); }
+  x.setTransform(scale, 0, 0, scale, -b.x * scale, -b.y * scale);
+  x.lineCap = 'round'; x.lineJoin = 'round';
+  drawDiagram(new CanvasPen(x), { P: exportPalette(), nodeFill: bg === 'white' ? '#ffffff' : 'none', colors: exportColors() });
+  return c;
+}
+function downloadBlob(name, blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name; a.rel = 'noopener';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+/* ---------------- Tool & misc buttons ---------------- */
+for (const b of $$('[data-tool]')) b.addEventListener('click', () => setTool(b.dataset.tool));
+$('#btn-undo').addEventListener('click', undo);
+$('#btn-redo').addEventListener('click', redo);
+$('#zoom-in').addEventListener('click', () => zoomAt(1.2, W / 2, H / 2));
+$('#zoom-out').addEventListener('click', () => zoomAt(1 / 1.2, W / 2, H / 2));
+$('#zoom-level').addEventListener('click', () => zoomAt(1 / view.s, W / 2, H / 2));
+$('#zoom-fit').addEventListener('click', fitView);
+$('#btn-help').addEventListener('click', () => $('#how-to').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+$('#welcome-add').addEventListener('click', () => {
+  const p = toWorld(W / 2, H / 2 - 30);
+  const n = addNode(Math.round(p.x / GRID) * GRID, Math.round(p.y / GRID) * GRID);
+  select('node', n.id); commit();
+  canvas.focus({ preventScroll: true });
+});
+$('#opt-color').addEventListener('change', (e) => {
+  settings.colorStates = e.target.checked;
+  persist();
+  render();
+});
+
+/* ---------------- Theme ---------------- */
+const THEMES = ['system', 'light', 'dark'];
+function applyTheme() {
+  const root = document.documentElement;
+  if (settings.theme === 'system') { if (root.dataset.ddTheme) { root.removeAttribute('data-theme'); delete root.dataset.ddTheme; } }
+  else { root.setAttribute('data-theme', settings.theme); root.dataset.ddTheme = '1'; }
+  $('#btn-theme').title = 'Theme: ' + (settings.theme === 'system' ? 'follows your system' : settings.theme);
+  readPalette();
+  render();
+}
+$('#btn-theme').addEventListener('click', () => {
+  settings.theme = THEMES[(THEMES.indexOf(settings.theme) + 1) % THEMES.length];
+  applyTheme();
+  persist();
+  toast('Theme: ' + (settings.theme === 'system' ? 'same as your system' : settings.theme));
+});
+try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readPalette(); render(); }); } catch (e) { /* old browsers */ }
+new MutationObserver(() => { readPalette(); render(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+/* ---------------- Toast & clipboard ---------------- */
+let toastTimer = 0;
+function toast(msg, actionLabel, action) {
+  const t = $('#toast');
+  $('#toast-msg').textContent = msg;
+  const b = $('#toast-action');
+  b.hidden = !actionLabel;
+  b.textContent = actionLabel || '';
+  b.onclick = () => { t.hidden = true; if (action) action(); };
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.hidden = true; }, actionLabel ? 6000 : 3200);
+}
+function copyText(text, msg) {
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    toast(ok ? msg : 'Could not copy automatically. Select the text and press Ctrl+C.');
+  };
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(() => toast(msg), fallback);
+    else fallback();
+  } catch (e) { fallback(); }
+}
+
+/* ---------------- PNG metadata: the drawing travels inside the image ---------------- */
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; }
+  return t;
+})();
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+function b64encodeUTF8(s) {
+  const bytes = new TextEncoder().encode(s);
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+function b64decodeUTF8(b) {
+  const bin = atob(b), bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+function pngAddText(png, keyword, text) {
+  const enc = (s) => Uint8Array.from(s, (c) => c.charCodeAt(0) & 0xff);
+  const kw = enc(keyword), tx = enc(text);
+  const body = new Uint8Array(4 + kw.length + 1 + tx.length); // chunk type + data
+  body.set(enc('tEXt'), 0); body.set(kw, 4); body[4 + kw.length] = 0; body.set(tx, 5 + kw.length);
+  const chunk = new Uint8Array(body.length + 8);
+  const dv = new DataView(chunk.buffer);
+  dv.setUint32(0, body.length - 4);
+  chunk.set(body, 4);
+  dv.setUint32(4 + body.length, crc32(body));
+  const iend = png.length - 12; // IEND is always the last 12 bytes
+  const out = new Uint8Array(png.length + chunk.length);
+  out.set(png.subarray(0, iend), 0); out.set(chunk, iend); out.set(png.subarray(iend), iend + chunk.length);
+  return out;
+}
+function pngReadText(png, keyword) {
+  if (png.length < 20 || png[1] !== 0x50 || png[2] !== 0x4e || png[3] !== 0x47) return null;
+  const dv = new DataView(png.buffer, png.byteOffset, png.byteLength);
+  let p = 8;
+  while (p + 8 <= png.length) {
+    const len = dv.getUint32(p);
+    const type = String.fromCharCode(png[p + 4], png[p + 5], png[p + 6], png[p + 7]);
+    if (type === 'tEXt') {
+      const d = png.subarray(p + 8, p + 8 + len), z = d.indexOf(0);
+      let kw = ''; for (let i = 0; i < z; i++) kw += String.fromCharCode(d[i]);
+      if (kw === keyword) { let s = ''; for (let i = z + 1; i < d.length; i++) s += String.fromCharCode(d[i]); return s; }
+    }
+    if (type === 'IEND') break;
+    p += 12 + len;
+  }
+  return null;
+}
+function isDocShape(d) {
+  return !!d && Array.isArray(d.nodes) && Array.isArray(d.links) && d.nodes.every((n) => typeof n.id === 'number' && isFinite(n.x) && isFinite(n.y));
+}
+
+/* =====================================================================
+   Exam mode: drawing only, one drawing per question, answer saved as PNG
+   ===================================================================== */
+const EXAM_KEY = 'deltadraw-exam:v1';
+const QUESTIONS = 15;
+const exam = { name: '', q: 1, docs: {} };
+const qHistories = {};
+const emptyDoc = () => ({ nodes: [], links: [], nextId: 1 });
+function saveExam() {
+  exam.docs[exam.q] = { nodes: doc.nodes, links: doc.links, nextId: doc.nextId };
+  store.set(EXAM_KEY, JSON.stringify({ name: exam.name, q: exam.q, docs: exam.docs, settings }));
+  updateQuestionList();
+}
+function updateQuestionList() {
+  const sel = $('#exam-q');
+  for (const o of sel.options) {
+    const q = Number(o.value);
+    const d = q === exam.q ? doc : exam.docs[q];
+    o.textContent = `Question ${q}` + (d && d.nodes && d.nodes.length ? ' ●' : '');
+  }
+  sel.value = String(exam.q);
+  for (const id of ['#welcome-q', '#ans-q', '#ans-q2']) $(id).textContent = String(exam.q);
+}
+function switchQuestion(q) {
+  if (q === exam.q) return;
+  if (commitTimer) commit();
+  qHistories[exam.q] = { stack: history.stack, idx: history.idx };
+  saveExam();
+  exam.q = q;
+  const h = qHistories[q];
+  if (h && h.idx >= 0) {
+    history.stack = h.stack; history.idx = h.idx;
+    const d = JSON.parse(h.stack[h.idx]);
+    doc = { nodes: d.nodes, links: d.links, nextId: d.nextId };
+    reindex(); selection = null; updateSelectionPanel(); docChanged(); fitView();
+  } else {
+    history.stack = []; history.idx = -1;
+    loadDoc(isDocShape(exam.docs[q]) ? exam.docs[q] : emptyDoc());
+  }
+  updateQuestionList();
+  toast(`Now drawing Question ${q}.`);
+}
+function safeName(s) { return (s || '').trim().replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'student'; }
+const answerFile = () => `DeltaDraw_Q${exam.q}_${safeName(exam.name)}.png`;
+function makeAnswerCanvas() {
+  const scale = 2, headH = 52;
+  const b = exportBox(20);
+  const bw = b ? b.w : 360, bh = b ? b.h : 110;
+  const w = Math.max(bw, 460), h = bh + headH;
+  const c = document.createElement('canvas');
+  c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+  const x = c.getContext('2d');
+  x.scale(scale, scale);
+  x.fillStyle = '#ffffff'; x.fillRect(0, 0, w, h);
+  x.textBaseline = 'alphabetic'; x.textAlign = 'left';
+  x.fillStyle = '#111111'; x.font = '600 15px "IBM Plex Sans", Arial, sans-serif';
+  x.fillText(`${exam.name.trim() || '(no name)'}  ·  Question ${exam.q}`, 14, 22);
+  x.fillStyle = '#666666'; x.font = '12px "IBM Plex Sans", Arial, sans-serif';
+  x.fillText(`DeltaDraw exam mode v${VERSION}  ·  ${new Date().toLocaleString()}`, 14, 40);
+  x.fillStyle = '#dddddd'; x.fillRect(0, headH - 1, w, 1);
+  if (b) {
+    x.translate((w - bw) / 2 - b.x, headH - b.y);
+    x.lineCap = 'round'; x.lineJoin = 'round';
+    drawDiagram(new CanvasPen(x), { P: exportPalette(), nodeFill: '#ffffff', colors: false });
+  } else {
+    x.fillStyle = '#999999'; x.font = 'italic 14px Arial, sans-serif';
+    x.fillText('(empty drawing)', 14, headH + 60);
+  }
+  return c;
+}
+async function buildAnswer() {
+  const c = makeAnswerCanvas();
+  const blob = await new Promise((res) => c.toBlob(res, 'image/png'));
+  const png = new Uint8Array(await blob.arrayBuffer());
+  const meta = { app: 'DeltaDraw', mode: 'exam', version: VERSION, name: exam.name.trim(), question: exam.q, time: new Date().toISOString(), nodes: doc.nodes, links: doc.links, nextId: doc.nextId };
+  return new Blob([pngAddText(png, 'DeltaDraw', b64encodeUTF8(JSON.stringify(meta)))], { type: 'image/png' });
+}
+let answerURL = null;
+async function refreshAnswerPreview() {
+  const blob = await buildAnswer();
+  if (answerURL) URL.revokeObjectURL(answerURL);
+  answerURL = URL.createObjectURL(blob);
+  $('#export-img').src = answerURL;
+  $('#ans-file').textContent = answerFile();
+  $('#ans-empty').hidden = doc.nodes.length > 0;
+}
+async function openAnswer() {
+  if (commitTimer) commit();
+  select(null);
+  $('#export-modal').hidden = false;
+  $('#ans-name').value = exam.name;
+  $('#ans-error').hidden = true;
+  updateQuestionList();
+  await refreshAnswerPreview();
+  if (!exam.name.trim()) $('#ans-name').focus(); else $('#ans-download').focus();
+}
+function closeExport() { $('#export-modal').hidden = true; canvas.focus({ preventScroll: true }); }
+async function downloadAnswer() {
+  if (!exam.name.trim()) { $('#ans-error').hidden = false; $('#ans-name').focus(); return; }
+  const blob = await buildAnswer();
+  downloadBlob(answerFile(), blob);
+  toast(`Saved ${answerFile()}. Upload it to Question ${exam.q} in Canvas.`);
+}
+function saveShortcut() { openAnswer(); }
+let nameTimer = 0;
+$('#exam-q').addEventListener('change', (e) => switchQuestion(Number(e.target.value)));
+$('#exam-name').addEventListener('input', (e) => { exam.name = e.target.value; persist(); });
+$('#ans-name').addEventListener('input', (e) => {
+  exam.name = e.target.value;
+  $('#exam-name').value = exam.name;
+  $('#ans-error').hidden = true;
+  $('#ans-file').textContent = answerFile();
+  persist();
+  clearTimeout(nameTimer); nameTimer = setTimeout(refreshAnswerPreview, 300);
+});
+$('#ans-name').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); downloadAnswer(); } });
+$('#btn-answer').addEventListener('click', openAnswer);
+$('#side-answer').addEventListener('click', openAnswer);
+$('#export-close').addEventListener('click', closeExport);
+$('#export-modal').addEventListener('click', (e) => { if (e.target.id === 'export-modal') closeExport(); });
+$('#ans-download').addEventListener('click', downloadAnswer);
+$('#btn-clear-q').addEventListener('click', () => {
+  if (!doc.nodes.length && !doc.links.length) return;
+  doc.nodes = []; doc.links = []; reindex(); select(null); commit(); fitView();
+  toast(`Cleared Question ${exam.q}.`, 'Undo', undo);
+});
+let clearArmed = 0;
+$('#btn-clear-all').addEventListener('click', (e) => {
+  const b = e.currentTarget;
+  if (!clearArmed) {
+    b.textContent = 'Click again to confirm';
+    clearArmed = setTimeout(() => { clearArmed = 0; b.textContent = 'Clear all questions'; }, 4000);
+    return;
+  }
+  clearTimeout(clearArmed); clearArmed = 0; b.textContent = 'Clear all questions';
+  exam.docs = {};
+  for (const k of Object.keys(qHistories)) delete qHistories[k];
+  exam.q = 1; history.stack = []; history.idx = -1;
+  loadDoc(emptyDoc());
+  updateQuestionList();
+  toast('All questions cleared.');
+});
+function examInit(saved) {
+  const opts = [];
+  for (let i = 1; i <= QUESTIONS; i++) opts.push(`<option value="${i}">Question ${i}</option>`);
+  $('#exam-q').innerHTML = opts.join('');
+  if (saved) {
+    exam.name = typeof saved.name === 'string' ? saved.name : '';
+    exam.docs = saved.docs && typeof saved.docs === 'object' ? saved.docs : {};
+    exam.q = Math.min(QUESTIONS, Math.max(1, Number(saved.q) || 1));
+  }
+  $('#exam-name').value = exam.name;
+  loadDoc(isDocShape(exam.docs[exam.q]) ? exam.docs[exam.q] : emptyDoc());
+  updateQuestionList();
+}
+
+/* ---------------- Startup ---------------- */
+function init() {
+  readPalette();
+  let saved = null;
+  try { saved = JSON.parse(store.get(EXAM_KEY) || 'null'); } catch (e) { saved = null; }
+  if (saved && saved.settings) Object.assign(settings, saved.settings);
+  applyTheme();
+  setTool('select');
+  resize();
+  $('#opt-color').checked = settings.colorStates !== false;
+  if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) $('#welcome-tip').textContent = 'Tap “Add a state”, or pick the State tool and tap the canvas.';
+  examInit(saved);
+  updateSelectionPanel();
+  if ('ResizeObserver' in window) new ResizeObserver(() => resize()).observe(stage);
+  else window.addEventListener('resize', resize);
+  // redraw once the label fonts arrive (canvas text needs them loaded)
+  if (document.fonts && document.fonts.load) {
+    Promise.all([document.fonts.load('italic 20px "STIX Two Text"'), document.fonts.load('italic 14px "STIX Two Text"')])
+      .then(() => {
+        measureCache.clear(); fitView();
+      })
+      .catch(() => {});
+  }
+  window.DeltaDraw = { get doc() { return doc; }, get exam() { return exam; } };
+}
+init();
+})();
+</script>
+</body>
+</html>
