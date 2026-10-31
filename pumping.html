@@ -1,0 +1,992 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pumping Lemma Game – Prove a Language Is Not Regular or Not Context-Free | DeltaDraw</title>
+<meta name="description" content="Pumping lemma game for regular and context-free languages (Sipser 1.4 and 2.3). Pick s, see every split the adversary can choose, pick i case by case, and get a proof outline. Includes 0^n1^n, ww, a^nb^nc^n and more.">
+<link rel="canonical" href="https://anwarhossainefat.github.io/deltadraw/pumping.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Pumping Lemma Game – Prove a Language Is Not Regular or Not Context-Free | DeltaDraw">
+<meta property="og:description" content="Pumping lemma game for regular and context-free languages (Sipser 1.4 and 2.3). Pick s, see every split the adversary can choose, pick i case by case, and get a proof outline. Includes 0^n1^n, ww, a^nb^nc^n and more.">
+<meta property="og:url" content="https://anwarhossainefat.github.io/deltadraw/pumping.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#2a55c9">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a55c9'/%3E%3Ctext x='32' y='45' font-family='Times New Roman,serif' font-style='italic' font-size='42' text-anchor='middle' fill='white'%3E%CE%B4%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,500;1,400;1,500&display=swap">
+</head>
+<body>
+<style>
+/* Layout: toolbar band on top, drawing stage left, inspector panel right (stacks under the stage on phones); about/how-to text below the fold */
+:root{
+  --bg:#f2f4f8;
+  --surface:#ffffff;
+  --surface-2:#eef1f6;
+  --ink:#151922;
+  --muted:#5a6375;
+  --line:#d7dce5;
+  --accent:#2a55c9;
+  --accent-ink:#ffffff;
+  --accent-soft:#e3eafb;
+  --hl:#c27400;
+  --hl-soft:#ffefcc;
+  --ok:#1a7a45;
+  --ok-soft:#dff2e6;
+  --bad:#b8321f;
+  --bad-soft:#fbe4e0;
+  --stage:#fbfcfe;
+  --grid:#c9d1de;
+  --start-fill:#d4e1ff;
+  --accept-fill:#cdeedb;
+  --shadow:0 10px 30px rgba(20,28,45,.14);
+  --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --font-math:"STIX Two Text","Times New Roman",Times,serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1117; --surface:#161a22; --surface-2:#1d222c; --ink:#e5e8ee; --muted:#97a0b0; --line:#2b313d;
+    --accent:#86a6ff; --accent-ink:#0e1117; --accent-soft:#1f2944;
+    --hl:#f2a93b; --hl-soft:#3b2d12; --ok:#55c98a; --ok-soft:#163323; --bad:#ff8173; --bad-soft:#3d1c18;
+    --stage:#11151c; --grid:#2a313d; --shadow:0 10px 30px rgba(0,0,0,.5);
+    --start-fill:#1e2a47; --accept-fill:#173322;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1117; --surface:#161a22; --surface-2:#1d222c; --ink:#e5e8ee; --muted:#97a0b0; --line:#2b313d;
+  --accent:#86a6ff; --accent-ink:#0e1117; --accent-soft:#1f2944;
+  --hl:#f2a93b; --hl-soft:#3b2d12; --ok:#55c98a; --ok-soft:#163323; --bad:#ff8173; --bad-soft:#3d1c18;
+  --stage:#11151c; --grid:#2a313d; --shadow:0 10px 30px rgba(0,0,0,.5);
+  --start-fill:#1e2a47; --accept-fill:#173322;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--font-ui);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Site menu (chapters), shared by every page except exam mode ---------- */
+.sitenav{
+  display:flex;align-items:center;gap:6px 18px;min-height:40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--bg);border-bottom:1px solid var(--line);font-size:13px;
+}
+.sitenav-brand{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink);text-decoration:none;white-space:nowrap}
+.mini-delta{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font:italic 500 15px/1 var(--font-math);padding-bottom:2px}
+.sitenav-links{display:flex;gap:2px;overflow-x:auto;min-width:0;scrollbar-width:none;flex:1}
+.sitenav-links::-webkit-scrollbar{display:none}
+.nav-item{display:inline-flex;align-items:center;gap:6px;padding:10px 9px 8px;color:var(--muted);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}
+a.nav-item:hover{color:var(--ink)}
+.nav-item.active{color:var(--ink);border-bottom-color:var(--accent)}
+.nav-item.soon{opacity:.5;cursor:default}
+.nav-ch{font:500 11px var(--font-mono);color:var(--muted);letter-spacing:.02em}
+
+/* ---------- App shell ---------- */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:560px}
+.topbar{
+  display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap;
+  padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--surface);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;margin-right:6px}
+.brand-delta{
+  width:34px;height:34px;border-radius:8px;display:grid;place-items:center;
+  background:var(--accent);color:var(--accent-ink);
+  font:italic 500 24px/1 var(--font-math);padding-bottom:3px;
+}
+.brand-text{display:grid;line-height:1.1}
+.brand-name{margin:0;font:600 17px/1.1 var(--font-ui);letter-spacing:-.01em}
+.brand-sub{margin:0;font-size:11.5px;color:var(--muted)}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1}
+.toolbar .spacer{flex:1}
+.group{display:inline-flex;gap:4px}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:34px;padding:0 11px;border:1px solid var(--line);border-radius:7px;
+  background:var(--surface);color:var(--ink);font:500 13px/1 var(--font-ui);cursor:pointer;white-space:nowrap;
+  text-decoration:none;
+}
+.gate{width:min(440px,100%);height:auto;align-self:center}
+.gate .input{height:auto}
+.code-chip{font:600 13px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;letter-spacing:.04em}
+.input.code-field{text-transform:uppercase;letter-spacing:.06em}
+.btn:hover{background:var(--surface-2)}
+.btn:disabled{opacity:.42;cursor:default;background:var(--surface)}
+.btn svg{width:16px;height:16px;flex:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad)}
+.btn.small{height:28px;padding:0 9px;font-size:12px}
+.btn.icon{width:34px;padding:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg .btn{border:0;border-radius:0;height:32px}
+.seg .btn+.btn{border-left:1px solid var(--line)}
+.seg .btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.select{height:34px;border:1px solid var(--line);border-radius:7px;background:var(--surface);padding:0 8px;font:500 13px var(--font-ui);cursor:pointer}
+
+.workspace{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px}
+.stage{position:relative;overflow:hidden;background:var(--stage);min-height:0}
+#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;outline:none}
+.hint{
+  position:absolute;left:12px;bottom:12px;max-width:calc(100% - 210px);
+  font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);
+  border-radius:7px;padding:6px 10px;pointer-events:none;
+}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;align-items:center}
+.welcome{position:absolute;inset:0;display:grid;place-items:center;padding:16px 16px 80px;pointer-events:none}
+.welcome-card{pointer-events:auto;text-align:center;display:grid;justify-items:center;gap:10px;max-width:360px;padding:26px 24px;border:1.5px dashed var(--line);border-radius:14px;background:var(--surface)}
+.welcome-card h2{margin:4px 0 0;font:500 24px/1.2 var(--font-math)}
+.welcome-card p{margin:0;color:var(--muted);font-size:14px}
+.welcome-card .row{justify-content:center;margin-top:6px}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--ink);vertical-align:-1px;margin:0 2px}
+.swatch.start{background:var(--start-fill)}
+.swatch.accept{background:var(--accept-fill)}
+.zoom .btn{height:30px;min-width:30px;padding:0 8px;font-variant-numeric:tabular-nums}
+.zoom-level{min-width:54px}
+
+/* ---------- Inspector panel ---------- */
+.panel{background:var(--surface);border-left:1px solid var(--line);overflow:auto;display:flex;flex-direction:column;min-height:0}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line);display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+.sec-title{margin:0;font:600 11px/1 var(--font-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.small-text{font-size:12.5px;margin:0}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.field{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+.input,textarea.input{
+  width:100%;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);color:var(--ink);
+  padding:7px 10px;font:15px/1.35 var(--font-mono);
+}
+.input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+textarea.input{resize:vertical;font-size:14px}
+.checks{display:grid;gap:6px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer}
+.check input{width:16px;height:16px;accent-color:var(--accent);margin:0}
+.symbols{display:flex;gap:4px;flex-wrap:wrap}
+.symbols .btn{height:26px;min-width:30px;padding:0 7px;font:italic 15px/1 var(--font-math)}
+.symbols .btn.plain{font:500 11.5px/1 var(--font-ui)}
+
+.machine-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.type-badge{font:600 12px/1 var(--font-mono);padding:5px 9px;border-radius:999px;letter-spacing:.04em}
+.type-badge.dfa{background:var(--ok-soft);color:var(--ok)}
+.type-badge.nfa{background:var(--accent-soft);color:var(--accent)}
+.type-badge.none{background:var(--surface-2);color:var(--muted)}
+.sigma{font:15px var(--font-math);margin:0}
+.notes{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12.5px;color:var(--muted)}
+.notes li.warn{color:var(--bad)}
+
+.tabs{display:flex;border-bottom:1px solid var(--line);padding:0 8px;position:sticky;top:0;background:var(--surface);z-index:1}
+.tab{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:11px 6px 9px;font:500 13px var(--font-ui);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabpanel{padding:14px 16px 20px;display:grid;gap:12px;align-content:start}
+
+.tape{display:flex;flex-wrap:wrap;gap:3px;font:14px var(--font-mono)}
+.cell{min-width:24px;height:28px;padding:0 5px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;background:var(--surface-2)}
+.cell.done{color:var(--muted);opacity:.7}
+.cell.cur{border-color:var(--hl);background:var(--hl-soft);color:var(--ink);font-weight:500}
+.cell.eps{font-family:var(--font-math);font-style:italic}
+.sim-out{display:grid;gap:8px}
+.sim-line{font-size:13px}
+.math{font-family:var(--font-math);font-size:15px}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--font-ui);padding:6px 10px;border-radius:999px}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.run{background:var(--hl-soft);color:var(--hl)}
+details.batch{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+details.batch summary{cursor:pointer;font-weight:500;font-size:13px}
+details.batch[open] summary{margin-bottom:8px}
+.batch-body{display:grid;gap:8px}
+.batch-out{list-style:none;margin:0;padding:0;display:grid;gap:4px;font:13px var(--font-mono)}
+.batch-out li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:3px 0}
+.batch-out .ok{color:var(--ok)} .batch-out .bad{color:var(--bad)}
+
+.conv-card{border:1px solid var(--line);border-radius:9px;padding:12px;display:grid;gap:8px}
+.conv-card h3{margin:0;font:600 14px var(--font-ui)}
+.conv-card p{margin:0;font-size:12.5px;color:var(--muted)}
+.result-note{font-size:12.5px;margin:0;padding:8px 10px;border-radius:7px;background:var(--surface-2)}
+.walk-list{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+.re-input{font:italic 18px var(--font-math);letter-spacing:.02em}
+.re-read{margin:0;min-height:1.4em}
+.re-read .math{font-size:16px}
+.re-read.err{color:var(--bad)}
+.re-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.re-opts .select{width:100%;height:32px}
+.re-opts .input{font-size:13px;padding:5px 8px}
+.re-out{display:grid;gap:6px}
+.re-out .chips{display:flex;flex-wrap:wrap;gap:4px}
+.re-out .chip{font:14px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+.regex-result{font:italic 17px var(--font-math);word-break:break-word;background:var(--surface-2);border-radius:6px;padding:6px 9px}
+.app[data-page="regex"] #tab-regex{order:-1}
+/* practice page: no solving tools, just drawing, Test and Table */
+.app[data-page="practice"] #tab-convert,.app[data-page="practice"] #tab-combine,.app[data-page="practice"] #tab-regex,
+.app[data-page="practice"] #examples,.app[data-page="practice"] #btn-exam,.app[data-page="practice"] #welcome-example,
+.app[data-page="practice"] #btn-open{display:none}
+.ex-sec{background:var(--surface)}
+.ex-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ex-nav{display:flex;gap:4px}
+.ex-nav .select{flex:1;min-width:0;width:0;height:32px}
+.ex-nav .btn{height:32px;width:32px}
+.ex-card{display:grid;gap:9px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.ex-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ex-card h3{margin:0;font:600 15.5px/1.3 var(--font-ui)}
+.ex-text{margin:0;font-size:14px;line-height:1.55}
+.ex-text .lbl{font:italic 16px var(--font-math)}
+.ex-rules{margin:0}
+.ex-figure{border:1px solid var(--line);border-radius:8px;background:var(--stage);padding:6px;color:var(--ink)}
+.ex-figure svg{display:block;width:100%;height:auto;max-height:200px}
+.ex-hints{margin:0;padding-left:18px;display:grid;gap:5px;font-size:13px}
+.ex-hints:empty{display:none}
+.slots{display:grid;gap:8px}
+.slot{border:1px solid var(--line);border-radius:9px;padding:9px 10px;display:grid;gap:8px}
+.slot-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.slot-head b{font:600 15px var(--font-mono)}
+.eq-out{display:grid;gap:6px;justify-items:start}
+
+/* ---------- Step-by-step walkthrough card (over the canvas) ---------- */
+.walk{position:absolute;left:12px;right:12px;bottom:52px;max-height:min(48%,440px);overflow:auto;z-index:3;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:grid;gap:10px}
+.walk-head{display:flex;align-items:center;gap:10px}
+.walk-head strong{flex:1;font-size:14px}
+.walk-text{margin:0;font-size:14px;line-height:1.6;max-width:90ch}
+.walk-text .lbl,.walk-text b.lbl{font:italic 16px var(--font-math)}
+.grow{flex:1}
+.ttable td.cur{background:var(--hl-soft);box-shadow:inset 0 0 0 2px var(--hl)}
+.ttable tr.newrow td.state{background:var(--accent-soft)}
+.walk .ttable{min-width:0;width:auto}
+.ttable.pairs{min-width:0}
+.ttable.pairs td{min-width:42px;height:30px}
+.ttable.pairs td.void{border:0;background:transparent}
+.ttable.pairs th{background:transparent;border:0;font-family:var(--font-math);font-style:italic;font-size:15px}
+.mk{color:var(--bad);font-weight:600}
+.mk sub{font:500 10px var(--font-mono)}
+@media (max-width: 860px){ .walk{bottom:12px;max-height:62%} }
+
+.table-wrap{overflow-x:auto}
+.ttable{border-collapse:collapse;font:13px var(--font-mono);min-width:100%}
+.ttable th,.ttable td{border:1px solid var(--line);padding:5px 9px;text-align:center;white-space:nowrap}
+.ttable th{background:var(--surface-2);font-weight:500}
+.ttable .lbl{font-family:var(--font-math);font-style:italic;font-size:15px}
+.ttable td.state{text-align:left}
+.ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
+
+/* ---------- Turing machines ---------- */
+.tm-tape{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
+.tm-tape .cell{position:relative;min-width:28px;text-align:center}
+.tm-tape .cell.blank{color:var(--muted)}
+.tm-tape .cell.head{background:var(--hl-soft);border-color:var(--hl);box-shadow:inset 0 0 0 1px var(--hl)}
+.tm-tape .cell.head::before{content:"▼";position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--hl)}
+.tm-trace{margin:0;padding-left:28px;display:grid;gap:2px;font:15px/1.5 var(--font-math);max-height:280px;overflow:auto}
+.tm-trace li.cur{background:var(--hl-soft);border-radius:4px}
+.tm-trace .st{font-style:italic;color:var(--accent);margin:0 3px}
+.cfg-line{font:16px var(--font-math)}
+.cfg-line .st{font-style:italic;color:var(--accent);margin:0 3px}
+/* ---------- Pushdown automata ---------- */
+.pda-run{display:flex;gap:14px;align-items:flex-start}
+.pda-run .sim-lines{display:grid;gap:6px;min-width:0;flex:1}
+.pda-stack{display:flex;flex-direction:column;align-items:stretch;min-width:48px;flex:none}
+.pda-stack .cap{font:600 10.5px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:3px}
+.pda-stack .well{display:flex;flex-direction:column;border:1.5px solid var(--ink);border-top:0;border-radius:0 0 6px 6px;min-height:34px;justify-content:flex-end}
+.pda-stack .sc{font:italic 17px/1.2 var(--font-math);text-align:center;padding:3px 10px;border-top:1px solid var(--line)}
+.pda-stack .sc.top{background:var(--hl-soft);border-top-color:var(--hl)}
+.pda-stack .sc.more{font:12px var(--font-ui);color:var(--muted);font-style:normal}
+.pda-stack .none{font:12px var(--font-ui);color:var(--muted);text-align:center;padding:8px 4px}
+.move{font-size:13px}
+.trace td.cur{background:var(--hl-soft);box-shadow:none}
+.trace{font-size:12.5px}
+.trace th,.trace td{text-align:left;padding:4px 7px}
+.trace .lbl{font-size:14.5px}
+.pda-def{display:grid;gap:3px;font-size:13.5px}
+.pda-def .math{font-size:15px}
+/* ---------- Modals & toast ---------- */
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(10,14,22,.5)}
+.dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(780px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;grid-template-rows:auto 1fr}
+.dialog-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.dialog-head h2{margin:0;font:600 16px var(--font-ui);flex:1}
+.dialog-body{padding:16px;display:grid;gap:14px;min-width:0;align-content:start}
+.preview{border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:46vh;display:grid;place-items:center;padding:12px;
+  background-color:#fff;background-image:linear-gradient(45deg,#e9ecf1 25%,transparent 25%),linear-gradient(-45deg,#e9ecf1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e9ecf1 75%),linear-gradient(-45deg,transparent 75%,#e9ecf1 75%);
+  background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+.preview img{max-width:100%;height:auto;display:block}
+.code{width:100%;min-height:220px;font:12.5px/1.45 var(--font-mono);border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);padding:10px;resize:vertical;white-space:pre}
+.opt-row{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:center;font-size:13px}
+.opt-row .label{color:var(--muted);font-size:12px}
+.radio{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.radio input{accent-color:var(--accent);margin:0}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;
+  display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--bg);border-radius:9px;padding:9px 12px 9px 14px;box-shadow:var(--shadow);font-size:13px;max-width:calc(100% - 32px)}
+.toast button{background:none;border:0;color:var(--bg);font-weight:600;text-decoration:underline;cursor:pointer;padding:2px 4px}
+
+/* ---------- About / how-to (below the app) ---------- */
+.about{max-width:1020px;margin:0 auto;padding-block:56px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+.about h2{margin:0 0 10px;font:500 30px/1.15 var(--font-math);text-wrap:balance;letter-spacing:-.005em}
+.about h3{margin:0 0 6px;font:600 15px var(--font-ui)}
+.about p,.about li{font-size:15px;line-height:1.6;max-width:68ch}
+.about p{margin:0 0 10px}
+.lead{font-size:17px!important;color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 32px}
+.cols>div{min-width:0}
+.about ol,.about ul{margin:0;padding-left:20px;display:grid;gap:6px}
+kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:var(--surface)}
+.syntax{border-collapse:collapse;font-size:14px;width:100%}
+.syntax td,.syntax th{border-bottom:1px solid var(--line);padding:7px 10px 7px 0;text-align:left;vertical-align:top}
+.syntax th{font:600 11px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.syntax code{font:13px var(--font-mono);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.syntax .out{font:italic 17px var(--font-math)}
+.faq dt{font-weight:600;margin-top:12px}
+.faq dd{margin:4px 0 0;color:var(--muted);max-width:68ch}
+.foot{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);display:flex;gap:8px 18px;flex-wrap:wrap}
+.foot a{color:var(--accent)}
+
+@media (max-width: 1020px){
+  .btn .lbl-wide{display:none}
+}
+@media (max-width: 860px){
+  .app{height:auto;min-height:0}
+  .workspace{grid-template-columns:1fr;grid-template-rows:64vh auto}
+  .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  .tabs{position:static}
+  .hint{max-width:calc(100% - 24px);bottom:52px}
+  .about h2{font-size:25px}
+}
+@media (max-width: 560px){
+  .topbar{gap:8px}
+  .brand-sub{display:none}
+  .toolbar{gap:6px}
+  .toolbar .spacer{display:none}
+  .btn{height:32px;padding:0 9px}
+  .btn.icon{width:32px}
+  .seg .btn{height:30px}
+  .select{height:32px;max-width:132px}
+  .hint{font-size:11.5px;padding:5px 8px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>
+/* ---------- Pumping lemma page (Chapters 1.4 and 2.3) ---------- */
+.pl-app{min-height:calc(100dvh - 44px);display:flex;flex-direction:column}
+.pl-main{flex:1;display:grid;grid-template-columns:minmax(300px,400px) minmax(0,1fr);align-items:start;gap:16px;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));max-width:1320px;width:100%;margin:0 auto}
+.pl-col{display:grid;gap:16px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.card>.sec:last-child{border-bottom:0}
+.step-no{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font:600 11px var(--font-ui);margin-right:6px;letter-spacing:0}
+.lang-name{font:17px var(--font-math)}
+.lemma{margin:0;font-size:13.5px;line-height:1.55;color:var(--ink)}
+.goal{margin:0;font-size:13px;line-height:1.5;color:var(--muted)}
+.p-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.p-val{font:500 26px/1 var(--font-math);font-style:italic;min-width:84px}
+.p-val::before{content:"p = ";font-size:20px}
+#s-out{display:grid;gap:4px}
+.s-line{font-size:14px;line-height:1.6;overflow-wrap:anywhere}
+.s-line .math{font-size:17px}
+.mono{font-family:var(--font-mono);font-size:14px}
+.mono sup{font-size:.72em}
+.checks-row{display:flex;gap:14px;font-size:13px}
+.ok-text{color:var(--ok)}
+.warn-text{color:var(--bad)}
+.eps{font-family:var(--font-math);font-style:italic;color:var(--muted)}
+.hint-out{background:var(--hl-soft);border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.5}
+.pl-results{padding:16px;display:grid;gap:14px;align-content:start}
+.verdict{border-radius:10px;padding:12px 14px;display:grid;gap:8px;justify-items:start}
+.verdict p{margin:0}
+.verdict.ok{background:var(--ok-soft)}
+.verdict.bad{background:var(--bad-soft)}
+.verdict.run{background:var(--hl-soft)}
+.pumps{margin:0;padding-left:18px;display:grid;gap:2px;font-size:13px}
+.cases{display:grid;gap:10px}
+.case{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:6px}
+.case.open{border-color:var(--hl);box-shadow:inset 3px 0 0 var(--hl)}
+.case-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:14px}
+.case-head .i-pick{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font:italic 15px var(--font-math)}
+.case-head .select{height:30px;font-style:normal}
+.case-body{font-size:13px}
+.case-ex{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;font-size:13px}
+.split{display:inline-flex;flex-wrap:wrap;gap:2px;vertical-align:middle}
+.pseg{display:inline-grid;justify-items:center;gap:1px}
+.pseg-s{font:14px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px;min-width:22px;text-align:center;overflow-wrap:anywhere}
+.pseg-pump .pseg-s{background:var(--hl-soft);border-color:var(--hl)}
+.pseg-l{font:italic 12px var(--font-math);color:var(--muted)}
+.proof{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:14px;line-height:1.6}
+.proof p{margin:0 0 8px}
+.proof ol{margin:0 0 8px;padding-left:20px;display:grid;gap:6px}
+.trace td,.trace th{text-align:left}
+#all-p-out{display:grid;gap:6px;width:100%}
+@media (max-width: 900px){ .pl-main{grid-template-columns:minmax(0,1fr)} }
+@media (max-width: 560px){ .pl-main{padding-top:12px;gap:12px} .case-head .i-pick{margin-left:0} }
+</style>
+
+<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item active" aria-current="page" href="pumping.html"><span class="nav-ch">Ch 1–2</span>Pumping lemma</a><a class="nav-item" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><a class="nav-item" href="pda.html"><span class="nav-ch">Ch 2</span>Pushdown automata</a><a class="nav-item" href="tm.html"><span class="nav-ch">Ch 3</span>Turing machines</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
+<div class="pl-app" data-page="pumping">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-delta" aria-hidden="true">δ</span>
+      <div class="brand-text">
+        <h1 class="brand-name">Pumping lemma</h1>
+        <p class="brand-sub">Proof game · Chapters 1.4 and 2.3</p>
+      </div>
+    </div>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Which pumping lemma">
+        <button class="btn" data-mode="reg" aria-pressed="true" title="Pumping lemma for regular languages (Sipser 1.4)">Regular</button>
+        <button class="btn" data-mode="cfl" aria-pressed="false" title="Pumping lemma for context-free languages (Sipser 2.3)">Context-free</button>
+      </div>
+      <span class="spacer"></span>
+      <div class="group">
+        <button class="btn icon" id="btn-theme" title="Theme: follows your system" aria-label="Change theme">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11" /><path d="M8 2.5a5.5 5.5 0 010 11z" fill="currentColor"/></svg>
+        </button>
+        <button class="btn icon" id="btn-help" title="How the game works" aria-label="How to use">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 113 1.4c-.7.4-1.3.8-1.3 1.6"/><circle cx="8" cy="11.4" r=".4" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="pl-main">
+    <div class="pl-col">
+      <section class="card">
+        <div class="sec">
+          <h2 class="sec-title"><span class="step-no">1</span>The language</h2>
+          <label class="sr-only" for="lang">Language</label>
+          <select class="select" id="lang"></select>
+          <div id="lang-show"></div>
+          <p class="lemma" id="lemma-text"></p>
+          <p class="goal" id="goal-text"></p>
+          <div><button class="btn small" id="reveal-btn">Is L regular?</button></div>
+          <p class="hint-out" id="reveal-out" hidden></p>
+        </div>
+        <div class="sec">
+          <h2 class="sec-title"><span class="step-no">2</span>The adversary picks p</h2>
+          <div class="p-row">
+            <span class="p-val" id="p-val">5</span>
+            <button class="btn icon small" id="p-down" aria-label="Smaller p" title="Smaller p">−</button>
+            <button class="btn icon small" id="p-up" aria-label="Larger p" title="Larger p">+</button>
+            <button class="btn small" id="p-rand">Let the adversary pick</button>
+          </div>
+          <p class="goal">You don't choose p, so your s has to work for every p. Here p is between 3 and 10.</p>
+        </div>
+        <div class="sec">
+          <h2 class="sec-title"><span class="step-no">3</span>You pick s</h2>
+          <input class="input" id="s-input" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. 0^p1^p" aria-label="The string s, written in terms of p">
+          <div class="symbols" id="s-symbols" aria-label="Insert">
+            <button class="btn plain" data-s="^p" title="Repeat p times">^p</button>
+            <button class="btn plain" data-s="^(p+1)" title="Repeat p+1 times">^(p+1)</button>
+            <button class="btn plain" data-s="^(p^2)" title="Repeat p² times">^(p^2)</button>
+            <button class="btn plain" id="hint-btn" type="button">Hint</button>
+          </div>
+          <div id="s-out" aria-live="polite"></div>
+          <p class="hint-out" id="hint-out" hidden></p>
+        </div>
+        <div class="sec">
+          <h2 class="sec-title"><span class="step-no">4</span>You pick i</h2>
+          <label class="p-row small-text">Pump with i =
+            <select class="select" id="i-default"><option value="0">0 (pump down)</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+          </label>
+          <p class="goal">This i is used for every case. You can change it for a single case on the right.</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="card" aria-label="The adversary's splits">
+      <div class="sec"><h2 class="sec-title">The adversary splits s</h2></div>
+      <div class="pl-results" id="result" aria-live="polite"></div>
+    </section>
+  </main>
+</div>
+
+<section class="about" id="how-to">
+  <div>
+    <h2>The pumping lemma as a game</h2>
+    <p class="lead">A pumping lemma proof is a game against an adversary. The adversary picks the pumping length p, you pick a string s in the language, the adversary splits s any way the lemma allows, and you pick how many times to pump. If you can always pump s out of the language, the language is not regular (Sipser, Theorem 1.70) or not context-free (Theorem 2.34).</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Writing s</h3>
+      <table class="syntax">
+        <thead><tr><th>Type</th><th>Means</th></tr></thead>
+        <tbody>
+          <tr><td><code>0^p1^p</code></td><td>0<sup>p</sup>1<sup>p</sup></td></tr>
+          <tr><td><code>0^(p+1)1^p</code></td><td>0<sup>p+1</sup>1<sup>p</sup></td></tr>
+          <tr><td><code>1^(p^2)</code></td><td>1<sup>p²</sup></td></tr>
+          <tr><td><code>(01)^p</code></td><td>01 repeated p times</td></tr>
+          <tr><td><code>a^pb^pc^p</code></td><td>a<sup>p</sup>b<sup>p</sup>c<sup>p</sup></td></tr>
+        </tbody>
+      </table>
+      <p class="small-text muted">A plain string such as <code>0011</code> works too, but a proof needs s to grow with p.</p>
+    </div>
+    <div>
+      <h3>How the page checks your proof</h3>
+      <ol>
+        <li>It lists every split the lemma allows for the current p and groups them into cases, such as “y has only 0s”.</li>
+        <li>For each case, it pumps every split with your i and checks whether the result leaves L.</li>
+        <li>If one split can't be pumped out of L by any i, the adversary wins with that split, and your s cannot work.</li>
+        <li>When every case is covered, check every p from 3 to 10 and read the proof outline.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Good to know</h3>
+      <ul>
+        <li>i = 0 (“pumping down”) is allowed and is sometimes the only choice that works, as in Sipser's Example 1.77.</li>
+        <li>Some languages here <em>are</em> regular or context-free. For those the adversary always wins: the lemma really holds for them.</li>
+        <li>Passing the pumping test does not prove that a language is regular or context-free.</li>
+      </ul>
+    </div>
+  </div>
+  <footer class="foot">
+    <span>DeltaDraw v1.8 · pumping lemma</span>
+    <a href="index.html">All chapters</a>
+    <a href="fa.html">Finite automata</a>
+    <a href="cfg.html">Context-free grammars</a>
+  </footer>
+</section>
+
+<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden></button></div>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   DeltaDraw · The pumping lemma as a game (Sipser 1.4 and 2.3)
+   Regular (Theorem 1.70): s = xyz, |xy| ≤ p, |y| > 0, and xyⁱz ∈ L for every i ≥ 0.
+   Context-free (Theorem 2.34): s = uvxyz, |vxy| ≤ p, |vy| > 0, and uvⁱxyⁱz ∈ L for every i ≥ 0.
+   ===================================================================== */
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const store = {
+  get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
+};
+const KEY = 'deltadraw:pump:v1', THEME_KEY = 'deltadraw:theme';
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const P_MIN = 3, P_MAX = 10;
+const TRY_I = [0, 2, 3, 4, 5]; // i = 1 gives s itself
+
+/* ---------------- Languages ---------------- */
+const count = (w, c) => { let n = 0; for (const x of w) if (x === c) n++; return n; };
+const isSquare = (n) => { const r = Math.round(Math.sqrt(n)); return r * r === n; };
+const LANGS = {
+  zeroone: {
+    name: '{0<sup>n</sup>1<sup>n</sup> | n ≥ 0}', test: (w) => /^0*1*$/.test(w) && count(w, '0') === count(w, '1'),
+    regular: false, cfl: true, ref: { reg: 'Example 1.73', cfl: 'Example 2.3 (a grammar for it)' },
+    hint: { reg: 'Try s = 0^p1^p. Because |xy| ≤ p, y can only contain 0s. Pump up with i = 2.', cfl: '' },
+    why: { cfl: 'This language is context-free (S → 0S1 | ε), so the context-free pumping lemma can never be violated: for every long string, splitting around the middle 01 pumps both halves together.' },
+  },
+  equal: {
+    name: '{w | w has equally many 0s and 1s}', test: (w) => /^[01]*$/.test(w) && count(w, '0') === count(w, '1'),
+    regular: false, cfl: true, ref: { reg: 'Example 1.74', cfl: '' },
+    hint: { reg: 'Try s = 0^p1^p again. Every y lies in the first p symbols, so it is all 0s.', cfl: '' },
+    why: { cfl: 'This language is context-free (S → 0S1 | 1S0 | SS | ε). Any long string has a 0 next to a 1, and pumping that pair keeps the counts equal.' },
+  },
+  ww: {
+    name: '{ww | w ∈ {0,1}*}', test: (w) => /^[01]*$/.test(w) && w.length % 2 === 0 && w.slice(0, w.length / 2) === w.slice(w.length / 2),
+    regular: false, cfl: false, ref: { reg: 'Example 1.75', cfl: 'Example 2.38' },
+    hint: { reg: 'Try s = 0^p10^p1 (0^p1 twice). y is in the first block of 0s; pump it up.', cfl: 'Try s = 0^p1^p0^p1^p. Sipser pumps down: i = 0 works in every case.' },
+  },
+  squares: {
+    name: '{1<sup>n²</sup> | n ≥ 0}', test: (w) => /^1*$/.test(w) && isSquare(w.length),
+    regular: false, cfl: false, ref: { reg: 'Example 1.76', cfl: '' },
+    hint: { reg: 'Try s = 1^(p^2). Pumping up once adds at most p ones, and p² + p is less than the next square (p+1)².', cfl: 'Try s = 1^(p^2) with i = 2: |vy| ≤ p, so the length lands strictly between p² and (p+1)².' },
+  },
+  igtj: {
+    name: '{0<sup>i</sup>1<sup>j</sup> | i > j}', test: (w) => /^0*1*$/.test(w) && count(w, '0') > count(w, '1'),
+    regular: false, cfl: true, ref: { reg: 'Example 1.77', cfl: '' },
+    hint: { reg: 'Try s = 0^(p+1)1^p. Pumping up keeps more 0s than 1s, so pump down instead: i = 0.', cfl: '' },
+    why: { cfl: 'This language is context-free (S → 0S1 | 0S | 0), so the context-free pumping lemma always holds for it.' },
+  },
+  pal: {
+    name: '{w | w = w<sup>R</sup>, w ∈ {0,1}*}', test: (w) => /^[01]*$/.test(w) && w === [...w].reverse().join(''),
+    regular: false, cfl: true, ref: { reg: '', cfl: '' },
+    hint: { reg: 'Try s = 0^p10^p. y is in the first block of 0s, so pumping breaks the symmetry.', cfl: '' },
+    why: { cfl: 'Palindromes are context-free (S → 0S0 | 1S1 | 0 | 1 | ε). Choosing v and y as the two symbols around the middle keeps the string a palindrome.' },
+  },
+  rep01: {
+    name: '(01)*', test: (w) => /^(01)*$/.test(w),
+    regular: true, cfl: true, ref: { reg: '', cfl: '' }, hint: { reg: '', cfl: '' },
+    why: { reg: 'This language is regular (it is a regular expression), so the pumping lemma always holds: the adversary can pump the first 01.', cfl: 'Every regular language is context-free, so the adversary can always pump.' },
+  },
+  even0: {
+    name: '{w | w has an even number of 0s}', test: (w) => /^[01]*$/.test(w) && count(w, '0') % 2 === 0,
+    regular: true, cfl: true, ref: { reg: '', cfl: '' }, hint: { reg: '', cfl: '' },
+    why: { reg: 'A two-state DFA recognizes this language, so it is regular and any long enough string can be pumped.', cfl: 'Every regular language is context-free.' },
+  },
+  abc: {
+    name: '{a<sup>n</sup>b<sup>n</sup>c<sup>n</sup> | n ≥ 0}', test: (w) => /^a*b*c*$/.test(w) && count(w, 'a') === count(w, 'b') && count(w, 'b') === count(w, 'c'),
+    regular: false, cfl: false, ref: { reg: '', cfl: 'Example 2.36' },
+    hint: { reg: 'Try s = a^pb^pc^p: y has only a\'s.', cfl: 'Try s = a^pb^pc^p. |vxy| ≤ p, so v and y never touch all three letters. i = 2 works in every case.' },
+  },
+  ijk: {
+    name: '{a<sup>i</sup>b<sup>j</sup>c<sup>k</sup> | 0 ≤ i ≤ j ≤ k}', test: (w) => { if (!/^a*b*c*$/.test(w)) return false; const a = count(w, 'a'), b = count(w, 'b'), c = count(w, 'c'); return a <= b && b <= c; },
+    regular: false, cfl: false, ref: { reg: '', cfl: 'Example 2.37' },
+    hint: { reg: 'Try s = a^pb^pc^p and pump the a\'s up.', cfl: 'Try s = a^pb^pc^p. Here one i is not enough: pump up (i = 2) when v or y has a\'s or only b\'s, and pump down (i = 0) when they have c\'s.' },
+  },
+};
+const MODES = {
+  reg: { title: 'Regular', theorem: 'Theorem 1.70', list: ['zeroone', 'equal', 'ww', 'squares', 'igtj', 'pal', 'rep01', 'even0'], inClass: (L) => L.regular },
+  cfl: { title: 'Context-free', theorem: 'Theorem 2.34', list: ['abc', 'ijk', 'ww', 'squares', 'zeroone', 'pal', 'equal'], inClass: (L) => L.cfl },
+};
+
+/* ---------------- s in terms of p:  0^p1^p,  a^(p+1),  (01)^p,  1^(p^2),  0^{2p} ---------------- */
+function parsePattern(src) {
+  let i = 0;
+  const s = src;
+  const ws = () => { while (i < s.length && /\s/.test(s[i])) i++; };
+  const fail = (msg) => { throw new Error(msg); };
+  function arith() { let v = term(); ws(); while (s[i] === '+' || s[i] === '-') { const op = s[i++]; const r = term(); v = { op, a: v, b: r }; ws(); } return v; }
+  function term() { let v = factor(); ws(); while (s[i] === '*' || s[i] === '·' || s[i] === '(' || s[i] === 'p' || /\d/.test(s[i] || '')) { if (s[i] === '*' || s[i] === '·') i++; const r = factor(); v = { op: '*', a: v, b: r }; ws(); } return v; }
+  function factor() { const b = base(); ws(); if (s[i] === '^') { i++; return { op: '^', a: b, b: factor() }; } return b; }
+  function base() {
+    ws();
+    const c = s[i];
+    if (c === '(' || c === '{') { i++; const v = arith(); ws(); if (s[i] !== (c === '(' ? ')' : '}')) fail(`A “${c}” in an exponent is never closed.`); i++; return v; }
+    if (c === 'p') { i++; return { p: true }; }
+    if (/\d/.test(c || '')) { let j = i; while (/\d/.test(s[j] || '')) j++; const v = Number(s.slice(i, j)); i = j; return { n: v }; }
+    fail(c ? `Unexpected “${c}” in an exponent.` : 'An exponent is missing after “^”.');
+    return null;
+  }
+  function exponent() {
+    ws();
+    const c = s[i];
+    if (c === '(' || c === '{') return base();
+    if (c === 'p') { i++; return { p: true }; }
+    if (/\d/.test(c || '')) { let j = i; while (/\d/.test(s[j] || '')) j++; const v = Number(s.slice(i, j)); i = j; return { n: v }; }
+    fail(c ? `“^” must be followed by a number, p, or an expression in parentheses like (p+1). Found “${c}”.` : 'An exponent is missing after “^”.');
+    return null;
+  }
+  function seq(close) {
+    const items = [];
+    for (;;) {
+      ws();
+      if (i >= s.length) { if (close) fail('A “(” is never closed.'); return items; }
+      const c = s[i];
+      if (c === ')') { if (!close) fail('There is a “)” without a matching “(”.'); i++; return items; }
+      let atom;
+      if (c === '(') { i++; atom = { group: seq(true) }; } else if (c === '^' || c === '{' || c === '}') fail(`Unexpected “${c}”.`);
+      else { atom = { sym: c }; i++; }
+      ws();
+      if (s[i] === '^') { i++; atom.exp = exponent(); }
+      items.push(atom);
+    }
+  }
+  try {
+    const ast = seq(false);
+    if (!ast.length) return { error: 'Type a string, for example 0^p1^p.' };
+    return { ast };
+  } catch (e) { return { error: e.message }; }
+}
+function evalArith(e, p) {
+  if (e.p) return p;
+  if (e.n != null) return e.n;
+  const a = evalArith(e.a, p), b = evalArith(e.b, p);
+  return e.op === '+' ? a + b : e.op === '-' ? a - b : e.op === '*' ? a * b : Math.pow(a, b);
+}
+function evalPattern(ast, p, limit = 400) {
+  let out = '';
+  const go = (items) => {
+    for (const it of items) {
+      const k = it.exp ? evalArith(it.exp, p) : 1;
+      if (!Number.isInteger(k) || k < 0) throw new Error(`An exponent is ${k} when p = ${p}; exponents must be whole numbers ≥ 0.`);
+      for (let r = 0; r < k; r++) {
+        if (it.group) go(it.group); else out += it.sym;
+        if (out.length > limit) throw new Error(`s is longer than ${limit} symbols when p = ${p}. Pick a shorter string.`);
+      }
+    }
+  };
+  try { go(ast); return { s: out }; } catch (e) { return { error: e.message }; }
+}
+function arithHTML(e, top = true) {
+  if (e.p) return 'p';
+  if (e.n != null) return String(e.n);
+  const inner = e.op === '^' ? `${arithHTML(e.a, false)}<sup>${arithHTML(e.b, false)}</sup>` : `${arithHTML(e.a, false)}${e.op === '*' ? '' : e.op}${arithHTML(e.b, false)}`;
+  return top || e.op === '^' ? inner : `(${inner})`;
+}
+function patternHTML(items) {
+  return items.map((it) => {
+    const body = it.group ? `(${patternHTML(it.group)})` : esc(it.sym);
+    return it.exp ? `${body}<sup>${arithHTML(it.exp)}</sup>` : body;
+  }).join('');
+}
+// run-length view of a concrete string: 000011 → 0⁴1²
+function runsHTML(w) {
+  if (!w.length) return '<span class="eps">ε</span>';
+  let out = '', i = 0;
+  while (i < w.length) { let j = i; while (j < w.length && w[j] === w[i]) j++; out += esc(w[i]) + (j - i > 1 ? `<sup>${j - i}</sup>` : ''); i = j; }
+  return out;
+}
+
+/* ---------------- Splits and cases ---------------- */
+function blocksOf(s) { // maximal runs of one symbol
+  const blocks = [], at = [];
+  for (let i = 0; i < s.length; i++) {
+    if (!i || s[i] !== s[i - 1]) blocks.push({ sym: s[i], start: i });
+    at.push(blocks.length - 1);
+  }
+  return { blocks, at };
+}
+const plural = (c) => (/^[a-z]$/.test(c) ? `${c}'s` : `${c}s`);
+const ORD = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth'];
+function describePart(s, B, start, len) {
+  if (!len) return { key: 'empty', text: 'is empty' };
+  const ids = [...new Set(B.at.slice(start, start + len))];
+  const tag = (id) => { const sym = B.blocks[id].sym, same = B.blocks.filter((b) => b.sym === sym); return same.length < 2 ? '' : ` (in the ${ORD[same.indexOf(B.blocks[id])] || 'next'} block of ${plural(sym)})`; };
+  if (ids.length === 1) return { key: `only#${ids[0]}`, text: `has only ${plural(B.blocks[ids[0]].sym)}${tag(ids[0])}` };
+  return { key: `mix#${ids.join(',')}`, text: `crosses from ${ids.map((id) => plural(B.blocks[id].sym)).join(' into ')}` };
+}
+function splitsOf(mode, s, p) {
+  const n = s.length, out = [];
+  if (mode === 'reg') {
+    for (let j = 0; j <= p; j++) for (let k = 1; j + k <= p && j + k <= n; k++) out.push({ parts: [s.slice(0, j), s.slice(j, j + k), s.slice(j + k)], pos: [j, k] });
+  } else {
+    for (let a0 = 0; a0 < n; a0++) for (let a = 0; a <= p; a++) for (let c = 0; a + c <= p; c++) for (let b = 0; a + c + b <= p; b++) {
+      if (a + b < 1 || a0 + a + c + b > n) continue;
+      out.push({ parts: [s.slice(0, a0), s.slice(a0, a0 + a), s.slice(a0 + a, a0 + a + c), s.slice(a0 + a + c, a0 + a + c + b), s.slice(a0 + a + c + b)], pos: [a0, a, c, b] });
+    }
+  }
+  return out;
+}
+function pump(mode, parts, i) {
+  return mode === 'reg' ? parts[0] + parts[1].repeat(i) + parts[2] : parts[0] + parts[1].repeat(i) + parts[2] + parts[3].repeat(i) + parts[4];
+}
+function caseOf(mode, s, B, sp) {
+  if (mode === 'reg') { const d = describePart(s, B, sp.pos[0], sp.pos[1]); return { key: 'y ' + d.key, text: `y ${d.text}` }; }
+  // Sipser's cases: which blocks v and y touch together, and whether v or y itself crosses a block boundary
+  const [a0, a, c] = sp.pos, b = sp.pos[3];
+  const ids = (st, len) => [...new Set(B.at.slice(st, st + len))];
+  const iv = ids(a0, a), iy = ids(a0 + a + c, b);
+  const all = [...new Set([...iv, ...iy])].sort((m, n) => m - n);
+  const crossing = iv.length > 1 || iy.length > 1;
+  const name = (id) => { const sym = B.blocks[id].sym, same = B.blocks.filter((x) => x.sym === sym); return plural(sym) + (same.length > 1 ? ` (${ORD[same.indexOf(B.blocks[id])] || 'next'} block)` : ''); };
+  const names = all.map(name);
+  const text = crossing ? `v or y crosses from ${names.join(' into ')}` : all.length === 1 ? `v and y contain only ${names[0]}` : `v and y contain only ${names.join(' and ')}, neither crossing between them`;
+  return { key: `${crossing ? 'x' : 'n'}#${all.join(',')}`, text };
+}
+// Check every split for one p. rules: case key → i (default i otherwise).
+function analyze(mode, L, s, p, defI, rules = {}) {
+  const B = blocksOf(s);
+  const cases = new Map();
+  const splits = splitsOf(mode, s, p);
+  const unbeatable = [];
+  for (const sp of splits) {
+    const cs = caseOf(mode, s, B, sp);
+    if (!cases.has(cs.key)) cases.set(cs.key, { key: cs.key, text: cs.text, splits: [], fails: [], i: rules[cs.key] != null ? rules[cs.key] : defI, best: null });
+    const C = cases.get(cs.key);
+    C.splits.push(sp);
+    const out = !L.test(pump(mode, sp.parts, C.i));
+    if (!out) C.fails.push(sp);
+    // can this split be beaten at all (with some i up to 5)?
+    sp.beat = TRY_I.filter((i) => !L.test(pump(mode, sp.parts, i)));
+    if (!sp.beat.length) unbeatable.push(sp);
+  }
+  // for each case: an i that works for every split in it, if there is one
+  for (const C of cases.values()) C.best = TRY_I.find((i) => C.splits.every((sp) => sp.beat.includes(i)));
+  return { splits, cases: [...cases.values()], unbeatable, ok: [...cases.values()].every((C) => !C.fails.length) };
+}
+
+/* =====================================================================
+   Page
+   ===================================================================== */
+let mode = 'reg', langId = 'zeroone', p = 5, defI = 2, rules = {}, patterns = {}, helped = {};
+const L = () => LANGS[langId];
+let last = null;
+
+function save() { store.set(KEY, JSON.stringify({ mode, langId, p, defI, rules, patterns })); }
+function toast(msg) {
+  const t = $('#toast');
+  $('#toast-msg').textContent = msg;
+  $('#toast-action').hidden = true;
+  t.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => { t.hidden = true; }, 3200);
+}
+const ruleKey = () => `${mode}:${langId}`;
+const segHTML = (txt, cls, label) => `<span class="pseg ${cls}"><span class="pseg-s">${txt.length ? esc(txt) : '<span class="eps">ε</span>'}</span><span class="pseg-l">${label}</span></span>`;
+function splitHTML(sp) {
+  const names = mode === 'reg' ? ['x', 'y', 'z'] : ['u', 'v', 'x', 'y', 'z'];
+  const pumped = mode === 'reg' ? [1] : [1, 3];
+  return `<span class="split">${sp.parts.map((t, k) => segHTML(t, pumped.includes(k) ? 'pseg-pump' : '', names[k])).join('')}</span>`;
+}
+
+function renderSetup() {
+  for (const b of $$('[data-mode]')) b.setAttribute('aria-pressed', String(b.dataset.mode === mode));
+  const sel = $('#lang');
+  sel.innerHTML = MODES[mode].list.map((id) => `<option value="${id}">${LANGS[id].name.replace(/<sup>(.*?)<\/sup>/g, '^$1')}</option>`).join('');
+  if (!MODES[mode].list.includes(langId)) langId = MODES[mode].list[0];
+  sel.value = langId;
+  const Lg = L(), ref = Lg.ref[mode];
+  $('#lang-show').innerHTML = `<span class="lang-name">L = ${Lg.name}</span>${ref ? ` <span class="muted small-text">Sipser, ${ref}</span>` : ''}`;
+  $('#lemma-text').innerHTML = mode === 'reg'
+    ? 'If L is regular, there is a number <i>p</i> such that every s ∈ L with |s| ≥ <i>p</i> can be split as <b>s = xyz</b> with <b>|xy| ≤ p</b> and <b>|y| &gt; 0</b>, and <b>xy<sup>i</sup>z ∈ L for every i ≥ 0</b>.'
+    : 'If L is context-free, there is a number <i>p</i> such that every s ∈ L with |s| ≥ <i>p</i> can be split as <b>s = uvxyz</b> with <b>|vxy| ≤ p</b> and <b>|vy| &gt; 0</b>, and <b>uv<sup>i</sup>xy<sup>i</sup>z ∈ L for every i ≥ 0</b>.';
+  $('#goal-text').innerHTML = `To prove L is not ${mode === 'reg' ? 'regular' : 'context-free'}: for the adversary's <i>p</i>, choose one s, and then show that <b>every</b> allowed split can be pumped out of L by some i.`;
+  $('#p-val').textContent = p;
+  $('#s-input').value = patterns[ruleKey()] || '';
+  $('#i-default').value = String(defI);
+  $('#hint-out').hidden = true;
+  $('#reveal-out').hidden = true;
+  $('#reveal-btn').textContent = `Is L ${mode === 'reg' ? 'regular' : 'context-free'}?`;
+  update();
+}
+
+function update() {
+  const Lg = L();
+  const src = $('#s-input').value;
+  patterns[ruleKey()] = src;
+  save();
+  const sOut = $('#s-out'), res = $('#result');
+  last = null;
+  if (!src.trim()) { sOut.innerHTML = '<span class="muted small-text">Type s in terms of p, for example <code>0^p1^p</code>.</span>'; res.innerHTML = '<p class="muted small-text">Choose a string s to start.</p>'; return; }
+  const pr = parsePattern(src);
+  if (pr.error) { sOut.innerHTML = `<span class="warn-text">${esc(pr.error)}</span>`; res.innerHTML = ''; return; }
+  const ev = evalPattern(pr.ast, p);
+  if (ev.error) { sOut.innerHTML = `<span class="warn-text">${esc(ev.error)}</span>`; res.innerHTML = ''; return; }
+  const s = ev.s, inL = Lg.test(s), long = s.length >= p;
+  sOut.innerHTML = `<div class="s-line">s = <span class="math">${patternHTML(pr.ast)}</span> = <span class="mono">${runsHTML(s)}</span> <span class="muted small-text">(length ${s.length} for p = ${p})</span></div>
+    <div class="checks-row"><span class="${inL ? 'ok-text' : 'warn-text'}">${inL ? '✓' : '✕'} s ∈ L</span><span class="${long ? 'ok-text' : 'warn-text'}">${long ? '✓' : '✕'} |s| ≥ p</span></div>`;
+  if (!inL || !long) {
+    res.innerHTML = `<p class="small-text">${!inL ? 'The lemma only talks about strings in L, so s must be in L.' : `The lemma only promises a split for strings of length at least p = ${p}.`} Pick another s.</p>`;
+    return;
+  }
+  const A = analyze(mode, Lg, s, p, defI, rules[ruleKey()] || {});
+  last = { s, ast: pr.ast, A };
+  renderResult();
+}
+
+function renderResult() {
+  const { s, A } = last, Lg = L(), inClass = MODES[mode].inClass(Lg);
+  const res = $('#result');
+  const n = A.splits.length;
+  let html = `<p class="small-text">For p = ${p} there ${n === 1 ? 'is 1 way' : `are ${n.toLocaleString()} ways`} to split s with ${mode === 'reg' ? '|xy| ≤ p and |y| &gt; 0' : '|vxy| ≤ p and |vy| &gt; 0'}. They fall into ${A.cases.length} case${A.cases.length === 1 ? '' : 's'}. The adversary may pick any of them, so every case needs an i.</p>`;
+  if (A.unbeatable.length) {
+    const sp = A.unbeatable[0];
+    html += `<div class="verdict bad"><span class="pill bad">The adversary wins</span><p>With this split, every pumped string stays in L (checked for i = 0 to 5):</p>${splitHTML(sp)}<ul class="pumps">${[0, 1, 2, 3].map((i) => `<li><span class="mono">${mode === 'reg' ? `xy<sup>${i}</sup>z` : `uv<sup>${i}</sup>xy<sup>${i}</sup>z`}</span> = <span class="mono">${runsHTML(pump(mode, sp.parts, i))}</span> <span class="ok-text">∈ L</span></li>`).join('')}</ul>
+      <p class="small-text">${inClass ? 'No choice of s can beat the adversary here, because the lemma really holds for this language. Try another language, or press the button above to see why.' : 'This s cannot prove anything. Try a different s (the Hint button has the textbook choice).'}</p></div>`;
+  } else if (A.ok) {
+    html += `<div class="verdict ok"><span class="pill ok">✓ Every case is covered for p = ${p}</span><p class="small-text">For every allowed split, pumping with your i gives a string outside L. That contradicts the pumping lemma for this p.</p>
+      <div class="row"><button class="btn primary small" id="all-p">Check every p from ${P_MIN} to ${P_MAX}</button><button class="btn small" id="show-proof">Write the proof outline</button></div><div id="all-p-out"></div><div id="proof-out" hidden></div></div>`;
+  } else {
+    const bad = A.cases.filter((C) => C.fails.length).length;
+    html += `<div class="verdict run"><span class="pill run">${bad} case${bad === 1 ? '' : 's'} still open</span><p class="small-text">In ${bad === 1 ? 'this case' : 'these cases'}, your i keeps some pumped strings in L. Pick another i for ${bad === 1 ? 'it' : 'them'} below.</p></div>`;
+  }
+  html += `<div class="cases">${A.cases.map((C, k) => {
+    const status = C.fails.length ? `<span class="warn-text">✕ ${C.fails.length} of ${C.splits.length} split${C.splits.length === 1 ? '' : 's'} stay in L</span>` : `<span class="ok-text">✓ all ${C.splits.length} split${C.splits.length === 1 ? '' : 's'} leave L</span>`;
+    const ex = C.fails[0] || C.splits[0];
+    const pumped = pump(mode, ex.parts, C.i);
+    return `<div class="case${C.fails.length ? ' open' : ''}">
+      <div class="case-head"><b>Case ${k + 1}:</b> ${esc(C.text)} <label class="i-pick">i = <select class="select" data-case="${esc(C.key)}">${[0, 2, 3, 4, 5].map((i) => `<option value="${i}"${i === C.i ? ' selected' : ''}>${i}</option>`).join('')}</select></label></div>
+      <div class="case-body">${status}${C.fails.length && C.best != null ? ` <span class="muted small-text">(try i = ${C.best})</span>` : ''}${C.fails.length && C.best == null && !A.unbeatable.length ? ' <span class="muted small-text">(no single i works for this whole case; try another s)</span>' : ''}</div>
+      <div class="case-ex"><span class="muted small-text">${C.fails.length ? 'A split that stays in L' : 'Example'}:</span> ${splitHTML(ex)} <span class="mono">→ ${mode === 'reg' ? `xy<sup>${C.i}</sup>z` : `uv<sup>${C.i}</sup>xy<sup>${C.i}</sup>z`} = ${runsHTML(pumped)}</span> ${Lg.test(pumped) ? '<span class="warn-text">∈ L</span>' : '<span class="ok-text">∉ L</span>'}</div>
+    </div>`;
+  }).join('')}</div>`;
+  res.innerHTML = html;
+  for (const sel of res.querySelectorAll('select[data-case]')) sel.addEventListener('change', () => {
+    const r = rules[ruleKey()] || (rules[ruleKey()] = {});
+    r[sel.dataset.case] = Number(sel.value);
+    save(); update();
+  });
+  if ($('#all-p')) $('#all-p').addEventListener('click', checkAllP);
+  if ($('#show-proof')) $('#show-proof').addEventListener('click', () => { const o = $('#proof-out'); o.hidden = !o.hidden; if (!o.hidden) o.innerHTML = proofHTML(); });
+}
+
+function checkAllP() {
+  const Lg = L(), ast = last.ast, r = rules[ruleKey()] || {};
+  const rows = [];
+  let good = 0;
+  for (let q = P_MIN; q <= P_MAX; q++) {
+    const ev = evalPattern(ast, q);
+    if (ev.error) { rows.push(`<tr><td>${q}</td><td colspan="3" class="warn-text">${esc(ev.error)}</td></tr>`); continue; }
+    const s = ev.s;
+    if (!Lg.test(s) || s.length < q) { rows.push(`<tr><td>${q}</td><td>${s.length}</td><td colspan="2" class="warn-text">${!Lg.test(s) ? 's is not in L' : '|s| < p'}</td></tr>`); continue; }
+    const A = analyze(mode, Lg, s, q, defI, r);
+    const open = A.cases.filter((C) => C.fails.length);
+    if (!open.length) good++;
+    rows.push(`<tr><td>${q}</td><td>${s.length}</td><td>${A.splits.length.toLocaleString()}</td><td class="${open.length ? 'warn-text' : 'ok-text'}">${open.length ? `✕ open: ${open.map((C) => esc(C.text)).join('; ')}` : '✓ every split leaves L'}</td></tr>`);
+  }
+  const total = P_MAX - P_MIN + 1;
+  $('#all-p-out').innerHTML = `<div class="table-wrap"><table class="ttable trace"><thead><tr><th>p</th><th>|s|</th><th>splits</th><th>result</th></tr></thead><tbody>${rows.join('')}</tbody></table></div>
+    <p class="small-text ${good === total ? 'ok-text' : ''}">${good === total ? `Your s and your choices of i work for every p from ${P_MIN} to ${P_MAX}. A written proof argues the same way for every p, using the cases above.` : `Your choices work for ${good} of ${total} values of p. A proof has to work for every p.`}</p>`;
+}
+
+function proofHTML() {
+  const { A, ast } = last, Lg = L(), reg = mode === 'reg';
+  const cls = reg ? 'regular' : 'context-free';
+  const caseLines = A.cases.map((C, k) => {
+    const sp = C.splits[0], w = pump(mode, sp.parts, C.i);
+    return `<li><b>Case ${k + 1}:</b> ${esc(C.text)}. Then ${reg ? `xy<sup>${C.i}</sup>z` : `uv<sup>${C.i}</sup>xy<sup>${C.i}</sup>z`} ∉ L. <span class="muted">(For example, with p = ${p}: ${splitHTML(sp)} gives ${runsHTML(w)}, which is not in L. In your proof, explain why this holds for every p.)</span></li>`;
+  }).join('');
+  return `<div class="proof">
+    <p><b>Claim.</b> L = ${Lg.name} is not ${cls}.</p>
+    <p><b>Proof.</b> Assume to the contrary that L is ${cls}, and let p be the pumping length given by the pumping lemma (${MODES[mode].theorem}). Let s = <span class="math">${patternHTML(ast)}</span>. Then s ∈ L and |s| ≥ p, so the lemma says s = ${reg ? 'xyz with |xy| ≤ p and |y| &gt; 0' : 'uvxyz with |vxy| ≤ p and |vy| &gt; 0'}, and ${reg ? 'xy<sup>i</sup>z' : 'uv<sup>i</sup>xy<sup>i</sup>z'} ∈ L for every i ≥ 0. We show that every such split leads to a contradiction.</p>
+    <ol>${caseLines}</ol>
+    <p>Every case contradicts the pumping lemma, so the assumption is false and L is not ${cls}. ∎</p>
+    <p class="small-text muted">The cases come from the splits for p = ${p}; check that they cover every p in your written proof.</p></div>`;
+}
+
+/* ---------------- Wiring ---------------- */
+for (const b of $$('[data-mode]')) b.addEventListener('click', () => { mode = b.dataset.mode; try { history.replaceState(null, '', '#' + mode); } catch (e) { /* file:// */ } renderSetup(); });
+$('#lang').addEventListener('change', (e) => { langId = e.target.value; renderSetup(); });
+$('#p-down').addEventListener('click', () => { if (p > P_MIN) { p--; $('#p-val').textContent = p; save(); update(); } });
+$('#p-up').addEventListener('click', () => { if (p < P_MAX) { p++; $('#p-val').textContent = p; save(); update(); } });
+$('#p-rand').addEventListener('click', () => { let q = p; while (q === p) q = P_MIN + Math.floor(Math.random() * (P_MAX - P_MIN + 1)); p = q; $('#p-val').textContent = p; save(); update(); toast(`The adversary picked p = ${p}.`); });
+let timer = 0;
+$('#s-input').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(update, 200); });
+$('#i-default').addEventListener('change', (e) => { defI = Number(e.target.value); rules[ruleKey()] = {}; save(); update(); });
+$('#s-symbols').addEventListener('mousedown', (e) => { if (e.target.closest('[data-s]')) e.preventDefault(); });
+$('#s-symbols').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-s]');
+  if (!b) return;
+  const ta = $('#s-input'), st = ta.selectionStart, en = ta.selectionEnd, ins = b.dataset.s;
+  ta.value = ta.value.slice(0, st) + ins + ta.value.slice(en);
+  ta.focus(); ta.setSelectionRange(st + ins.length, st + ins.length);
+  update();
+});
+$('#hint-btn').addEventListener('click', () => {
+  const h = L().hint[mode], o = $('#hint-out');
+  o.hidden = false;
+  o.innerHTML = h ? esc(h).replace(/([0-9a-z)])\^(\(([^)]*)\)|p|\d+)/g, (m, b, e, inner) => `${b}<sup>${(inner != null ? inner : e).replace('^2', '²')}</sup>`) : 'There is no textbook string to suggest here. Try a few strings and see what the adversary does.';
+});
+$('#reveal-btn').addEventListener('click', () => {
+  const Lg = L(), inC = MODES[mode].inClass(Lg), o = $('#reveal-out');
+  o.hidden = !o.hidden;
+  o.innerHTML = inC
+    ? `<b>Yes.</b> ${esc(Lg.why[mode] || '')} The pumping lemma can show that a language is <i>not</i> ${mode === 'reg' ? 'regular' : 'context-free'}, but a language that can be pumped is not automatically ${mode === 'reg' ? 'regular' : 'context-free'}.`
+    : `<b>No.</b> L is not ${mode === 'reg' ? 'regular' : 'context-free'}${Lg.ref[mode] ? ` (Sipser, ${Lg.ref[mode]})` : ''}, so the right s wins the game. ${mode === 'cfl' && Lg.cfl === false && Lg.regular === false ? '' : ''}`;
+});
+// theme (shared with the other DeltaDraw pages)
+const THEMES = ['system', 'light', 'dark'];
+let theme = store.get(THEME_KEY) || 'system';
+function applyTheme() {
+  if (theme === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', theme);
+  $('#btn-theme').title = 'Theme: ' + (theme === 'system' ? 'follows your system' : theme);
+}
+$('#btn-theme').addEventListener('click', () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; store.set(THEME_KEY, theme); applyTheme(); toast('Theme: ' + (theme === 'system' ? 'same as your system' : theme)); });
+$('#btn-help').addEventListener('click', () => $('#how-to').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+
+/* ---------------- Start ---------------- */
+applyTheme();
+try {
+  const saved = JSON.parse(store.get(KEY) || 'null');
+  if (saved) {
+    if (MODES[saved.mode]) mode = saved.mode;
+    if (LANGS[saved.langId]) langId = saved.langId;
+    if (Number.isInteger(saved.p) && saved.p >= P_MIN && saved.p <= P_MAX) p = saved.p;
+    if ([0, 2, 3, 4, 5].includes(saved.defI)) defI = saved.defI;
+    if (saved.rules && typeof saved.rules === 'object') rules = saved.rules;
+    if (saved.patterns && typeof saved.patterns === 'object') patterns = saved.patterns;
+  }
+} catch (e) { /* ignore */ }
+const hash = (location.hash || '').slice(1);
+if (MODES[hash]) { mode = hash; if (!MODES[mode].list.includes(langId)) langId = MODES[mode].list[0]; }
+renderSetup();
+window.DeltaDrawPump = { LANGS, MODES, parsePattern, evalPattern, splitsOf, pump, analyze, get state() { return { mode, langId, p, defI, rules, last }; } };
+})();
+</script>
+</body>
+</html>

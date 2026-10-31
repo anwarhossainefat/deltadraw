@@ -11,12 +11,22 @@ DeltaDraw is a free, browser-based companion for a Theory of Computation course.
 | `index.html` | Home: chapter menu | Live |
 | `fa.html` | Ch 1: finite automata (DFA, NFA, ε-NFA) | Live |
 | `regex.html` | Ch 1.3: regular expressions (regex ⇄ NFA, step by step) | Live |
+| `pumping.html` | Ch 1.4 and 2.3: the pumping lemma as a proof game (regular and context-free) | Live |
 | `cfg.html` | Ch 2.1: context-free grammars (parse trees, CNF, CYK) | Live |
 | `pda.html` | Ch 2.2: pushdown automata (draw, run with the stack, grammar → PDA) | Live |
 | `tm.html` | Ch 3.1: Turing machines (run on the tape, configurations, formal definition) | Live |
 | `practice.html` | Chapter 1 practice exercises with exact checking | Live |
 | `exam.html` | Exam mode (drawing only, for proctored exams) | Live |
 | `decide.html`, `complexity.html` | Later chapters | Planned |
+
+## Pumping lemma (`pumping.html`)
+
+A proof game for the pumping lemma for regular languages (Sipser, Theorem 1.70) and for context-free languages (Theorem 2.34). Open `pumping.html#reg` or `pumping.html#cfl` to start in one mode.
+
+- Pick a language (Sipser's Examples 1.73–1.77 and 2.36–2.38, plus languages that *are* regular or context-free).
+- The adversary picks p. You type s in terms of p, e.g. `0^p1^p`, `0^(p+1)1^p`, `1^(p^2)`, `a^pb^pc^p`; the page checks s ∈ L and |s| ≥ p.
+- The page lists every split the lemma allows, groups them into cases the way Sipser's proofs do ("y has only 0s", "v or y crosses from a's into b's"), and checks whether your i pumps each one out of L. You can choose a different i per case.
+- If some split survives every i, the adversary wins with it. When every case is covered, check every p from 3 to 10 and get a proof outline.
 
 ## Context-free grammars (`cfg.html`)
 
@@ -107,8 +117,8 @@ The finite automata tool lets you draw DFA, NFA and ε-NFA state diagrams. Draw 
 
 ## Run it yourself
 
-DeltaDraw is one self-contained `index.html` file. Download it and double-click to open it in any modern browser, or host it on GitHub Pages.
+Every page is a self-contained HTML file with no server code: download the files and open `index.html` in a browser, or host them on GitHub Pages.
 
 ## Keywords
 
-DFA drawer, NFA drawer, finite automata diagram, automata simulator, state diagram maker, NFA to DFA converter, DFA minimization, finite state machine drawing tool, TikZ automata, JFLAP alternative.
+DFA drawer, NFA drawer, pumping lemma game, PDA simulator, Turing machine simulator, CNF converter, CYK, finite automata diagram, automata simulator, state diagram maker, NFA to DFA converter, DFA minimization, finite state machine drawing tool, TikZ automata, JFLAP alternative.
