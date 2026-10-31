@@ -205,6 +205,19 @@ details.batch[open] summary{margin-bottom:8px}
 .conv-card h3{margin:0;font:600 14px var(--font-ui)}
 .conv-card p{margin:0;font-size:12.5px;color:var(--muted)}
 .result-note{font-size:12.5px;margin:0;padding:8px 10px;border-radius:7px;background:var(--surface-2)}
+.walk-list{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+.re-input{font:italic 18px var(--font-math);letter-spacing:.02em}
+.re-read{margin:0;min-height:1.4em}
+.re-read .math{font-size:16px}
+.re-read.err{color:var(--bad)}
+.re-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.re-opts .select{width:100%;height:32px}
+.re-opts .input{font-size:13px;padding:5px 8px}
+.re-out{display:grid;gap:6px}
+.re-out .chips{display:flex;flex-wrap:wrap;gap:4px}
+.re-out .chip{font:14px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+.regex-result{font:italic 17px var(--font-math);word-break:break-word;background:var(--surface-2);border-radius:6px;padding:6px 9px}
+.app[data-page="regex"] #tab-regex{order:-1}
 .slots{display:grid;gap:8px}
 .slot{border:1px solid var(--line);border-radius:9px;padding:9px 10px;display:grid;gap:8px}
 .slot-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
@@ -472,7 +485,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       <p><button class="btn danger" id="btn-clear-all">Clear all questions</button></p>
     </div>
   </div>
-  <footer class="foot"><span>DeltaDraw exam mode v1.4</span></footer>
+  <footer class="foot"><span>DeltaDraw exam mode v1.5</span></footer>
 </section>
 
 <div class="modal" id="export-modal" hidden>
@@ -526,8 +539,11 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 const TAU = Math.PI * 2;
-const STORE_KEY = 'deltadraw:v2';
-const VERSION = '1.4';
+const PAGE = 'exam';
+// each tool page keeps its own drawing; the theme is shared by all pages
+const STORE_KEY = PAGE === 'regex' ? 'deltadraw:regex:v1' : 'deltadraw:v2';
+const THEME_KEY = 'deltadraw:theme';
+const VERSION = '1.5';
 const NODE_MIN_R = 26;
 const GRID = 20;
 let sim = null; // active string simulation (full version only)
@@ -861,13 +877,15 @@ function drawNode(pen, n, st) {
   if (n.accept) pen.circle(n.x, n.y, r - 5, { stroke: st.stroke, lw: st.lw });
   if (n.text) pen.text(n.text, n.x, n.y, { color: st.text });
 }
-// opts: { P: palette, sel, hlNodes:Set, hlLinks:Set, nodeFill, colors }
+// opts: { P: palette, sel, hlNodes:Set, hlLinks:Set, nodeFill, colors, dim(id) → faint (not built yet) }
 function drawDiagram(pen, opts) {
   const P = opts.P;
   const base = { stroke: P.ink, text: P.ink, lw: 1.6 };
+  const faint = { stroke: P.grid || P.ink, text: P.grid || P.ink, lw: 1.2 };
   const startIds = new Set(doc.links.filter((l) => l.type === 'start').map((l) => l.node));
   for (const l of doc.links) {
     let st = base;
+    if (opts.dim && opts.dim(l.id)) st = faint;
     if (opts.hlLinks && opts.hlLinks.has(l.id)) st = { stroke: P.hl, text: P.hl, lw: 2.6 };
     if (opts.sel && opts.sel.kind === 'link' && opts.sel.id === l.id) st = { stroke: P.accent, text: P.accent, lw: 2.4 };
     drawLink(pen, l, linkGeom(l), st);
@@ -878,10 +896,17 @@ function drawDiagram(pen, opts) {
       if (n.accept) st = { ...st, fill: P.acceptFill, fillTex: 'green!15' };
       else if (startIds.has(n.id)) st = { ...st, fill: P.startFill, fillTex: 'blue!12' };
     }
+    if (opts.dim && opts.dim(n.id)) st = { ...faint, fill: opts.nodeFill };
     if (opts.hlNodes && opts.hlNodes.has(n.id)) st = { stroke: P.hl, text: P.ink, lw: 2.6, fill: P.hlSoft };
     if (opts.sel && opts.sel.kind === 'node' && opts.sel.id === n.id) st = { ...st, stroke: P.accent, lw: 2.4 };
     drawNode(pen, n, st);
   }
+}
+// Draw or measure another drawing (a walkthrough step) without touching the user's own
+function withDoc(d, fn) {
+  const saved = doc;
+  doc = d; reindex();
+  try { return fn(); } finally { doc = saved; reindex(); }
 }
 
 /* ---------------- Canvas, view & rendering ---------------- */
@@ -925,7 +950,12 @@ function paint() {
   const pen = new CanvasPen(ctx);
   // highlights come from a running walkthrough (full version) or the string simulation
   const step2 = (walk && walk.steps[walk.idx]) || (sim && sim.steps[sim.idx]);
-  drawDiagram(pen, { P: PAL, sel: selection, nodeFill: PAL.node, colors: settings.colorStates, hlNodes: step2 && step2.set, hlLinks: step2 && step2.used });
+  const drawAll = () => drawDiagram(pen, {
+    P: PAL, sel: selection, nodeFill: PAL.node, colors: settings.colorStates,
+    hlNodes: step2 && step2.set, hlLinks: step2 && step2.used,
+    dim: step2 && step2.dimFrom ? (id) => id >= step2.dimFrom : null,
+  });
+  if (step2 && step2.doc) withDoc(step2.doc, drawAll); else drawAll();
   // link being created
   if (drag && (drag.mode === 'newlink' || drag.mode === 'newstart')) {
     const st = { stroke: PAL.accent, text: PAL.accent, lw: 2, dash: [6, 5] };
@@ -1150,6 +1180,12 @@ canvas.addEventListener('pointerdown', (e) => {
   }
   if (document.activeElement && document.activeElement !== canvas && document.activeElement.blur) document.activeElement.blur();
   canvas.focus({ preventScroll: true });
+  if (walk && walk.locked) {
+    // the canvas is showing a walkthrough step, not the user's drawing: allow panning only
+    drag = { mode: 'pan', cx: e.clientX, cy: e.clientY, tx: view.tx, ty: view.ty };
+    canvas.setPointerCapture(e.pointerId);
+    return;
+  }
   canvas.setPointerCapture(e.pointerId);
   if (commitTimer) commit();
   const p = eventPoint(e);
@@ -1263,7 +1299,7 @@ canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', () => { drag = null; render(); });
 
 canvas.addEventListener('dblclick', (e) => {
-  if (tool === 'state') return;
+  if (tool === 'state' || (walk && walk.locked)) return;
   const p = eventPoint(e);
   const n = nodeAt(p);
   if (n) { n.accept = !n.accept; select('node', n.id); commit(); return; }
@@ -1449,6 +1485,7 @@ function applyTheme() {
 $('#btn-theme').addEventListener('click', () => {
   settings.theme = THEMES[(THEMES.indexOf(settings.theme) + 1) % THEMES.length];
   applyTheme();
+  store.set(THEME_KEY, settings.theme);
   persist();
   toast('Theme: ' + (settings.theme === 'system' ? 'same as your system' : settings.theme));
 });
@@ -1762,6 +1799,9 @@ function init() {
   let saved = null;
   try { saved = JSON.parse(store.get(EXAM_KEY) || 'null'); } catch (e) { saved = null; }
   if (saved && saved.settings) Object.assign(settings, saved.settings);
+  const sharedTheme = store.get(THEME_KEY);
+  if (sharedTheme === 'system' || sharedTheme === 'light' || sharedTheme === 'dark') settings.theme = sharedTheme;
+  $('#app').dataset.page = PAGE;
   applyTheme();
   setTool('select');
   resize();

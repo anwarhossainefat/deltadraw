@@ -211,6 +211,19 @@ details.batch[open] summary{margin-bottom:8px}
 .conv-card h3{margin:0;font:600 14px var(--font-ui)}
 .conv-card p{margin:0;font-size:12.5px;color:var(--muted)}
 .result-note{font-size:12.5px;margin:0;padding:8px 10px;border-radius:7px;background:var(--surface-2)}
+.walk-list{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+.re-input{font:italic 18px var(--font-math);letter-spacing:.02em}
+.re-read{margin:0;min-height:1.4em}
+.re-read .math{font-size:16px}
+.re-read.err{color:var(--bad)}
+.re-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.re-opts .select{width:100%;height:32px}
+.re-opts .input{font-size:13px;padding:5px 8px}
+.re-out{display:grid;gap:6px}
+.re-out .chips{display:flex;flex-wrap:wrap;gap:4px}
+.re-out .chip{font:14px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+.regex-result{font:italic 17px var(--font-math);word-break:break-word;background:var(--surface-2);border-radius:6px;padding:6px 9px}
+.app[data-page="regex"] #tab-regex{order:-1}
 .slots{display:grid;gap:8px}
 .slot{border:1px solid var(--line);border-radius:9px;padding:9px 10px;display:grid;gap:8px}
 .slot-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
@@ -311,7 +324,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 </style>
 
 <div class="app" id="app">
-<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item active" aria-current="page" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 1</span>Regular expressions</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 2</span>Grammars</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 2</span>Pushdown automata</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 3</span>Turing machines</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><span class="nav-item soon" title="Coming soon">Practice</span></div></nav>
+<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item active" aria-current="page" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 2</span>Grammars</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 2</span>Pushdown automata</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 3</span>Turing machines</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><span class="nav-item soon" title="Coming soon">Practice</span></div></nav>
   <header class="topbar">
     <div class="brand">
       <span class="brand-delta" aria-hidden="true">δ</span>
@@ -465,6 +478,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <button class="tab" role="tab" id="tab-convert" aria-controls="panel-convert" aria-selected="false">Convert</button>
         <button class="tab" role="tab" id="tab-combine" aria-controls="panel-combine" aria-selected="false">Combine</button>
         <button class="tab" role="tab" id="tab-table" aria-controls="panel-table" aria-selected="false">Table</button>
+        <button class="tab" role="tab" id="tab-regex" aria-controls="panel-regex" aria-selected="false">Regex</button>
       </div>
 
       <div class="tabpanel" role="tabpanel" id="panel-test" aria-labelledby="tab-test">
@@ -557,6 +571,62 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <div class="table-wrap" id="table-wrap"></div>
         <div class="row"><button class="btn small" id="table-copy">Copy as Markdown</button><button class="btn small" id="table-copy-tex">Copy as LaTeX</button></div>
       </div>
+
+      <div class="tabpanel" role="tabpanel" id="panel-regex" aria-labelledby="tab-regex" hidden>
+        <label class="field" for="re-input">Regular expression
+          <input class="input re-input" id="re-input" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. (a|b)*abb">
+        </label>
+        <div class="symbols" id="re-symbols" aria-label="Insert symbol">
+          <button class="btn" data-re="∪" title="Union">∪</button>
+          <button class="btn" data-re="*" title="Star">*</button>
+          <button class="btn" data-re="ε" title="Empty string">ε</button>
+          <button class="btn" data-re="∅" title="Empty language">∅</button>
+          <button class="btn" data-re="Σ" title="Any symbol">Σ</button>
+          <button class="btn plain" data-re="(" title="Open parenthesis">(</button>
+          <button class="btn plain" data-re=")" title="Close parenthesis">)</button>
+        </div>
+        <p class="small-text re-read" id="re-read" aria-live="polite"></p>
+        <div class="re-opts">
+          <label class="field" for="re-plus"><span><code>+</code> means</span>
+            <select class="select" id="re-plus"><option value="union">union (a ∪ b)</option><option value="plus">one or more (aa*)</option></select>
+          </label>
+          <label class="field" for="re-sigma">Alphabet Σ
+            <input class="input" id="re-sigma" type="text" autocomplete="off" spellcheck="false" placeholder="auto">
+          </label>
+        </div>
+        <div class="conv-card">
+          <h3>Regex → NFA</h3>
+          <p>Sipser's construction: an NFA for each piece, joined with ε-moves.</p>
+          <div class="row">
+            <button class="btn primary small" id="re-build">Build NFA</button>
+            <button class="btn small" id="re-build-steps">Step by step</button>
+          </div>
+        </div>
+        <div class="conv-card">
+          <h3>Strings in the language</h3>
+          <textarea class="input" id="re-tests" rows="3" spellcheck="false" placeholder="One string per line&#10;Type ε for the empty string"></textarea>
+          <div class="row">
+            <button class="btn small" id="re-test">Test strings</button>
+            <button class="btn small" id="re-examples">Show shortest strings</button>
+          </div>
+          <div class="re-out small-text" id="re-test-out" aria-live="polite"></div>
+        </div>
+        <div class="conv-card">
+          <h3>Compare two expressions</h3>
+          <input class="input re-input" id="re-input2" type="text" autocomplete="off" spellcheck="false" placeholder="Second expression, e.g. (a*b*)*">
+          <div class="row"><button class="btn small" id="re-compare">Same language?</button></div>
+          <div class="eq-out small-text" id="re-compare-out" aria-live="polite" hidden></div>
+        </div>
+        <div class="conv-card">
+          <h3>Drawing → regex</h3>
+          <p>Turns the automaton on the canvas into a regular expression by removing states from a generalized NFA (GNFA).</p>
+          <div class="row">
+            <button class="btn primary small" id="re-from-nfa">Convert drawing</button>
+            <button class="btn small" id="re-from-nfa-steps">Step by step</button>
+          </div>
+          <div class="eq-out small-text" id="re-from-out" aria-live="polite" hidden></div>
+        </div>
+      </div>
     </aside>
   </main>
 </div>
@@ -637,7 +707,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
   </div>
 
   <footer class="foot">
-    <span>DeltaDraw v1.4 · finite automata drawer</span>
+    <span>DeltaDraw v1.5 · finite automata drawer</span>
     <a href="index.html">All chapters</a>
     <a href="https://github.com/anwarhossainefat/deltadraw" rel="noopener" target="_blank">Source on GitHub</a>
   </footer>
@@ -692,8 +762,11 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 const TAU = Math.PI * 2;
-const STORE_KEY = 'deltadraw:v2';
-const VERSION = '1.4';
+const PAGE = 'fa';
+// each tool page keeps its own drawing; the theme is shared by all pages
+const STORE_KEY = PAGE === 'regex' ? 'deltadraw:regex:v1' : 'deltadraw:v2';
+const THEME_KEY = 'deltadraw:theme';
+const VERSION = '1.5';
 const NODE_MIN_R = 26;
 const GRID = 20;
 let sim = null; // active string simulation (full version only)
@@ -1027,13 +1100,15 @@ function drawNode(pen, n, st) {
   if (n.accept) pen.circle(n.x, n.y, r - 5, { stroke: st.stroke, lw: st.lw });
   if (n.text) pen.text(n.text, n.x, n.y, { color: st.text });
 }
-// opts: { P: palette, sel, hlNodes:Set, hlLinks:Set, nodeFill, colors }
+// opts: { P: palette, sel, hlNodes:Set, hlLinks:Set, nodeFill, colors, dim(id) → faint (not built yet) }
 function drawDiagram(pen, opts) {
   const P = opts.P;
   const base = { stroke: P.ink, text: P.ink, lw: 1.6 };
+  const faint = { stroke: P.grid || P.ink, text: P.grid || P.ink, lw: 1.2 };
   const startIds = new Set(doc.links.filter((l) => l.type === 'start').map((l) => l.node));
   for (const l of doc.links) {
     let st = base;
+    if (opts.dim && opts.dim(l.id)) st = faint;
     if (opts.hlLinks && opts.hlLinks.has(l.id)) st = { stroke: P.hl, text: P.hl, lw: 2.6 };
     if (opts.sel && opts.sel.kind === 'link' && opts.sel.id === l.id) st = { stroke: P.accent, text: P.accent, lw: 2.4 };
     drawLink(pen, l, linkGeom(l), st);
@@ -1044,10 +1119,17 @@ function drawDiagram(pen, opts) {
       if (n.accept) st = { ...st, fill: P.acceptFill, fillTex: 'green!15' };
       else if (startIds.has(n.id)) st = { ...st, fill: P.startFill, fillTex: 'blue!12' };
     }
+    if (opts.dim && opts.dim(n.id)) st = { ...faint, fill: opts.nodeFill };
     if (opts.hlNodes && opts.hlNodes.has(n.id)) st = { stroke: P.hl, text: P.ink, lw: 2.6, fill: P.hlSoft };
     if (opts.sel && opts.sel.kind === 'node' && opts.sel.id === n.id) st = { ...st, stroke: P.accent, lw: 2.4 };
     drawNode(pen, n, st);
   }
+}
+// Draw or measure another drawing (a walkthrough step) without touching the user's own
+function withDoc(d, fn) {
+  const saved = doc;
+  doc = d; reindex();
+  try { return fn(); } finally { doc = saved; reindex(); }
 }
 
 /* ---------------- Canvas, view & rendering ---------------- */
@@ -1091,7 +1173,12 @@ function paint() {
   const pen = new CanvasPen(ctx);
   // highlights come from a running walkthrough (full version) or the string simulation
   const step2 = (walk && walk.steps[walk.idx]) || (sim && sim.steps[sim.idx]);
-  drawDiagram(pen, { P: PAL, sel: selection, nodeFill: PAL.node, colors: settings.colorStates, hlNodes: step2 && step2.set, hlLinks: step2 && step2.used });
+  const drawAll = () => drawDiagram(pen, {
+    P: PAL, sel: selection, nodeFill: PAL.node, colors: settings.colorStates,
+    hlNodes: step2 && step2.set, hlLinks: step2 && step2.used,
+    dim: step2 && step2.dimFrom ? (id) => id >= step2.dimFrom : null,
+  });
+  if (step2 && step2.doc) withDoc(step2.doc, drawAll); else drawAll();
   // link being created
   if (drag && (drag.mode === 'newlink' || drag.mode === 'newstart')) {
     const st = { stroke: PAL.accent, text: PAL.accent, lw: 2, dash: [6, 5] };
@@ -1320,6 +1407,12 @@ canvas.addEventListener('pointerdown', (e) => {
   }
   if (document.activeElement && document.activeElement !== canvas && document.activeElement.blur) document.activeElement.blur();
   canvas.focus({ preventScroll: true });
+  if (walk && walk.locked) {
+    // the canvas is showing a walkthrough step, not the user's drawing: allow panning only
+    drag = { mode: 'pan', cx: e.clientX, cy: e.clientY, tx: view.tx, ty: view.ty };
+    canvas.setPointerCapture(e.pointerId);
+    return;
+  }
   canvas.setPointerCapture(e.pointerId);
   if (commitTimer) commit();
   const p = eventPoint(e);
@@ -1433,7 +1526,7 @@ canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', () => { drag = null; render(); });
 
 canvas.addEventListener('dblclick', (e) => {
-  if (tool === 'state') return;
+  if (tool === 'state' || (walk && walk.locked)) return;
   const p = eventPoint(e);
   const n = nodeAt(p);
   if (n) { n.accept = !n.accept; select('node', n.id); commit(); return; }
@@ -1878,18 +1971,25 @@ function automatonSig(d = doc) {
   return JSON.stringify([d.nodes.map((n) => [n.id, n.text, !!n.accept]), d.links.map((l) => [l.id, l.type, l.from, l.to, l.node, l.text])]);
 }
 const setHTML = (A, ids) => `<span class="lbl">${ids.length ? '{' + ids.map((id) => labelHTML(A.names.get(id))).join(', ') + '}' : '∅'}</span>`;
+// w: { title, steps, onDraw(beside), locked?, drawLabel?, besideLabel? }  (a label of null hides that button)
 function openWalk(w) {
   sim = null; $('#sim-out').innerHTML = '';
+  if (w.locked) select(null);
   walk = { ...w, idx: 0, sig: automatonSig() };
-  $('#walk').hidden = false; $('#hint').hidden = true;
-  showWalk();
+  const card = $('#walk');
+  card.hidden = false; $('#hint').hidden = true; card.style.minHeight = '';
   // reserve room for the tallest step so states never hide behind the card
-  const card = $('#walk'), tbl = $('#walk-table');
-  tbl.innerHTML = walk.steps[walk.steps.length - 1].table || '';
-  const tall = card.offsetHeight;
+  let tall = 0;
+  const probe = walk.steps.length <= 80 ? walk.steps : [walk.steps[walk.steps.length - 1]];
+  for (const st of probe) {
+    $('#walk-text').innerHTML = st.text;
+    $('#walk-table').innerHTML = st.table || '';
+    tall = Math.max(tall, card.offsetHeight);
+  }
+  card.style.minHeight = Math.min(tall, card.parentElement.clientHeight * 0.55) + 'px';
   showWalk();
-  card.style.minHeight = Math.min(tall, card.parentElement.clientHeight * 0.48) + 'px';
-  fitView();
+  const first = walk.steps[0];
+  if (first.doc) withDoc(first.doc, fitView); else fitView();
 }
 function closeWalk() {
   if (!walk) return;
@@ -1910,8 +2010,10 @@ function showWalk() {
   $('#walk-back').disabled = walk.idx === 0;
   $('#walk-next').disabled = last;
   $('#walk-all').disabled = last;
-  $('#walk-draw').hidden = !last;
-  $('#walk-beside').hidden = !last;
+  $('#walk-draw').textContent = walk.drawLabel || 'Draw the result';
+  $('#walk-beside').textContent = walk.besideLabel || 'Draw beside';
+  $('#walk-draw').hidden = !last || walk.drawLabel === null;
+  $('#walk-beside').hidden = !last || walk.besideLabel === null;
   const cur = $('#walk-table .cur');
   if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest', inline: 'nearest' });
   render();
@@ -2171,24 +2273,28 @@ function runOp(op) {
   Rz = pruneDead(Rz);
   applyResult(Rz, $('#cmb-place').value === 'beside', `${label}: ${Rz.states.length} state${Rz.states.length === 1 ? '' : 's'}.${note}`, $('#cmb-short').checked, '#cmb-out');
 }
+// Are L(A) and L(B) equal? If not, a shortest string in exactly one of them (breadth-first over the product).
+function compareAutomata(A, B) {
+  const P = product(A, B, 'xor');
+  const x = P.states.findIndex((s) => s.accept);
+  if (x < 0) return { equal: true, P };
+  const word = [];
+  for (let y = x; P.parent[y]; y = P.parent[y][0]) word.unshift(P.parent[y][1]);
+  const multi = P.alphabet.some((s) => [...s].length > 1);
+  return { equal: false, P, word: word.length ? word.join(multi ? ' ' : '') : 'ε', inA: P.DA.states[P.states[x].i].accept };
+}
+function reveal(el) { try { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { /* old browsers */ } }
 function checkEquivalent() {
   const A = slotAutomaton('A'), B = A && slotAutomaton('B');
   if (!A || !B) return;
-  const P = product(A, B, 'xor');
+  const r = compareAutomata(A, B);
   const out = $('#cmb-eq');
-  const x = P.states.findIndex((s) => s.accept); // breadth-first order, so the first one gives a shortest string
-  const note = P.sigmaDiffers ? `<span class="muted">Compared over Σ = {${P.alphabet.map(labelHTML).join(', ')}}.</span>` : '';
-  if (x < 0) {
-    out.innerHTML = `<span class="pill ok">✓ Equivalent</span><span>L(A) = L(B): both accept exactly the same strings.</span>${note}`;
-  } else {
-    const word = [];
-    for (let y = x; P.parent[y]; y = P.parent[y][0]) word.unshift(P.parent[y][1]);
-    const multi = P.alphabet.some((s) => [...s].length > 1);
-    const w = word.length ? escHTML(word.join(multi ? ' ' : '')) : 'ε';
-    const inA = P.DA.states[P.states[x].i].accept;
-    out.innerHTML = `<span class="pill bad">✕ Not equivalent</span><span>Shortest counterexample: <b class="math">${w}</b> is accepted by ${inA ? 'A' : 'B'} but not by ${inA ? 'B' : 'A'}.</span>${note}`;
-  }
+  const note = r.P.sigmaDiffers ? `<span class="muted">Compared over Σ = {${r.P.alphabet.map(labelHTML).join(', ')}}.</span>` : '';
+  out.innerHTML = r.equal
+    ? `<span class="pill ok">✓ Equivalent</span><span>L(A) = L(B): both accept exactly the same strings.</span>${note}`
+    : `<span class="pill bad">✕ Not equivalent</span><span>Shortest counterexample: <b class="math">${escHTML(r.word)}</b> is accepted by ${r.inA ? 'A' : 'B'} but not by ${r.inA ? 'B' : 'A'}.</span>${note}`;
   out.hidden = false;
+  reveal(out);
 }
 for (const k of ['A', 'B']) {
   $('#slot-use-' + k).addEventListener('click', () => useAsSlot(k));
@@ -2197,6 +2303,468 @@ for (const k of ['A', 'B']) {
 for (const b of $$('[data-op]')) b.addEventListener('click', () => runOp(b.dataset.op));
 $('#cmb-eq-btn').addEventListener('click', checkEquivalent);
 updateSlots();
+
+/* =====================================================================
+   Regular expressions (Sipser 1.3)
+   AST nodes: sym{c} eps empty sigma union{a,b} cat{a,b} star{a} plus{a} opt{a}
+   ===================================================================== */
+const RE_EMPTY = { t: 'empty' }, RE_EPS = { t: 'eps' };
+function parseRegex(src, plusIsUnion) {
+  const s = [...convertSymbols(src || '')].filter((ch) => !/\s/.test(ch));
+  let i = 0;
+  const fail = (msg) => { const e = new Error(msg); e.re = true; throw e; };
+  const isUnion = (c) => c === '|' || c === '∪' || (plusIsUnion && c === '+');
+  const isPost = (c) => c === '*' || c === '⁺' || c === '?' || (!plusIsUnion && c === '+');
+  function union() {
+    let a = cat();
+    while (i < s.length && isUnion(s[i])) { i++; a = { t: 'union', a, b: cat() }; }
+    return a;
+  }
+  function cat() {
+    let a = null;
+    while (i < s.length && s[i] !== ')' && !isUnion(s[i])) {
+      if (s[i] === '·') { i++; continue; }
+      const b = post();
+      a = a ? { t: 'cat', a, b } : b;
+    }
+    if (!a) fail(i >= s.length ? 'Something is missing at the end, after a union sign or a “(”.' : s[i] === ')' ? 'Something is missing before “)”.' : 'Something is missing next to a union sign.');
+    return a;
+  }
+  function post() {
+    let a = atom();
+    while (i < s.length && isPost(s[i])) {
+      const c = s[i++];
+      a = c === '*' ? { t: 'star', a } : c === '?' ? { t: 'opt', a } : { t: 'plus', a };
+    }
+    return a;
+  }
+  function atom() {
+    const c = s[i];
+    if (c === '(') {
+      i++;
+      if (s[i] === ')') { i++; return RE_EPS; }
+      const a = union();
+      if (s[i] !== ')') fail('A “(” is never closed.');
+      i++;
+      return a;
+    }
+    if (c === ')') fail('There is a “)” without a matching “(”.');
+    if (isPost(c)) fail(`“${c}” must come after something, like a${c} or (ab)${c}.`);
+    if (c === ',') fail('Commas are not used in regular expressions. Use ∪ or | for “or”.');
+    i++;
+    if (c === 'ε' || c === 'λ') return RE_EPS;
+    if (c === '∅') return RE_EMPTY;
+    if (c === 'Σ') return { t: 'sigma' };
+    return { t: 'sym', c };
+  }
+  if (!s.length) fail('Type a regular expression.');
+  const ast = union();
+  if (i < s.length) fail(s[i] === ')' ? 'There is a “)” without a matching “(”.' : `Unexpected “${s[i]}”.`);
+  return ast;
+}
+// precedence: star (2) > concatenation (1) > union (0)
+function reStr(n, ctx = 0, sep = ' ∪ ') {
+  switch (n.t) {
+    case 'sym': return n.c;
+    case 'eps': return 'ε';
+    case 'empty': return '∅';
+    case 'sigma': return 'Σ';
+    case 'union': { const s = reStr(n.a, 0, sep) + sep + reStr(n.b, 0, sep); return ctx > 0 ? `(${s})` : s; }
+    case 'cat': { const s = reStr(n.a, 1, sep) + reStr(n.b, 1, sep); return ctx > 1 ? `(${s})` : s; }
+    case 'star': return reStr(n.a, 2, sep) + '*';
+    case 'plus': return reStr(n.a, 2, sep) + '⁺';
+    case 'opt': return reStr(n.a, 2, sep) + '?';
+  }
+  return '';
+}
+function reWalk(n, f) { if (!n) return; f(n); reWalk(n.a, f); reWalk(n.b, f); }
+// R⁺ = RR*, R? = ε ∪ R, Σ = one move per alphabet symbol
+function reExpand(n, sigma) {
+  switch (n.t) {
+    case 'plus': { const a = reExpand(n.a, sigma); return { t: 'cat', a, b: { t: 'star', a } }; }
+    case 'opt': return { t: 'union', a: RE_EPS, b: reExpand(n.a, sigma) };
+    case 'sigma': return { t: 'sigma', syms: sigma };
+    case 'union': case 'cat': return { t: n.t, a: reExpand(n.a, sigma), b: reExpand(n.b, sigma) };
+    case 'star': return { t: 'star', a: reExpand(n.a, sigma) };
+    default: return n;
+  }
+}
+// simplifying constructors used by the GNFA method
+function reTerms(r) { return r.t === 'union' ? [...reTerms(r.a), ...reTerms(r.b)] : [r]; }
+function reU(a, b) {
+  const terms = [], seen = new Set();
+  for (const t of [...reTerms(a), ...reTerms(b)]) {
+    if (t.t === 'empty') continue;
+    const k = reStr(t);
+    if (seen.has(k)) continue;
+    seen.add(k); terms.push(t);
+  }
+  if (terms.some((t) => t.t === 'star')) { const e = terms.findIndex((t) => t.t === 'eps'); if (e >= 0) terms.splice(e, 1); }
+  if (!terms.length) return RE_EMPTY;
+  return terms.reduce((x, y) => ({ t: 'union', a: x, b: y }));
+}
+function reC(a, b) {
+  if (a.t === 'empty' || b.t === 'empty') return RE_EMPTY;
+  if (a.t === 'eps') return b;
+  if (b.t === 'eps') return a;
+  return { t: 'cat', a, b };
+}
+function reS(a) {
+  if (a.t === 'empty' || a.t === 'eps') return RE_EPS;
+  if (a.t === 'star') return a;
+  if (a.t === 'union') {
+    const all = reTerms(a), ts = all.filter((t) => t.t !== 'eps');
+    if (!ts.length) return RE_EPS;
+    if (ts.length < all.length) return reS(ts.reduce((x, y) => ({ t: 'union', a: x, b: y })));
+  }
+  return { t: 'star', a };
+}
+
+/* ---------- Regex → NFA (Sipser, Lemma 1.55), laid out like the textbook figures ---------- */
+function regexNFA(ast) {
+  const GX = 110, GY = 92;
+  let id = 1;
+  const nodes = [], links = [], steps = [];
+  const mkState = () => { const n = { id: id++, x: 0, y: 0, text: '', accept: false }; nodes.push(n); return n; };
+  const edge = (a, b, text, perp = 0) => {
+    const ex = a === b ? links.find((l) => l.type === 'self' && l.node === a.id) : links.find((l) => l.type === 'link' && l.from === a.id && l.to === b.id);
+    if (ex) { if (!splitSymbols(ex.text).includes(text)) ex.text += ',' + text; return ex; }
+    const l = a === b ? { id: id++, type: 'self', node: a.id, angle: -Math.PI / 2, text } : { id: id++, type: 'link', from: a.id, to: b.id, par: 0.5, perp, text };
+    links.push(l);
+    return l;
+  };
+  const shift = (f, dx, dy) => { for (const n of f.nodes) { n.x += dx; n.y += dy; } };
+  const show = (n) => `<span class="lbl">${escHTML(reStr(n))}</span>`;
+  const record = (f, text) => steps.push({
+    text, set: new Set(f.nodes.map((n) => n.id)), used: new Set(f.links.map((l) => l.id)),
+    dimFrom: id, acc: new Set(nodes.filter((n) => n.accept).map((n) => n.id)),
+  });
+  function build(n) {
+    let f;
+    if (n.t === 'sym' || n.t === 'sigma') {
+      const a = mkState(), b = mkState();
+      b.x = GX; b.accept = true;
+      const l = edge(a, b, n.t === 'sym' ? n.c : n.syms.join(','));
+      f = { start: a, accepts: [b], nodes: [a, b], links: [l], w: GX, up: 30, down: 30 };
+      record(f, n.t === 'sym'
+        ? `N(${show(n)}): a start state and an accepting state joined by one arrow labeled ${show(n)}.`
+        : 'N(Σ): a start state and an accepting state, with a move on every symbol of the alphabet.');
+    } else if (n.t === 'eps') {
+      const a = mkState(); a.accept = true;
+      f = { start: a, accepts: [a], nodes: [a], links: [], w: 0, up: 30, down: 30 };
+      record(f, 'N(ε): one state that is both the start state and accepting, so it accepts only the empty string.');
+    } else if (n.t === 'empty') {
+      const a = mkState();
+      f = { start: a, accepts: [], nodes: [a], links: [], w: 0, up: 30, down: 30 };
+      record(f, 'N(∅): one state that is not accepting, so it accepts nothing.');
+    } else if (n.t === 'union') {
+      const A = build(n.a), B = build(n.b);
+      const s = mkState();
+      const ya = -(A.down + GY / 2), yb = B.up + GY / 2;
+      shift(A, GX, ya); shift(B, GX, yb);
+      const ls = [edge(s, A.start, 'ε'), edge(s, B.start, 'ε')];
+      f = { start: s, accepts: [...A.accepts, ...B.accepts], nodes: [s, ...A.nodes, ...B.nodes], links: [...A.links, ...B.links, ...ls], w: GX + Math.max(A.w, B.w), up: -ya + A.up, down: yb + B.down };
+      record(f, `N(${show(n)}), a union: a new start state with ε-moves to the start states of N(${show(n.a)}) and N(${show(n.b)}). It accepts whatever either one accepts.`);
+    } else if (n.t === 'cat') {
+      const A = build(n.a), B = build(n.b);
+      shift(B, A.w + GX, 0);
+      const ls = A.accepts.map((acc) => { acc.accept = false; return edge(acc, B.start, 'ε'); });
+      f = { start: A.start, accepts: B.accepts, nodes: [...A.nodes, ...B.nodes], links: [...A.links, ...B.links, ...ls], w: A.w + GX + B.w, up: Math.max(A.up, B.up), down: Math.max(A.down, B.down) };
+      record(f, `N(${show(n)}), a concatenation: ε-moves join every accepting state of N(${show(n.a)}) to the start state of N(${show(n.b)}). Only the accepting states of N(${show(n.b)}) stay accepting.`);
+    } else if (n.t === 'star') {
+      const A = build(n.a);
+      const s = mkState(); s.accept = true;
+      shift(A, GX, 0);
+      const ls = [edge(s, A.start, 'ε')];
+      let below = false;
+      for (const acc of A.accepts) {
+        // loop back over the top, or under the bottom for accepting states below the middle line
+        const under = acc.y > A.start.y + 1;
+        if (under) below = true;
+        ls.push(edge(acc, A.start, 'ε', acc.x > A.start.x ? (under ? -(A.down + 26) : A.up + 26) : 0));
+      }
+      f = { start: s, accepts: [s, ...A.accepts], nodes: [s, ...A.nodes], links: [...A.links, ...ls], w: GX + A.w, up: A.up + 46, down: A.down + (below ? 46 : 0) };
+      record(f, `N(${show(n)}), a star: a new start state that is accepting (so ε is accepted), an ε-move into N(${show(n.a)}), and ε-moves from its accepting states back to its start, so it can repeat.`);
+    }
+    return f;
+  }
+  const root = build(ast);
+  // name states left to right, top to bottom
+  const ordered = [...nodes].sort((p, q) => p.x - q.x || p.y - q.y);
+  ordered.forEach((n, k) => { n.text = k > 9 ? `q_{${k}}` : `q_${k}`; });
+  const startLink = { id: id++, type: 'start', node: root.start.id, dx: -58, dy: 0, text: '' };
+  const final = { nodes, links: [...links, startLink], nextId: id };
+  for (const st of steps) {
+    st.doc = { nodes: nodes.map((n) => ({ ...n, accept: st.acc.has(n.id) })), links: final.links.map((l) => ({ ...l })), nextId: id };
+    delete st.acc;
+  }
+  steps.push({
+    text: `Done. The NFA for the whole expression has <b>${nodes.length}</b> state${nodes.length === 1 ? '' : 's'}. Use <b>Convert → Step by step</b> to turn it into a DFA.`,
+    doc: JSON.parse(JSON.stringify(final)), set: new Set(), used: new Set(),
+  });
+  return { doc: final, steps };
+}
+
+/* ---------- NFA → regex (Sipser, Lemma 1.60): GNFA state elimination ---------- */
+function gnfaWalk(A) {
+  const R = new Map();
+  const k = (i, j) => i + '>' + j;
+  const get = (i, j) => R.get(k(i, j)) || RE_EMPTY;
+  const put = (i, j, r) => { if (r.t === 'empty') R.delete(k(i, j)); else R.set(k(i, j), r); };
+  const maxId = Math.max(0, ...doc.nodes.map((n) => n.id), ...doc.links.map((l) => l.id || 0));
+  const sId = maxId + 1, fId = maxId + 2;
+  for (const i of A.ids) {
+    for (const [sym, list] of A.trans.get(i)) for (const t of list) put(i, t.to, reU(get(i, t.to), { t: 'sym', c: sym }));
+    for (const t of A.eps.get(i)) put(i, t.to, reU(get(i, t.to), RE_EPS));
+  }
+  put(sId, A.start, RE_EPS);
+  for (const a of A.accept) put(a, fId, RE_EPS);
+  const pos = new Map(doc.nodes.map((n) => [n.id, { x: n.x, y: n.y, text: n.text }]));
+  const xs = doc.nodes.map((n) => n.x);
+  const st0 = pos.get(A.start);
+  pos.set(sId, { x: Math.min(...xs) - 170, y: st0.y, text: 's' });
+  const accY = [...A.accept].map((a) => pos.get(a).y);
+  pos.set(fId, { x: Math.max(...xs) + 170, y: accY.length ? accY.reduce((p, c) => p + c, 0) / accY.length : st0.y, text: 'f' });
+  let alive = [sId, ...A.ids, fId];
+  const name = (i) => `<span class="lbl">${labelHTML(pos.get(i).text || '·')}</span>`;
+  const rs = (r) => `<span class="lbl">${escHTML(reStr(r))}</span>`;
+  const mkDoc = (hl) => {
+    let lid = fId + 1;
+    const nodes = alive.map((i) => ({ id: i, x: pos.get(i).x, y: pos.get(i).y, text: pos.get(i).text, accept: i === fId }));
+    const links = [{ id: lid++, type: 'start', node: sId, dx: -60, dy: 0, text: '' }];
+    const used = new Set();
+    for (const [key, r] of R) {
+      const [a, b] = key.split('>').map(Number);
+      if (!alive.includes(a) || !alive.includes(b)) continue;
+      const text = reStr(r, 0, '∪');
+      const l = a === b
+        ? { id: lid++, type: 'self', node: a, angle: -Math.PI / 2, text }
+        : { id: lid++, type: 'link', from: a, to: b, par: 0.5, perp: R.has(k(b, a)) ? 30 : 0, text };
+      links.push(l);
+      if (hl && hl.has(key)) used.add(l.id);
+    }
+    return { doc: { nodes, links, nextId: lid }, used };
+  };
+  const steps = [];
+  const g0 = mkDoc(new Set([k(sId, A.start), ...[...A.accept].map((a) => k(a, fId))]));
+  steps.push({
+    text: `First make a <b>GNFA</b>: add a new start state <i>s</i> with an ε-move to ${name(A.start)}, and a new accepting state <i>f</i> with ε-moves from ${A.accept.size ? [...A.accept].map(name).join(', ') : 'the accepting states (there are none, so the answer will be ∅)'}. Arrows between the same two states merge into one union label, and a missing arrow means ∅.`,
+    doc: g0.doc, set: new Set([sId, fId]), used: g0.used,
+  });
+  const inner = () => alive.filter((i) => i !== sId && i !== fId);
+  const degree = (q) => {
+    let din = 0, dout = 0;
+    for (const key of R.keys()) {
+      const [a, b] = key.split('>').map(Number);
+      if (a === b || !alive.includes(a) || !alive.includes(b)) continue;
+      if (b === q) din++;
+      if (a === q) dout++;
+    }
+    return din * dout;
+  };
+  while (inner().length) {
+    const q = inner().reduce((best, x) => (degree(x) < degree(best) ? x : best));
+    const preds = alive.filter((i) => i !== q && R.has(k(i, q)));
+    const succs = alive.filter((j) => j !== q && R.has(k(q, j)));
+    const touching = new Set([...preds.map((i) => k(i, q)), ...succs.map((j) => k(q, j))]);
+    if (R.has(k(q, q))) touching.add(k(q, q));
+    const before = mkDoc(touching);
+    steps.push({
+      text: `Next, remove ${name(q)} (it has the fewest paths through it). ${preds.length && succs.length ? `Each path through it, from ${preds.map(name).join(', ')} to ${succs.map(name).join(', ')}, will be replaced by one direct arrow.` : 'No path goes through it, so its arrows simply disappear.'}`,
+      doc: before.doc, set: new Set([q]), used: before.used,
+    });
+    const R2 = get(q, q), updates = [], lines = [], changed = new Set();
+    for (const i of preds) for (const j of succs) {
+      const R1 = get(i, q), R3 = get(q, j), R4 = get(i, j);
+      const nr = reU(reC(reC(R1, reS(R2)), R3), R4);
+      updates.push([i, j, nr]);
+      changed.add(k(i, j));
+      lines.push(`<li>${name(i)} → ${name(j)}: (${rs(R1)})(${rs(R2)})*(${rs(R3)}) ∪ ${rs(R4)} = <b>${rs(nr)}</b></li>`);
+    }
+    for (const [i, j, nr] of updates) put(i, j, nr);
+    for (const key of [...R.keys()]) { const [a, b] = key.split('>').map(Number); if (a === q || b === q) R.delete(key); }
+    alive = alive.filter((x) => x !== q);
+    const after = mkDoc(changed);
+    const shown = lines.length > 10 ? [...lines.slice(0, 10), `<li>…and ${lines.length - 10} more</li>`] : lines;
+    steps.push({
+      text: `Removed ${name(q)}. ${lines.length ? `Each new label is R₁(R₂)*R₃ ∪ R₄: R₁ goes into ${name(q)}, R₂ is its self-loop, R₃ goes out of it, and R₄ is the arrow that was already there.<ul class="walk-list">${shown.join('')}</ul>` : 'No labels change.'}`,
+      doc: after.doc, set: new Set(), used: after.used,
+    });
+  }
+  const result = get(sId, fId);
+  const last = mkDoc(new Set([k(sId, fId)]));
+  steps.push({
+    text: `Only <i>s</i> and <i>f</i> are left, so the label of the arrow between them is a regular expression for the language:<div class="regex-result">${escHTML(reStr(result))}</div>`,
+    doc: last.doc, set: new Set(), used: last.used,
+  });
+  return { steps, result };
+}
+
+/* ---------- Regex panel ---------- */
+let lastReInput = null;
+const plusIsUnion = () => $('#re-plus').value === 'union';
+function readRegex(sel) {
+  try { return { ast: parseRegex($(sel).value, plusIsUnion()) }; } catch (e) { if (!e.re) throw e; return { error: e.message }; }
+}
+function reAlphabet(ast) {
+  const syms = new Set();
+  reWalk(ast, (n) => { if (n.t === 'sym') syms.add(n.c); });
+  for (const x of splitSymbols($('#re-sigma').value)) if (!EPS.has(x)) syms.add(x);
+  return [...syms].sort(natCmp);
+}
+const usesSigma = (ast) => { let u = false; reWalk(ast, (n) => { if (n.t === 'sigma') u = true; }); return u; };
+function saveReSettings() {
+  settings.regex = $('#re-input').value; settings.regex2 = $('#re-input2').value;
+  settings.regexPlus = $('#re-plus').value; settings.regexSigma = $('#re-sigma').value;
+  persist();
+}
+function updateReRead() {
+  const el = $('#re-read');
+  saveReSettings();
+  if (!$('#re-input').value.trim()) { el.textContent = ''; el.classList.remove('err'); return null; }
+  const r = readRegex('#re-input');
+  if (r.error) { el.textContent = r.error; el.classList.add('err'); return null; }
+  el.classList.remove('err');
+  const sig = reAlphabet(r.ast);
+  el.innerHTML = `Reads as <span class="math">${escHTML(reStr(r.ast))}</span>${sig.length ? ` · Σ = {${sig.map(escHTML).join(', ')}}` : ''}`;
+  return r.ast;
+}
+// parse + expand one input; shows the problem instead of returning when something is wrong
+function regexFrom(sel) {
+  const r = readRegex(sel);
+  if (r.error) { toast(r.error); $(sel).focus(); return null; }
+  const sig = reAlphabet(r.ast);
+  if (usesSigma(r.ast) && !sig.length) { toast('Type the alphabet Σ (for example 0,1) to use Σ.'); $('#re-sigma').focus(); return null; }
+  const built = regexNFA(reExpand(r.ast, sig));
+  return { ast: r.ast, sig, built, A: buildAutomaton(built.doc) };
+}
+function shortestStrings(A, limit = 12, maxLen = 14) {
+  const D = determinize(A, true);
+  const n = D.states.length, live = D.states.map((s) => s.accept);
+  for (let changed = true; changed;) {
+    changed = false;
+    for (let i = 0; i < n; i++) if (!live[i] && D.alphabet.some((a) => live[D.trans[i].get(a)])) { live[i] = true; changed = true; }
+  }
+  if (!live[0]) return null;
+  const multi = D.alphabet.some((s) => [...s].length > 1);
+  const out = [];
+  let frontier = [[0, []]];
+  for (let len = 0; len <= maxLen && frontier.length && out.length < limit; len++) {
+    for (const [s, w] of frontier) { if (D.states[s].accept) { out.push(w.length ? w.join(multi ? ' ' : '') : 'ε'); if (out.length >= limit) break; } }
+    const next = [];
+    for (const [s, w] of frontier) for (const a of D.alphabet) { const t = D.trans[s].get(a); if (live[t]) next.push([t, [...w, a]]); }
+    frontier = next.slice(0, 20000);
+  }
+  return out;
+}
+function useRegex(str) {
+  $('#re-input').value = str;
+  updateReRead();
+  $('#tab-regex').click();
+  reveal($('#re-input'));
+}
+$('#re-input').addEventListener('input', updateReRead);
+$('#re-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#re-build').click(); } });
+$('#re-input2').addEventListener('input', saveReSettings);
+$('#re-input2').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('#re-compare').click(); } });
+$('#re-plus').addEventListener('change', updateReRead);
+$('#re-sigma').addEventListener('input', updateReRead);
+for (const el of ['#re-input', '#re-input2']) $(el).addEventListener('focus', () => { lastReInput = $(el); });
+$('#re-symbols').addEventListener('mousedown', (e) => { if (e.target.closest('[data-re]')) e.preventDefault(); });
+$('#re-symbols').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-re]');
+  if (!b) return;
+  const inp = lastReInput || $('#re-input');
+  const s = inp.selectionStart ?? inp.value.length, en = inp.selectionEnd ?? inp.value.length;
+  inp.value = inp.value.slice(0, s) + b.dataset.re + inp.value.slice(en);
+  inp.focus(); inp.setSelectionRange(s + b.dataset.re.length, s + b.dataset.re.length);
+  inp.dispatchEvent(new Event('input'));
+});
+$('#re-build').addEventListener('click', () => {
+  const c = regexFrom('#re-input');
+  if (!c) return;
+  closeWalk();
+  loadDoc(c.built.doc);
+  toast(`Built an NFA with ${c.built.doc.nodes.length} states for ${reStr(c.ast)}.`, 'Undo', undo);
+});
+$('#re-build-steps').addEventListener('click', () => {
+  const c = regexFrom('#re-input');
+  if (!c) return;
+  closeWalk();
+  loadDoc(c.built.doc);
+  openWalk({
+    title: 'Regex → NFA, step by step', steps: c.built.steps, locked: true,
+    drawLabel: 'Now convert it to a DFA', besideLabel: null,
+    onDraw: () => { $('#tab-convert').click(); startSubsetWalk(); },
+  });
+});
+$('#re-test').addEventListener('click', () => {
+  const c = regexFrom('#re-input');
+  if (!c) return;
+  const lines = $('#re-tests').value.split('\n').map((s) => s.trim()).filter(Boolean);
+  const out = $('#re-test-out');
+  if (!lines.length) { out.innerHTML = '<span class="muted">Type some strings above, one per line.</span>'; return; }
+  let ok = 0;
+  const items = lines.map((line) => {
+    const acc = runSim(c.A, tokenize(c.A, line)).accepted;
+    if (acc) ok++;
+    return `<li><span>${escHTML(line)}</span><span class="${acc ? 'ok' : 'bad'}">${acc ? '✓ in the language' : '✕ not in it'}</span></li>`;
+  });
+  out.innerHTML = `<ul class="batch-out">${items.join('')}</ul><span class="muted">${ok} of ${lines.length} match.</span>`;
+  reveal(out);
+});
+$('#re-examples').addEventListener('click', () => {
+  const c = regexFrom('#re-input');
+  if (!c) return;
+  const list = shortestStrings(c.A);
+  const out = $('#re-test-out');
+  out.innerHTML = !list
+    ? '<span>The language is <b>empty</b>: no string matches.</span>'
+    : `<span class="muted">The shortest strings in the language, in order:</span><div class="chips">${list.map((w) => `<span class="chip">${escHTML(w)}</span>`).join('')}</div>`;
+  reveal(out);
+});
+$('#re-compare').addEventListener('click', () => {
+  const a = regexFrom('#re-input');
+  if (!a) return;
+  if (!$('#re-input2').value.trim()) { toast('Type a second expression to compare with.'); $('#re-input2').focus(); return; }
+  const b = regexFrom('#re-input2');
+  if (!b) return;
+  const r = compareAutomata(a.A, b.A);
+  const out = $('#re-compare-out');
+  out.innerHTML = r.equal
+    ? `<span class="pill ok">✓ Same language</span><span><span class="math">${escHTML(reStr(a.ast))}</span> and <span class="math">${escHTML(reStr(b.ast))}</span> describe exactly the same strings.</span>`
+    : `<span class="pill bad">✕ Different</span><span>Shortest string that tells them apart: <b class="math">${escHTML(r.word)}</b>. It matches the ${r.inA ? 'first' : 'second'} expression but not the ${r.inA ? 'second' : 'first'}.</span>`;
+  out.hidden = false;
+  reveal(out);
+});
+function drawingRegex() {
+  const A = buildAutomaton();
+  if (!requireStart(A)) return null;
+  return { A, g: gnfaWalk(A) };
+}
+function showFromResult(str) {
+  const out = $('#re-from-out');
+  out.innerHTML = `<div class="regex-result">${escHTML(str)}</div><div class="row"><button class="btn small" id="re-from-copy">Copy</button><button class="btn small" id="re-from-use">Use as the expression above</button></div>`;
+  out.hidden = false;
+  $('#re-from-copy').addEventListener('click', () => copyText(str, 'Regular expression copied.'));
+  $('#re-from-use').addEventListener('click', () => useRegex(str));
+  reveal(out);
+}
+$('#re-from-nfa').addEventListener('click', () => {
+  const r = drawingRegex();
+  if (r) showFromResult(reStr(r.g.result));
+});
+$('#re-from-nfa-steps').addEventListener('click', () => {
+  const r = drawingRegex();
+  if (!r) return;
+  const str = reStr(r.g.result);
+  showFromResult(str);
+  openWalk({
+    title: 'NFA → regex (GNFA), step by step', steps: r.g.steps, locked: true,
+    drawLabel: 'Copy the expression', besideLabel: 'Use as the expression above',
+    onDraw: (beside) => (beside ? useRegex(str) : copyText(str, 'Regular expression copied.')),
+  });
+});
 
 /* ---------------- Machine info card ---------------- */
 function updateMachineInfo() {
@@ -2615,6 +3183,7 @@ function applyTheme() {
 $('#btn-theme').addEventListener('click', () => {
   settings.theme = THEMES[(THEMES.indexOf(settings.theme) + 1) % THEMES.length];
   applyTheme();
+  store.set(THEME_KEY, settings.theme);
   persist();
   toast('Theme: ' + (settings.theme === 'system' ? 'same as your system' : settings.theme));
 });
@@ -2715,6 +3284,9 @@ function init() {
   let saved = null;
   try { saved = JSON.parse(store.get(STORE_KEY) || 'null'); } catch (e) { saved = null; }
   if (saved && saved.settings) Object.assign(settings, saved.settings);
+  const sharedTheme = store.get(THEME_KEY);
+  if (sharedTheme === 'system' || sharedTheme === 'light' || sharedTheme === 'dark') settings.theme = sharedTheme;
+  $('#app').dataset.page = PAGE;
   applyTheme();
   setTool('select');
   resize();
@@ -2722,6 +3294,12 @@ function init() {
   if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) $('#welcome-tip').textContent = 'Tap “Add a state”, or pick the State tool and tap the canvas.';
   if (saved && validDoc(saved.doc)) loadDoc(saved.doc);
   else loadDoc({ nodes: [], links: [], nextId: 1 });
+  $('#re-input').value = settings.regex != null ? settings.regex : PAGE === 'regex' ? '(a|b)*abb' : '';
+  $('#re-input2').value = settings.regex2 || '';
+  $('#re-plus').value = settings.regexPlus === 'plus' ? 'plus' : 'union';
+  $('#re-sigma').value = settings.regexSigma || '';
+  updateReRead();
+  if (PAGE === 'regex') $('#tab-regex').click();
   updateSelectionPanel();
   if ('ResizeObserver' in window) new ResizeObserver(() => resize()).observe(stage);
   else window.addEventListener('resize', resize);
@@ -2734,7 +3312,7 @@ function init() {
       })
       .catch(() => {});
   }
-  window.DeltaDraw = { get doc() { return doc; }, buildAutomaton, runSim, tokenize, determinize, minimizeDFA, subsetWalk, minimizeWalk, product, complementDFA, makeSVG, makeTikZ, makeJFF, makePNG, loadDoc, EXAMPLES };
+  window.DeltaDraw = { get doc() { return doc; }, buildAutomaton, runSim, tokenize, determinize, minimizeDFA, subsetWalk, minimizeWalk, product, complementDFA, compareAutomata, parseRegex, reStr, reExpand, regexNFA, gnfaWalk, shortestStrings, makeSVG, makeTikZ, makeJFF, makePNG, loadDoc, EXAMPLES };
 }
 init();
 })();

@@ -10,8 +10,17 @@ DeltaDraw is a free, browser-based companion for a Theory of Computation course.
 |---|---|---|
 | `index.html` | Home: chapter menu | Live |
 | `fa.html` | Ch 1: finite automata (DFA, NFA, ε-NFA) | Live |
+| `regex.html` | Ch 1.3: regular expressions (regex ⇄ NFA, step by step) | Live |
 | `exam.html` | Exam mode (drawing only, for proctored exams) | Live |
-| `regex.html`, `cfg.html`, `pda.html`, `tm.html`, `decide.html`, `complexity.html`, `practice.html` | Later chapters | Planned |
+| `cfg.html`, `pda.html`, `tm.html`, `decide.html`, `complexity.html`, `practice.html` | Later chapters | Planned |
+
+## Regular expressions (`regex.html`)
+
+- Type an expression with `|` or `∪` for union, `*` for star, `ε` or `()` for the empty string, `∅`, and `Σ` for any symbol. `+` can mean union or "one or more" (setting).
+- Live feedback shows how the expression is read, or what is wrong with it.
+- **Regex → NFA, step by step** (Sipser, Lemma 1.55): one small NFA per piece, joined with ε-moves; parts not built yet are shown faint.
+- **NFA → regex, step by step** (Sipser, Lemma 1.60): the drawing becomes a GNFA, then states are removed one at a time, showing R₁(R₂)*R₃ ∪ R₄ with the real labels.
+- Test strings, list the shortest strings in the language, and check whether two expressions describe the same language (with the shortest string that tells them apart).
 
 ## Finite automata tool (`fa.html`)
 

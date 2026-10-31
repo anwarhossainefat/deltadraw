@@ -214,6 +214,19 @@ details.batch[open] summary{margin-bottom:8px}
 .conv-card h3{margin:0;font:600 14px var(--font-ui)}
 .conv-card p{margin:0;font-size:12.5px;color:var(--muted)}
 .result-note{font-size:12.5px;margin:0;padding:8px 10px;border-radius:7px;background:var(--surface-2)}
+.walk-list{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+.re-input{font:italic 18px var(--font-math);letter-spacing:.02em}
+.re-read{margin:0;min-height:1.4em}
+.re-read .math{font-size:16px}
+.re-read.err{color:var(--bad)}
+.re-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.re-opts .select{width:100%;height:32px}
+.re-opts .input{font-size:13px;padding:5px 8px}
+.re-out{display:grid;gap:6px}
+.re-out .chips{display:flex;flex-wrap:wrap;gap:4px}
+.re-out .chip{font:14px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+.regex-result{font:italic 17px var(--font-math);word-break:break-word;background:var(--surface-2);border-radius:6px;padding:6px 9px}
+.app[data-page="regex"] #tab-regex{order:-1}
 .slots{display:grid;gap:8px}
 .slot{border:1px solid var(--line);border-radius:9px;padding:9px 10px;display:grid;gap:8px}
 .slot-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
@@ -361,14 +374,14 @@ a.tile:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 }
 </style>
 
-<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html" aria-current="page"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 1</span>Regular expressions</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 2</span>Grammars</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 2</span>Pushdown automata</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 3</span>Turing machines</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><span class="nav-item soon" title="Coming soon">Practice</span></div></nav>
+<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html" aria-current="page"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 2</span>Grammars</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 2</span>Pushdown automata</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 3</span>Turing machines</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><span class="nav-item soon" title="Coming soon">Practice</span></div></nav>
 
 <main class="home">
   <section class="hero">
     <div>
       <p class="eyebrow">Theory of Computation toolkit</p>
       <h1>Draw the machine, then watch it compute.</h1>
-      <p class="lead">DeltaDraw is a free companion for a Theory of Computation course. Pick your chapter, draw the machine, and step through it one symbol at a time. Finite automata are ready now. Regular expressions, grammars, pushdown automata and Turing machines are on the way.</p>
+      <p class="lead">DeltaDraw is a free companion for a Theory of Computation course. Pick your chapter, draw the machine, and step through it one symbol at a time. Finite automata and regular expressions are ready now. Grammars, pushdown automata and Turing machines are on the way.</p>
       <div class="hero-actions">
         <a class="btn primary lg" href="fa.html">Open finite automata</a>
         <a class="btn lg" href="#chapters">See all chapters</a>
@@ -411,7 +424,7 @@ a.tile:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
       <div class="tiles">
         <a class="tile" href="fa.html"><div class="tile-top"><span class="tile-sec">1.1</span><span class="status live">Available</span></div><h3>Finite automata</h3><p>Draw DFAs, test strings, minimize step by step, and combine machines: union, intersection, complement and equivalence.</p></a>
         <a class="tile" href="fa.html"><div class="tile-top"><span class="tile-sec">1.2</span><span class="status live">Available</span></div><h3>Nondeterminism</h3><p>Simulate NFAs and ε-NFAs, and convert an NFA to a DFA step by step with the subset table.</p></a>
-        <div class="tile is-soon"><div class="tile-top"><span class="tile-sec">1.3</span><span class="status soon">Coming soon</span></div><h3>Regular expressions</h3><p>Regular expression to NFA and NFA to regular expression, step by step.</p></div>
+        <a class="tile" href="regex.html"><div class="tile-top"><span class="tile-sec">1.3</span><span class="status live">Available</span></div><h3>Regular expressions</h3><p>Regular expression to NFA and NFA to regular expression, step by step. Test strings and compare expressions.</p></a>
         <div class="tile is-soon"><div class="tile-top"><span class="tile-sec">1.4</span><span class="status soon">Coming soon</span></div><h3>Nonregular languages</h3><p>A pumping lemma game: choose the split and try to stay in the language.</p></div>
       </div>
     </div>
@@ -472,6 +485,7 @@ a.tile:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
         <li>Step-by-step string simulation with highlighted states</li>
         <li>Step-by-step NFA to DFA conversion and DFA minimization</li>
         <li>Union, intersection, complement and equivalence of automata</li>
+        <li>Regular expression to NFA and NFA to regular expression, step by step</li>
         <li>Automatic transition table</li>
         <li>Export to PNG, SVG, LaTeX/TikZ and JFLAP</li>
         <li>Exam mode for proctored online exams</li>
@@ -487,8 +501,9 @@ a.tile:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
     </dl>
   </div>
   <footer class="foot">
-    <span>DeltaDraw v1.4</span>
+    <span>DeltaDraw v1.5</span>
     <a href="fa.html">Finite automata</a>
+    <a href="regex.html">Regular expressions</a>
     <a href="exam.html">Exam mode</a>
     <a href="https://github.com/anwarhossainefat/deltadraw" rel="noopener" target="_blank">Source on GitHub</a>
   </footer>
@@ -498,8 +513,8 @@ a.tile:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 // Use the theme the visitor picked in the drawing tool (same browser storage)
 (function () {
   try {
-    var s = JSON.parse(localStorage.getItem('deltadraw:v2') || 'null');
-    var t = s && s.settings && s.settings.theme;
+    var t = localStorage.getItem('deltadraw:theme');
+    if (!t) { var s = JSON.parse(localStorage.getItem('deltadraw:v2') || 'null'); t = s && s.settings && s.settings.theme; }
     if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
   } catch (e) { /* storage unavailable: follow the system theme */ }
 })();
