@@ -11,9 +11,19 @@ DeltaDraw is a free, browser-based companion for a Theory of Computation course.
 | `index.html` | Home: chapter menu | Live |
 | `fa.html` | Ch 1: finite automata (DFA, NFA, ε-NFA) | Live |
 | `regex.html` | Ch 1.3: regular expressions (regex ⇄ NFA, step by step) | Live |
+| `cfg.html` | Ch 2.1: context-free grammars (parse trees, CNF, CYK) | Live |
 | `practice.html` | Chapter 1 practice exercises with exact checking | Live |
 | `exam.html` | Exam mode (drawing only, for proctored exams) | Live |
-| `cfg.html`, `pda.html`, `tm.html`, `decide.html`, `complexity.html` | Later chapters | Planned |
+| `pda.html`, `tm.html`, `decide.html`, `complexity.html` | Later chapters | Planned |
+
+## Context-free grammars (`cfg.html`)
+
+- Type a grammar in Sipser's notation, e.g. `S -> 0S1 | ε` (`->` or `→`; `ε` or `\epsilon`; variables are capital letters such as `S`, `S_0`, `A'`, or names like `<EXPR>`). Live feedback lists the variables and terminals and flags variables with no rules, variables that never finish, and unreachable variables.
+- **Test a string:** generated or not, with the **parse tree** and the **leftmost derivation** (the simplest one first).
+- **Ambiguity:** when a string has two different parse trees, both are drawn and the grammar is marked ambiguous.
+- **Chomsky normal form, step by step** (Sipser, Theorem 2.9): new start variable, remove ε-rules, remove unit rules, give terminals their own variables, split long rules. Added rules are green, removed rules are struck out.
+- **CYK table**, filled row by row for the tested string.
+- **Shortest strings** the grammar generates.
 
 ## Practice (`practice.html`)
 

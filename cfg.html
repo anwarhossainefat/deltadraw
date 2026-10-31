@@ -1,0 +1,1151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Context-Free Grammar Tool – Parse Trees, CNF Converter, CYK | DeltaDraw</title>
+<meta name="description" content="Context-free grammar tool: test strings, draw parse trees and leftmost derivations, detect ambiguity, convert to Chomsky normal form step by step and run the CYK algorithm. Follows Sipser Chapter 2.1.">
+<link rel="canonical" href="https://anwarhossainefat.github.io/deltadraw/cfg.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Context-Free Grammar Tool – Parse Trees, CNF Converter, CYK | DeltaDraw">
+<meta property="og:description" content="Context-free grammar tool: test strings, draw parse trees and leftmost derivations, detect ambiguity, convert to Chomsky normal form step by step and run the CYK algorithm. Follows Sipser Chapter 2.1.">
+<meta property="og:url" content="https://anwarhossainefat.github.io/deltadraw/cfg.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#2a55c9">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a55c9'/%3E%3Ctext x='32' y='45' font-family='Times New Roman,serif' font-style='italic' font-size='42' text-anchor='middle' fill='white'%3E%CE%B4%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,500;1,400;1,500&display=swap">
+</head>
+<body>
+<style>
+/* Layout: toolbar band on top, drawing stage left, inspector panel right (stacks under the stage on phones); about/how-to text below the fold */
+:root{
+  --bg:#f2f4f8;
+  --surface:#ffffff;
+  --surface-2:#eef1f6;
+  --ink:#151922;
+  --muted:#5a6375;
+  --line:#d7dce5;
+  --accent:#2a55c9;
+  --accent-ink:#ffffff;
+  --accent-soft:#e3eafb;
+  --hl:#c27400;
+  --hl-soft:#ffefcc;
+  --ok:#1a7a45;
+  --ok-soft:#dff2e6;
+  --bad:#b8321f;
+  --bad-soft:#fbe4e0;
+  --stage:#fbfcfe;
+  --grid:#c9d1de;
+  --start-fill:#d4e1ff;
+  --accept-fill:#cdeedb;
+  --shadow:0 10px 30px rgba(20,28,45,.14);
+  --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --font-math:"STIX Two Text","Times New Roman",Times,serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1117; --surface:#161a22; --surface-2:#1d222c; --ink:#e5e8ee; --muted:#97a0b0; --line:#2b313d;
+    --accent:#86a6ff; --accent-ink:#0e1117; --accent-soft:#1f2944;
+    --hl:#f2a93b; --hl-soft:#3b2d12; --ok:#55c98a; --ok-soft:#163323; --bad:#ff8173; --bad-soft:#3d1c18;
+    --stage:#11151c; --grid:#2a313d; --shadow:0 10px 30px rgba(0,0,0,.5);
+    --start-fill:#1e2a47; --accept-fill:#173322;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1117; --surface:#161a22; --surface-2:#1d222c; --ink:#e5e8ee; --muted:#97a0b0; --line:#2b313d;
+  --accent:#86a6ff; --accent-ink:#0e1117; --accent-soft:#1f2944;
+  --hl:#f2a93b; --hl-soft:#3b2d12; --ok:#55c98a; --ok-soft:#163323; --bad:#ff8173; --bad-soft:#3d1c18;
+  --stage:#11151c; --grid:#2a313d; --shadow:0 10px 30px rgba(0,0,0,.5);
+  --start-fill:#1e2a47; --accept-fill:#173322;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--font-ui);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Site menu (chapters), shared by every page except exam mode ---------- */
+.sitenav{
+  display:flex;align-items:center;gap:6px 18px;min-height:40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--bg);border-bottom:1px solid var(--line);font-size:13px;
+}
+.sitenav-brand{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink);text-decoration:none;white-space:nowrap}
+.mini-delta{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font:italic 500 15px/1 var(--font-math);padding-bottom:2px}
+.sitenav-links{display:flex;gap:2px;overflow-x:auto;min-width:0;scrollbar-width:none;flex:1}
+.sitenav-links::-webkit-scrollbar{display:none}
+.nav-item{display:inline-flex;align-items:center;gap:6px;padding:10px 9px 8px;color:var(--muted);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}
+a.nav-item:hover{color:var(--ink)}
+.nav-item.active{color:var(--ink);border-bottom-color:var(--accent)}
+.nav-item.soon{opacity:.5;cursor:default}
+.nav-ch{font:500 11px var(--font-mono);color:var(--muted);letter-spacing:.02em}
+
+/* ---------- App shell ---------- */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:560px}
+.topbar{
+  display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap;
+  padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--surface);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;margin-right:6px}
+.brand-delta{
+  width:34px;height:34px;border-radius:8px;display:grid;place-items:center;
+  background:var(--accent);color:var(--accent-ink);
+  font:italic 500 24px/1 var(--font-math);padding-bottom:3px;
+}
+.brand-text{display:grid;line-height:1.1}
+.brand-name{margin:0;font:600 17px/1.1 var(--font-ui);letter-spacing:-.01em}
+.brand-sub{margin:0;font-size:11.5px;color:var(--muted)}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1}
+.toolbar .spacer{flex:1}
+.group{display:inline-flex;gap:4px}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:34px;padding:0 11px;border:1px solid var(--line);border-radius:7px;
+  background:var(--surface);color:var(--ink);font:500 13px/1 var(--font-ui);cursor:pointer;white-space:nowrap;
+  text-decoration:none;
+}
+.gate{width:min(440px,100%);height:auto;align-self:center}
+.gate .input{height:auto}
+.code-chip{font:600 13px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;letter-spacing:.04em}
+.input.code-field{text-transform:uppercase;letter-spacing:.06em}
+.btn:hover{background:var(--surface-2)}
+.btn:disabled{opacity:.42;cursor:default;background:var(--surface)}
+.btn svg{width:16px;height:16px;flex:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad)}
+.btn.small{height:28px;padding:0 9px;font-size:12px}
+.btn.icon{width:34px;padding:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg .btn{border:0;border-radius:0;height:32px}
+.seg .btn+.btn{border-left:1px solid var(--line)}
+.seg .btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.select{height:34px;border:1px solid var(--line);border-radius:7px;background:var(--surface);padding:0 8px;font:500 13px var(--font-ui);cursor:pointer}
+
+.workspace{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px}
+.stage{position:relative;overflow:hidden;background:var(--stage);min-height:0}
+#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;outline:none}
+.hint{
+  position:absolute;left:12px;bottom:12px;max-width:calc(100% - 210px);
+  font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);
+  border-radius:7px;padding:6px 10px;pointer-events:none;
+}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;align-items:center}
+.welcome{position:absolute;inset:0;display:grid;place-items:center;padding:16px 16px 80px;pointer-events:none}
+.welcome-card{pointer-events:auto;text-align:center;display:grid;justify-items:center;gap:10px;max-width:360px;padding:26px 24px;border:1.5px dashed var(--line);border-radius:14px;background:var(--surface)}
+.welcome-card h2{margin:4px 0 0;font:500 24px/1.2 var(--font-math)}
+.welcome-card p{margin:0;color:var(--muted);font-size:14px}
+.welcome-card .row{justify-content:center;margin-top:6px}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--ink);vertical-align:-1px;margin:0 2px}
+.swatch.start{background:var(--start-fill)}
+.swatch.accept{background:var(--accept-fill)}
+.zoom .btn{height:30px;min-width:30px;padding:0 8px;font-variant-numeric:tabular-nums}
+.zoom-level{min-width:54px}
+
+/* ---------- Inspector panel ---------- */
+.panel{background:var(--surface);border-left:1px solid var(--line);overflow:auto;display:flex;flex-direction:column;min-height:0}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line);display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+.sec-title{margin:0;font:600 11px/1 var(--font-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.small-text{font-size:12.5px;margin:0}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.field{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+.input,textarea.input{
+  width:100%;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);color:var(--ink);
+  padding:7px 10px;font:15px/1.35 var(--font-mono);
+}
+.input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+textarea.input{resize:vertical;font-size:14px}
+.checks{display:grid;gap:6px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer}
+.check input{width:16px;height:16px;accent-color:var(--accent);margin:0}
+.symbols{display:flex;gap:4px;flex-wrap:wrap}
+.symbols .btn{height:26px;min-width:30px;padding:0 7px;font:italic 15px/1 var(--font-math)}
+.symbols .btn.plain{font:500 11.5px/1 var(--font-ui)}
+
+.machine-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.type-badge{font:600 12px/1 var(--font-mono);padding:5px 9px;border-radius:999px;letter-spacing:.04em}
+.type-badge.dfa{background:var(--ok-soft);color:var(--ok)}
+.type-badge.nfa{background:var(--accent-soft);color:var(--accent)}
+.type-badge.none{background:var(--surface-2);color:var(--muted)}
+.sigma{font:15px var(--font-math);margin:0}
+.notes{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12.5px;color:var(--muted)}
+.notes li.warn{color:var(--bad)}
+
+.tabs{display:flex;border-bottom:1px solid var(--line);padding:0 8px;position:sticky;top:0;background:var(--surface);z-index:1}
+.tab{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:11px 6px 9px;font:500 13px var(--font-ui);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabpanel{padding:14px 16px 20px;display:grid;gap:12px;align-content:start}
+
+.tape{display:flex;flex-wrap:wrap;gap:3px;font:14px var(--font-mono)}
+.cell{min-width:24px;height:28px;padding:0 5px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;background:var(--surface-2)}
+.cell.done{color:var(--muted);opacity:.7}
+.cell.cur{border-color:var(--hl);background:var(--hl-soft);color:var(--ink);font-weight:500}
+.cell.eps{font-family:var(--font-math);font-style:italic}
+.sim-out{display:grid;gap:8px}
+.sim-line{font-size:13px}
+.math{font-family:var(--font-math);font-size:15px}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--font-ui);padding:6px 10px;border-radius:999px}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.run{background:var(--hl-soft);color:var(--hl)}
+details.batch{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+details.batch summary{cursor:pointer;font-weight:500;font-size:13px}
+details.batch[open] summary{margin-bottom:8px}
+.batch-body{display:grid;gap:8px}
+.batch-out{list-style:none;margin:0;padding:0;display:grid;gap:4px;font:13px var(--font-mono)}
+.batch-out li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:3px 0}
+.batch-out .ok{color:var(--ok)} .batch-out .bad{color:var(--bad)}
+
+.conv-card{border:1px solid var(--line);border-radius:9px;padding:12px;display:grid;gap:8px}
+.conv-card h3{margin:0;font:600 14px var(--font-ui)}
+.conv-card p{margin:0;font-size:12.5px;color:var(--muted)}
+.result-note{font-size:12.5px;margin:0;padding:8px 10px;border-radius:7px;background:var(--surface-2)}
+.walk-list{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+.re-input{font:italic 18px var(--font-math);letter-spacing:.02em}
+.re-read{margin:0;min-height:1.4em}
+.re-read .math{font-size:16px}
+.re-read.err{color:var(--bad)}
+.re-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.re-opts .select{width:100%;height:32px}
+.re-opts .input{font-size:13px;padding:5px 8px}
+.re-out{display:grid;gap:6px}
+.re-out .chips{display:flex;flex-wrap:wrap;gap:4px}
+.re-out .chip{font:14px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+.regex-result{font:italic 17px var(--font-math);word-break:break-word;background:var(--surface-2);border-radius:6px;padding:6px 9px}
+.app[data-page="regex"] #tab-regex{order:-1}
+/* practice page: no solving tools, just drawing, Test and Table */
+.app[data-page="practice"] #tab-convert,.app[data-page="practice"] #tab-combine,.app[data-page="practice"] #tab-regex,
+.app[data-page="practice"] #examples,.app[data-page="practice"] #btn-exam,.app[data-page="practice"] #welcome-example,
+.app[data-page="practice"] #btn-open{display:none}
+.ex-sec{background:var(--surface)}
+.ex-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ex-nav{display:flex;gap:4px}
+.ex-nav .select{flex:1;min-width:0;width:0;height:32px}
+.ex-nav .btn{height:32px;width:32px}
+.ex-card{display:grid;gap:9px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.ex-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ex-card h3{margin:0;font:600 15.5px/1.3 var(--font-ui)}
+.ex-text{margin:0;font-size:14px;line-height:1.55}
+.ex-text .lbl{font:italic 16px var(--font-math)}
+.ex-rules{margin:0}
+.ex-figure{border:1px solid var(--line);border-radius:8px;background:var(--stage);padding:6px;color:var(--ink)}
+.ex-figure svg{display:block;width:100%;height:auto;max-height:200px}
+.ex-hints{margin:0;padding-left:18px;display:grid;gap:5px;font-size:13px}
+.ex-hints:empty{display:none}
+.slots{display:grid;gap:8px}
+.slot{border:1px solid var(--line);border-radius:9px;padding:9px 10px;display:grid;gap:8px}
+.slot-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.slot-head b{font:600 15px var(--font-mono)}
+.eq-out{display:grid;gap:6px;justify-items:start}
+
+/* ---------- Step-by-step walkthrough card (over the canvas) ---------- */
+.walk{position:absolute;left:12px;right:12px;bottom:52px;max-height:min(48%,440px);overflow:auto;z-index:3;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:grid;gap:10px}
+.walk-head{display:flex;align-items:center;gap:10px}
+.walk-head strong{flex:1;font-size:14px}
+.walk-text{margin:0;font-size:14px;line-height:1.6;max-width:90ch}
+.walk-text .lbl,.walk-text b.lbl{font:italic 16px var(--font-math)}
+.grow{flex:1}
+.ttable td.cur{background:var(--hl-soft);box-shadow:inset 0 0 0 2px var(--hl)}
+.ttable tr.newrow td.state{background:var(--accent-soft)}
+.walk .ttable{min-width:0;width:auto}
+.ttable.pairs{min-width:0}
+.ttable.pairs td{min-width:42px;height:30px}
+.ttable.pairs td.void{border:0;background:transparent}
+.ttable.pairs th{background:transparent;border:0;font-family:var(--font-math);font-style:italic;font-size:15px}
+.mk{color:var(--bad);font-weight:600}
+.mk sub{font:500 10px var(--font-mono)}
+@media (max-width: 860px){ .walk{bottom:12px;max-height:62%} }
+
+.table-wrap{overflow-x:auto}
+.ttable{border-collapse:collapse;font:13px var(--font-mono);min-width:100%}
+.ttable th,.ttable td{border:1px solid var(--line);padding:5px 9px;text-align:center;white-space:nowrap}
+.ttable th{background:var(--surface-2);font-weight:500}
+.ttable .lbl{font-family:var(--font-math);font-style:italic;font-size:15px}
+.ttable td.state{text-align:left}
+.ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
+
+/* ---------- Modals & toast ---------- */
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(10,14,22,.5)}
+.dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(780px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;grid-template-rows:auto 1fr}
+.dialog-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.dialog-head h2{margin:0;font:600 16px var(--font-ui);flex:1}
+.dialog-body{padding:16px;display:grid;gap:14px;min-width:0;align-content:start}
+.preview{border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:46vh;display:grid;place-items:center;padding:12px;
+  background-color:#fff;background-image:linear-gradient(45deg,#e9ecf1 25%,transparent 25%),linear-gradient(-45deg,#e9ecf1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e9ecf1 75%),linear-gradient(-45deg,transparent 75%,#e9ecf1 75%);
+  background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+.preview img{max-width:100%;height:auto;display:block}
+.code{width:100%;min-height:220px;font:12.5px/1.45 var(--font-mono);border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);padding:10px;resize:vertical;white-space:pre}
+.opt-row{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:center;font-size:13px}
+.opt-row .label{color:var(--muted);font-size:12px}
+.radio{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.radio input{accent-color:var(--accent);margin:0}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;
+  display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--bg);border-radius:9px;padding:9px 12px 9px 14px;box-shadow:var(--shadow);font-size:13px;max-width:calc(100% - 32px)}
+.toast button{background:none;border:0;color:var(--bg);font-weight:600;text-decoration:underline;cursor:pointer;padding:2px 4px}
+
+/* ---------- About / how-to (below the app) ---------- */
+.about{max-width:1020px;margin:0 auto;padding-block:56px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+.about h2{margin:0 0 10px;font:500 30px/1.15 var(--font-math);text-wrap:balance;letter-spacing:-.005em}
+.about h3{margin:0 0 6px;font:600 15px var(--font-ui)}
+.about p,.about li{font-size:15px;line-height:1.6;max-width:68ch}
+.about p{margin:0 0 10px}
+.lead{font-size:17px!important;color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 32px}
+.cols>div{min-width:0}
+.about ol,.about ul{margin:0;padding-left:20px;display:grid;gap:6px}
+kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:var(--surface)}
+.syntax{border-collapse:collapse;font-size:14px;width:100%}
+.syntax td,.syntax th{border-bottom:1px solid var(--line);padding:7px 10px 7px 0;text-align:left;vertical-align:top}
+.syntax th{font:600 11px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.syntax code{font:13px var(--font-mono);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.syntax .out{font:italic 17px var(--font-math)}
+.faq dt{font-weight:600;margin-top:12px}
+.faq dd{margin:4px 0 0;color:var(--muted);max-width:68ch}
+.foot{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);display:flex;gap:8px 18px;flex-wrap:wrap}
+.foot a{color:var(--accent)}
+
+@media (max-width: 1020px){
+  .btn .lbl-wide{display:none}
+}
+@media (max-width: 860px){
+  .app{height:auto;min-height:0}
+  .workspace{grid-template-columns:1fr;grid-template-rows:64vh auto}
+  .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  .tabs{position:static}
+  .hint{max-width:calc(100% - 24px);bottom:52px}
+  .about h2{font-size:25px}
+}
+@media (max-width: 560px){
+  .topbar{gap:8px}
+  .brand-sub{display:none}
+  .toolbar{gap:6px}
+  .toolbar .spacer{display:none}
+  .btn{height:32px;padding:0 9px}
+  .btn.icon{width:32px}
+  .seg .btn{height:30px}
+  .select{height:32px;max-width:132px}
+  .hint{font-size:11.5px;padding:5px 8px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>
+/* ---------- Grammar page (Chapter 2.1) ---------- */
+.cfg-app{min-height:calc(100dvh - 44px);display:flex;flex-direction:column}
+.cfg-main{flex:1;display:grid;grid-template-columns:minmax(300px,390px) minmax(0,1fr);align-items:start;gap:16px;
+  padding:16px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));max-width:1320px;width:100%;margin:0 auto}
+.cfg-col{display:grid;gap:16px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.card>.sec:last-child{border-bottom:0}
+.card .tabs{border-radius:10px 10px 0 0}
+.g-text{min-height:150px;font:15px/1.6 var(--font-mono);tab-size:4}
+.g-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.g-row .input{flex:1;min-width:0}
+#w-out{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+#w-out:empty,#gen-out:empty{display:none}
+#gen-out{display:grid;gap:6px}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.chip{font:14px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+.gv{font-family:var(--font-math);font-style:italic;font-size:1.08em}
+.gv sub{font-size:.7em;font-style:italic}
+.gt{font-family:var(--font-mono)}
+.geps{font-family:var(--font-math);font-style:italic;color:var(--muted)}
+#g-info p{margin:0;line-height:1.7}
+#g-info .gt{background:var(--surface-2);border-radius:4px;padding:0 4px}
+
+.cfg-tabs .tabpanel{min-height:340px}
+.tree-fig{margin:0;display:grid;gap:6px}
+.tree-fig+.tree-fig{border-top:1px dashed var(--line);padding-top:14px}
+.tree-fig figcaption{font:600 12px var(--font-ui);color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+.tree-scroll{overflow-x:auto;padding:4px 0 8px}
+.ptree{display:block;margin:0 auto;max-width:none}
+.ptree line{stroke:var(--muted);stroke-width:1.2}
+.ptree text{fill:var(--ink);font-size:18px}
+.ptree text.gv{font-family:var(--font-math);font-style:italic;font-size:20px}
+.ptree text.gt{font-family:var(--font-mono);font-size:17px;fill:var(--accent)}
+.ptree text.geps{font-family:var(--font-math);font-style:italic;fill:var(--muted)}
+
+.deriv h3,.step-title{margin:0 0 6px;font:600 14px var(--font-ui)}
+.deriv+.deriv{border-top:1px dashed var(--line);padding-top:14px}
+.deriv ol{margin:0;padding:0;list-style:none;display:grid;gap:3px}
+.deriv li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px}
+.deriv .form{font-size:17px;min-width:9em}
+.deriv .form .gt{font-size:15px}
+
+.stack{display:grid;gap:12px;align-content:start;min-width:0}
+.stepper{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.step-text{margin:0;color:var(--ink);line-height:1.55}
+.rule-list{display:grid;gap:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;overflow-x:auto}
+.rule-line{font-size:16px;white-space:nowrap}
+.rule-line .arrow{margin:0 8px;color:var(--muted)}
+.rule-line .bar{color:var(--muted)}
+.rule-line .gt{font-size:15px}
+.r-added{background:var(--ok-soft);color:var(--ok);border-radius:4px;padding:0 3px}
+.r-added .gv,.r-added .gt{color:var(--ok)}
+.r-removed{text-decoration:line-through;text-decoration-thickness:1.5px;color:var(--bad);opacity:.85;padding:0 2px}
+.r-removed .gv,.r-removed .gt,.r-removed .geps{color:var(--bad)}
+.legend{margin:0}
+
+.cyk{border-collapse:collapse;font:14px var(--font-ui)}
+.cyk td{border:1px solid var(--line);min-width:64px;height:38px;padding:4px 8px;text-align:center;white-space:nowrap;background:var(--surface)}
+.cyk th{padding:0 8px 0 0;font-weight:500;text-align:right}
+.cyk td.void{border:0;background:transparent}
+.cyk td.cell-new{background:var(--hl-soft)}
+.cyk td.cell-start{background:var(--ok-soft);box-shadow:inset 0 0 0 2px var(--ok)}
+.cyk tr.cyk-word td{border:0;background:transparent;font-size:16px;height:30px}
+.cyk-help{margin:0}
+
+@media (max-width: 900px){
+  .cfg-main{grid-template-columns:minmax(0,1fr)}
+  .cfg-tabs .tabpanel{min-height:0}
+}
+@media (max-width: 560px){
+  .cfg-main{padding-top:12px;gap:12px}
+  .tab{font-size:12px;padding-inline:2px}
+}
+</style>
+
+<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item active" aria-current="page" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 2</span>Pushdown automata</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 3</span>Turing machines</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 4–5</span>Decidability</span><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
+<div class="cfg-app" data-page="cfg">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-delta" aria-hidden="true">δ</span>
+      <div class="brand-text">
+        <h1 class="brand-name">Context-free grammars</h1>
+        <p class="brand-sub">Parse trees, CNF, CYK · Chapter 2.1</p>
+      </div>
+    </div>
+    <div class="toolbar">
+      <select class="select" id="g-examples" aria-label="Load an example grammar">
+        <option value="">Examples…</option>
+        <option value="zeroone">0ⁿ1ⁿ</option>
+        <option value="parens">Balanced parentheses</option>
+        <option value="expr">Arithmetic expressions</option>
+        <option value="ambig">Ambiguous expressions</option>
+        <option value="pal">Palindromes</option>
+        <option value="equal">Equal a’s and b’s</option>
+      </select>
+      <span class="spacer"></span>
+      <div class="group">
+        <button class="btn icon" id="btn-theme" title="Theme: follows your system" aria-label="Change theme">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11" /><path d="M8 2.5a5.5 5.5 0 010 11z" fill="currentColor"/></svg>
+        </button>
+        <button class="btn icon" id="btn-help" title="How to write a grammar" aria-label="How to use">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 113 1.4c-.7.4-1.3.8-1.3 1.6"/><circle cx="8" cy="11.4" r=".4" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="cfg-main">
+    <div class="cfg-col">
+      <section class="card" aria-labelledby="g-title">
+        <div class="sec">
+          <h2 class="sec-title" id="g-title">Grammar</h2>
+          <textarea class="input g-text" id="g-text" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Grammar rules, one variable per line"></textarea>
+          <div class="symbols" id="g-symbols" aria-label="Insert a symbol">
+            <button class="btn plain" data-g=" → " title="Arrow (or type ->)">→</button>
+            <button class="btn plain" data-g=" | " title="Or (another right side)">|</button>
+            <button class="btn" data-g="ε" title="Empty string (or type \epsilon)">ε</button>
+          </div>
+          <div id="g-info" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="w-title">
+        <div class="sec">
+          <h2 class="sec-title" id="w-title">Test a string</h2>
+          <div class="g-row">
+            <input class="input" id="w-input" spellcheck="false" autocomplete="off" autocapitalize="off" placeholder="e.g. a+a*a  (ε for empty)" aria-label="String to test">
+            <button class="btn primary" id="w-test">Test</button>
+          </div>
+          <div id="w-out" aria-live="polite"></div>
+        </div>
+        <div class="sec">
+          <h2 class="sec-title">Strings in the language</h2>
+          <div><button class="btn small" id="g-gen">Show shortest strings</button></div>
+          <div id="gen-out"></div>
+        </div>
+      </section>
+    </div>
+
+    <section class="card cfg-tabs" aria-label="Results">
+      <div class="tabs" role="tablist">
+        <button class="tab" role="tab" id="t-tree" aria-selected="true" aria-controls="p-tree">Parse tree</button>
+        <button class="tab" role="tab" id="t-deriv" aria-selected="false" aria-controls="p-deriv">Derivation</button>
+        <button class="tab" role="tab" id="t-cnf" aria-selected="false" aria-controls="p-cnf">CNF</button>
+        <button class="tab" role="tab" id="t-cyk" aria-selected="false" aria-controls="p-cyk">CYK</button>
+      </div>
+      <div class="tabpanel" id="p-tree" role="tabpanel" aria-labelledby="t-tree"><div id="tree-out"></div></div>
+      <div class="tabpanel" id="p-deriv" role="tabpanel" aria-labelledby="t-deriv" hidden><div id="deriv-out"></div></div>
+      <div class="tabpanel" id="p-cnf" role="tabpanel" aria-labelledby="t-cnf" hidden><div id="cnf-out" class="stack"></div></div>
+      <div class="tabpanel" id="p-cyk" role="tabpanel" aria-labelledby="t-cyk" hidden><div id="cyk-out" class="stack"></div></div>
+    </section>
+  </main>
+</div>
+
+<section class="about" id="how-to">
+  <div>
+    <h2>Context-free grammars</h2>
+    <p class="lead">A context-free grammar generates a language by replacing variables with right sides of rules, starting from the start variable, until only terminals are left (Sipser, Chapter 2.1). This page tests strings, draws parse trees, finds ambiguity, and converts any grammar to Chomsky normal form step by step.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Writing a grammar</h3>
+      <table class="syntax">
+        <thead><tr><th>Type</th><th>Means</th></tr></thead>
+        <tbody>
+          <tr><td><code>S -&gt; aSb | ε</code></td><td>two rules for S</td></tr>
+          <tr><td><code>-&gt;</code> or <code>→</code></td><td>the arrow</td></tr>
+          <tr><td><code>ε</code> or <code>\epsilon</code></td><td>the empty string</td></tr>
+          <tr><td><code>S</code>, <code>A</code>, <code>S_0</code>, <code>A'</code></td><td>variables (capital letters)</td></tr>
+          <tr><td><code>&lt;EXPR&gt;</code></td><td>a variable with a long name</td></tr>
+          <tr><td><code>a</code>, <code>0</code>, <code>+</code>, <code>(</code></td><td>terminals (any other character)</td></tr>
+        </tbody>
+      </table>
+      <p class="small-text muted">The first rule's left side is the start variable. Put one variable per line, or repeat a variable on several lines.</p>
+    </div>
+    <div>
+      <h3>Testing strings</h3>
+      <ol>
+        <li>Type a string and press <strong>Test</strong> (or Enter). Type <code>ε</code> for the empty string.</li>
+        <li>The <strong>Parse tree</strong> and <strong>Derivation</strong> tabs show how the grammar derives it, always replacing the leftmost variable first.</li>
+        <li>If two different parse trees exist, both are shown and the grammar is marked <strong>ambiguous</strong> (Sipser, Definition 2.7).</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Chomsky normal form and CYK</h3>
+      <ol>
+        <li>The <strong>CNF</strong> tab converts the grammar with Sipser's four stages (Theorem 2.9): new start variable, remove ε-rules, remove unit rules, then fix long rules and terminals.</li>
+        <li>Rules added in a step are green; removed ones are struck out.</li>
+        <li>The <strong>CYK</strong> tab fills the table for the tested string row by row, using the CNF grammar (Theorem 7.16).</li>
+      </ol>
+    </div>
+  </div>
+  <footer class="foot">
+    <span>DeltaDraw v1.7 · context-free grammars</span>
+    <a href="index.html">All chapters</a>
+    <a href="fa.html">Finite automata</a>
+    <a href="regex.html">Regular expressions</a>
+  </footer>
+</section>
+
+<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden></button></div>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   DeltaDraw · Context-free grammars (Sipser 2.1)
+   A grammar: { start, vars:Set, order:[vars], terms:[...], rules: Map(var → [rhs arrays]) }
+   A right side is an array of symbols; [] is ε. Variables start with a capital letter.
+   ===================================================================== */
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const store = {
+  get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
+};
+const CFG_KEY = 'deltadraw:cfg:v1', THEME_KEY = 'deltadraw:theme';
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const same = (a, b) => a.length === b.length && a.every((x, i) => x === b[i]);
+
+/* ---------------- Parsing the grammar text ---------------- */
+// Variables: a capital letter, optional subscript (_0, _a, _{12}) and primes, or a name in angle brackets <EXPR>.
+// Everything else is a one-character terminal. ε (or \epsilon, or an empty alternative) is the empty string.
+function tokenize(str) {
+  const s = str.replace(/\\(var)?epsilon|\\lambda/g, 'ε');
+  const syms = [];
+  let i = 0;
+  while (i < s.length) {
+    const c = s[i];
+    if (/\s/.test(c)) { i++; continue; }
+    if (c === 'ε' || c === 'λ') { i++; continue; }
+    if (c === '<' && s.indexOf('>', i) > i + 1) {
+      const j = s.indexOf('>', i);
+      syms.push({ s: s.slice(i, j + 1), v: true }); i = j + 1; continue;
+    }
+    if (/[A-Z]/.test(c)) {
+      let j = i + 1;
+      if (s[j] === '_') {
+        if (s[j + 1] === '{') { const k = s.indexOf('}', j + 2); if (k < 0) return { error: 'A “{” after “_” is never closed.' }; j = k + 1; }
+        else if (j + 1 < s.length && !/\s/.test(s[j + 1])) j += 2;
+        else return { error: '“_” must be followed by a subscript, like S_0.' };
+      }
+      while (s[j] === "'" || s[j] === '′') j++;
+      syms.push({ s: s.slice(i, j), v: true }); i = j; continue;
+    }
+    syms.push({ s: c, v: false }); i++;
+  }
+  return { syms };
+}
+function parseGrammar(text) {
+  const errors = [], rules = new Map(), order = [], vars = new Set(), termSet = new Set();
+  let start = null;
+  text.split('\n').forEach((raw, li) => {
+    const line = raw.replace(/(^|\s)#.*$/, '').trim();
+    if (!line) return;
+    const m = line.match(/^(.*?)(->|→|::=)(.*)$/);
+    if (!m) { errors.push(`Line ${li + 1}: write a rule like  S -> aSb | ε`); return; }
+    const lhs = tokenize(m[1]);
+    if (lhs.error) { errors.push(`Line ${li + 1}: ${lhs.error}`); return; }
+    if (lhs.syms.length !== 1 || !lhs.syms[0].v) { errors.push(`Line ${li + 1}: the left side must be a single variable, like S or A.`); return; }
+    const A = lhs.syms[0].s;
+    vars.add(A);
+    if (!start) start = A;
+    if (!rules.has(A)) { rules.set(A, []); order.push(A); }
+    for (const alt of m[3].split('|')) {
+      const t = tokenize(alt);
+      if (t.error) { errors.push(`Line ${li + 1}: ${t.error}`); continue; }
+      const rhs = t.syms.map((x) => x.s);
+      for (const x of t.syms) (x.v ? vars : termSet).add(x.s);
+      if (!rules.get(A).some((r) => same(r, rhs))) rules.get(A).push(rhs);
+    }
+  });
+  if (!start && !errors.length) errors.push('Type at least one rule, like  S -> aSb | ε');
+  for (const v of vars) if (!rules.has(v)) { rules.set(v, []); order.push(v); }
+  return analyze({ start, vars, order, terms: [...termSet].sort(), rules, errors });
+}
+// nullable, generating, shortest yield length, reachable; plus warnings
+function analyze(G) {
+  const nullable = new Set();
+  for (let ch = true; ch;) {
+    ch = false;
+    for (const [A, list] of G.rules) if (!nullable.has(A) && list.some((r) => r.every((s) => nullable.has(s)))) { nullable.add(A); ch = true; }
+  }
+  const minLen = new Map([...G.vars].map((v) => [v, Infinity]));
+  for (let ch = true; ch;) {
+    ch = false;
+    for (const [A, list] of G.rules) for (const r of list) {
+      const len = r.reduce((t, s) => t + (G.vars.has(s) ? minLen.get(s) : 1), 0);
+      if (len < minLen.get(A)) { minLen.set(A, len); ch = true; }
+    }
+  }
+  const reach = new Set(G.start ? [G.start] : []), q = G.start ? [G.start] : [];
+  while (q.length) { const A = q.pop(); for (const r of G.rules.get(A) || []) for (const s of r) if (G.vars.has(s) && !reach.has(s)) { reach.add(s); q.push(s); } }
+  const warnings = [];
+  for (const A of G.order) {
+    if (!(G.rules.get(A) || []).length) warnings.push({ A, msg: 'has no rules, so it can never be replaced' });
+    else if (!isFinite(minLen.get(A))) warnings.push({ A, msg: 'can never produce a string of terminals (every rule keeps a variable)' });
+    else if (!reach.has(A)) warnings.push({ A, msg: 'is never reached from the start variable' });
+  }
+  return { ...G, nullable, minLen, reach, warnings };
+}
+function grammarText(G) {
+  return G.order.filter((A) => (G.rules.get(A) || []).length).map((A) =>
+    `${A} -> ${G.rules.get(A).map((r) => (r.length ? r.join('') : 'ε')).join(' | ')}`).join('\n');
+}
+
+/* ---------------- Showing symbols ---------------- */
+function varHTML(name) {
+  if (name[0] === '<') return `<span class="gv">⟨${esc(name.slice(1, -1))}⟩</span>`;
+  const m = name.match(/^([A-Z])(?:_(?:\{([^}]*)\}|(.)))?([′']*)$/);
+  if (!m) return `<span class="gv">${esc(name)}</span>`;
+  const sub = m[2] != null ? m[2] : m[3];
+  return `<span class="gv">${m[1]}${sub != null ? `<sub>${esc(sub)}</sub>` : ''}${m[4] ? '′'.repeat(m[4].length) : ''}</span>`;
+}
+const symHTML = (G, s) => (G.vars.has(s) ? varHTML(s) : `<span class="gt">${esc(s)}</span>`);
+const rhsHTML = (G, r) => (r.length ? r.map((s) => symHTML(G, s)).join('') : '<span class="geps">ε</span>');
+const formHTML = (G, f) => (f.length ? f.map((s) => symHTML(G, s)).join('') : '<span class="geps">ε</span>');
+
+/* ---------------- Earley recognizer (any CFG, with ε-rules) ---------------- */
+function generates(G, w) {
+  if (!G.start) return false;
+  const n = w.length;
+  const chart = Array.from({ length: n + 1 }, () => ({ list: [], keys: new Set() }));
+  const add = (i, A, r, d, o) => { const k = A + '\u0001' + r + '\u0001' + d + '\u0001' + o; if (!chart[i].keys.has(k)) { chart[i].keys.add(k); chart[i].list.push({ A, r, d, o }); } };
+  (G.rules.get(G.start) || []).forEach((_, r) => add(0, G.start, r, 0, 0));
+  for (let i = 0; i <= n; i++) {
+    const L = chart[i].list;
+    for (let k = 0; k < L.length; k++) {
+      const it = L[k], rhs = G.rules.get(it.A)[it.r];
+      if (it.d < rhs.length) {
+        const X = rhs[it.d];
+        if (G.vars.has(X)) {
+          (G.rules.get(X) || []).forEach((_, r) => add(i, X, r, 0, i));
+          if (G.nullable.has(X)) add(i, it.A, it.r, it.d + 1, it.o);
+        } else if (i < n && X === w[i]) add(i + 1, it.A, it.r, it.d + 1, it.o);
+      } else {
+        const P = chart[it.o].list;
+        for (let j = 0; j < P.length; j++) {
+          const p = P[j], pr = G.rules.get(p.A)[p.r];
+          if (p.d < pr.length && pr[p.d] === it.A) add(i, p.A, p.r, p.d + 1, p.o);
+        }
+      }
+    }
+  }
+  return chart[n].list.some((it) => it.A === G.start && it.o === 0 && it.d === G.rules.get(it.A)[it.r].length);
+}
+
+/* ---------------- Leftmost derivations (= parse trees), found by a bounded search ---------------- */
+function findDerivations(G, w, want = 2, cap = 300000) {
+  // Iterative deepening on the number of steps, so the simplest parse trees come first.
+  const n = w.length, results = [];
+  let nodes = 0, capped = false, limit = 0;
+  const maxSteps = 4 * n + 2 * G.vars.size + 8;
+  const onPath = new Set();
+  const isV = (s) => G.vars.has(s);
+  function dfs(form, path) {
+    if (results.length >= want || capped) return;
+    if (++nodes > cap) { capped = true; return; }
+    let i = 0;
+    while (i < form.length && !isV(form[i])) { if (i >= n || form[i] !== w[i]) return; i++; }
+    if (i === form.length) { if (form.length === n && path.length === limit) results.push(path.slice()); return; }
+    let min = 0, nv = 0;
+    for (const s of form) if (isV(s)) { min += G.minLen.get(s); nv++; } else min += 1;
+    if (!(min <= n) || path.length + nv > limit) return;
+    for (let j = form.length - 1, k = n - 1; j >= 0 && !isV(form[j]); j--, k--) if (k < 0 || form[j] !== w[k]) return;
+    const key = form.join('\u0001');
+    if (onPath.has(key)) return;
+    onPath.add(key);
+    const A = form[i], list = G.rules.get(A) || [];
+    for (let r = 0; r < list.length && results.length < want && !capped; r++) {
+      path.push(r);
+      dfs([...form.slice(0, i), ...list[r], ...form.slice(i + 1)], path);
+      path.pop();
+    }
+    onPath.delete(key);
+  }
+  if (G.start) for (limit = 1; limit <= maxSteps && results.length < want && !capped; limit++) dfs([G.start], []);
+  return { results, capped };
+}
+// Replay a leftmost derivation: the sentential forms, the rules used, and the parse tree
+function replay(G, path) {
+  const root = { sym: G.start, kids: null };
+  let frontier = [root];
+  const forms = [[G.start]], used = [];
+  for (const r of path) {
+    const idx = frontier.findIndex((x) => G.vars.has(x.sym) && !x.kids);
+    const node = frontier[idx], rhs = G.rules.get(node.sym)[r];
+    node.kids = rhs.length ? rhs.map((s) => ({ sym: s, kids: null })) : [{ sym: 'ε', eps: true, kids: [] }];
+    frontier = [...frontier.slice(0, idx), ...(rhs.length ? node.kids : []), ...frontier.slice(idx + 1)];
+    forms.push(frontier.map((x) => x.sym));
+    used.push({ A: node.sym, rhs, at: idx });
+  }
+  return { root, forms, used };
+}
+function treeSVG(G, root) {
+  const LX = 42, LY = 64;
+  let leafX = 0, maxDepth = 0;
+  (function lay(nd, d) {
+    nd.d = d; maxDepth = Math.max(maxDepth, d);
+    if (!nd.kids || !nd.kids.length) { nd.x = leafX; leafX += LX; return; }
+    nd.kids.forEach((k) => lay(k, d + 1));
+    nd.x = (nd.kids[0].x + nd.kids[nd.kids.length - 1].x) / 2;
+  })(root, 0);
+  const out = [];
+  (function draw(nd) {
+    const y = nd.d * LY;
+    for (const k of nd.kids || []) {
+      out.push(`<line x1="${nd.x}" y1="${y + 11}" x2="${k.x}" y2="${k.d * LY - 15}"/>`);
+      draw(k);
+    }
+    const cls = nd.eps ? 'geps' : G.vars.has(nd.sym) ? 'gv' : 'gt';
+    let label = esc(nd.sym);
+    if (G.vars.has(nd.sym)) {
+      const m = nd.sym.match(/^([A-Z])(?:_(?:\{([^}]*)\}|(.)))?([′']*)$/);
+      if (nd.sym[0] === '<') label = '⟨' + esc(nd.sym.slice(1, -1)) + '⟩';
+      else if (m) { const sub = m[2] != null ? m[2] : m[3]; label = m[1] + (sub != null ? `<tspan dy="5" font-size="12">${esc(sub)}</tspan><tspan dy="-5"></tspan>` : '') + (m[4] ? '′'.repeat(m[4].length) : ''); }
+    }
+    out.push(`<text class="${cls}" x="${nd.x}" y="${y + 6}" text-anchor="middle">${label}</text>`);
+  })(root);
+  const w = Math.max(leafX, 60), h = (maxDepth + 1) * LY;
+  return `<svg class="ptree" viewBox="${-LX / 2} -24 ${w} ${h + 10}" width="${w}" height="${h + 10}" role="img" aria-label="Parse tree">${out.join('')}</svg>`;
+}
+
+/* ---------------- Chomsky normal form, step by step (Sipser, Theorem 2.9) ---------------- */
+function toCNF(G) {
+  const R = new Map([...G.rules].map(([A, l]) => [A, l.map((r) => r.slice())]));
+  const order = G.order.filter((A) => (R.get(A) || []).length || A === G.start);
+  const vars = new Set(G.vars);
+  const key = (A, r) => A + '\u0002' + r.join('\u0001');
+  const steps = [];
+  const snap = (title, text, added = new Set(), removed = []) => steps.push({
+    title, text, added, removed,
+    rules: new Map([...R].map(([A, l]) => [A, l.map((r) => r.slice())])), order: order.slice(),
+  });
+  const V = (A) => varHTML(A);
+  const fresh = (base, sub) => {
+    for (let k = 0; ; k++) {
+      const s = k ? `${sub}${k}` : `${sub}`;
+      const name = s.length > 1 ? `${base}_{${s}}` : `${base}_${s}`;
+      if (!vars.has(name)) { vars.add(name); return name; }
+    }
+  };
+  snap('The grammar', `Start from the grammar as written. Its start variable is ${V(G.start)}. Sipser's procedure has four stages.`);
+  // 1. new start variable
+  const S0 = fresh(G.start[0] === '<' ? 'S' : G.start[0], '0');
+  R.set(S0, [[G.start]]); order.unshift(S0);
+  snap('1 · New start variable', `Add a new start variable ${V(S0)} with the rule ${V(S0)} → ${V(G.start)}, so the start variable never appears on a right side.`, new Set([key(S0, [G.start])]));
+  // 2. remove ε-rules
+  const removedEps = new Set();
+  for (;;) {
+    const A = order.find((X) => X !== S0 && (R.get(X) || []).some((r) => !r.length));
+    if (!A) break;
+    R.set(A, R.get(A).filter((r) => r.length));
+    removedEps.add(A);
+    const added = new Set();
+    for (const X of order) {
+      const list = R.get(X) || [], extra = [];
+      for (const rhs of list) {
+        const pos = rhs.map((s, i) => (s === A ? i : -1)).filter((i) => i >= 0);
+        for (let mask = 1; mask < (1 << pos.length); mask++) {
+          const drop = new Set(pos.filter((_, b) => mask & (1 << b)));
+          const nr = rhs.filter((_, i) => !drop.has(i));
+          if (!nr.length && removedEps.has(X)) continue;
+          if (!list.some((r) => same(r, nr)) && !extra.some((r) => same(r, nr))) { extra.push(nr); added.add(key(X, nr)); }
+        }
+      }
+      if (extra.length) R.set(X, [...list, ...extra]);
+    }
+    snap(`2 · Remove ${V(A)} → ε`, `Delete ${V(A)} → ε. Then, for every rule with ${V(A)} on its right side, add a copy with that ${V(A)} left out (every combination, when ${V(A)} appears more than once). A rule that would become ε is not added back for a variable whose ε-rule was already removed.`, added, [{ A, rhs: [] }]);
+  }
+  // 3. remove unit rules
+  const removedUnit = new Set();
+  for (;;) {
+    let A = null, B = null;
+    for (const X of order) { const r = (R.get(X) || []).find((x) => x.length === 1 && vars.has(x[0])); if (r) { A = X; B = r[0]; break; } }
+    if (!A) break;
+    R.set(A, R.get(A).filter((r) => !(r.length === 1 && r[0] === B)));
+    removedUnit.add(A + '\u0003' + B);
+    const added = new Set();
+    if (A !== B) {
+      for (const u of R.get(B) || []) {
+        if (u.length === 1 && vars.has(u[0]) && (u[0] === A || removedUnit.has(A + '\u0003' + u[0]))) continue;
+        if (!R.get(A).some((r) => same(r, u))) { R.get(A).push(u.slice()); added.add(key(A, u)); }
+      }
+    }
+    snap(`3 · Remove ${V(A)} → ${V(B)}`, A === B
+      ? `${V(A)} → ${V(A)} does nothing, so delete it.`
+      : `Delete the unit rule ${V(A)} → ${V(B)}. For every rule ${V(B)} → u, add ${V(A)} → u (unless it is a unit rule that was already removed).`, added, [{ A, rhs: [B] }]);
+  }
+  // 4a. terminals inside rules of length ≥ 2 get their own variable
+  const U = new Map(), added4 = new Set(), removed4 = [];
+  for (const X of order.slice()) {
+    R.set(X, (R.get(X) || []).map((rhs) => {
+      if (rhs.length < 2 || rhs.every((s) => vars.has(s))) return rhs;
+      const nr = rhs.map((s) => {
+        if (vars.has(s)) return s;
+        if (!U.has(s)) { const u = fresh('U', s); U.set(s, u); R.set(u, [[s]]); order.push(u); added4.add(key(u, [s])); }
+        return U.get(s);
+      });
+      removed4.push({ A: X, rhs }); added4.add(key(X, nr));
+      return nr;
+    }));
+  }
+  if (removed4.length) snap('4 · Terminals get their own variables', 'In every rule with two or more symbols, replace each terminal a by a new variable U<sub>a</sub> with the rule U<sub>a</sub> → a.', added4, removed4);
+  // 4b. split rules with three or more symbols into a chain of two-symbol rules
+  const added5 = new Set(), removed5 = [];
+  let count = 1;
+  const tails = new Map(); // a tail u_i…u_k that already has a chain variable reuses it
+  for (const X of order.slice()) {
+    const out = [];
+    for (const rhs of R.get(X) || []) {
+      if (rhs.length <= 2) { out.push(rhs); continue; }
+      removed5.push({ A: X, rhs });
+      let lhs = X;
+      for (let i = 0; i < rhs.length - 2; i++) {
+        const tail = rhs.slice(i + 1).join('\u0001');
+        const known = tails.get(tail);
+        const nv = known || fresh('A', String(count++));
+        const r = [rhs[i], nv];
+        if (lhs === X) out.push(r); else R.set(lhs, [r]);
+        added5.add(key(lhs, r));
+        if (known) { lhs = null; break; }
+        tails.set(tail, nv); order.push(nv);
+        lhs = nv;
+      }
+      if (lhs) { const last = [rhs[rhs.length - 2], rhs[rhs.length - 1]]; R.set(lhs, [last]); added5.add(key(lhs, last)); }
+    }
+    R.set(X, out);
+  }
+  if (removed5.length) snap('4 · Split long rules', 'Replace each rule A → u<sub>1</sub>u<sub>2</sub>…u<sub>k</sub> with k ≥ 3 by a chain A → u<sub>1</sub>A<sub>1</sub>, A<sub>1</sub> → u<sub>2</sub>A<sub>2</sub>, …, A<sub>k−2</sub> → u<sub>k−1</sub>u<sub>k</sub>.', added5, removed5);
+  const C = analyze({ start: S0, vars, order: order.filter((A) => (R.get(A) || []).length || A === S0), terms: G.terms, rules: R, errors: [] });
+  snap('Chomsky normal form', `Done. Every rule now has the form A → BC (two variables) or A → a (one terminal)${(R.get(S0) || []).some((r) => !r.length) ? `, plus ${V(S0)} → ε because ε is in the language` : ''}.`);
+  return { steps, C };
+}
+function isCNF(C) {
+  for (const [A, list] of C.rules) for (const r of list) {
+    if (!r.length) { if (A !== C.start) return false; continue; }
+    if (r.length === 1) { if (C.vars.has(r[0])) return false; continue; }
+    if (r.length === 2) { if (!C.vars.has(r[0]) || !C.vars.has(r[1]) || r[0] === C.start || r[1] === C.start) return false; continue; }
+    return false;
+  }
+  return true;
+}
+
+/* ---------------- CYK (Sipser, Theorem 7.16), on a grammar in CNF ---------------- */
+function cyk(C, w) {
+  const n = w.length;
+  if (!n) return { n, table: [], accept: (C.rules.get(C.start) || []).some((r) => !r.length) };
+  const T = Array.from({ length: n }, (_, l) => Array.from({ length: n - l }, () => new Set()));
+  for (let i = 0; i < n; i++) for (const [A, list] of C.rules) for (const r of list) if (r.length === 1 && r[0] === w[i]) T[0][i].add(A);
+  for (let l = 1; l < n; l++) for (let i = 0; i + l < n; i++) for (let k = 0; k < l; k++) {
+    for (const [A, list] of C.rules) for (const r of list) if (r.length === 2 && T[k][i].has(r[0]) && T[l - k - 1][i + k + 1].has(r[1])) T[l][i].add(A);
+  }
+  return { n, table: T, accept: T[n - 1][0].has(C.start) };
+}
+
+/* ---------------- Shortest strings in the language ---------------- */
+function shortestStrings(G, limit = 15) {
+  const T = G.terms;
+  if (!G.start) return [];
+  const out = [];
+  let level = [''];
+  let budget = 40000;
+  for (let len = 0; level.length && out.length < limit; len++) {
+    for (const w of level) { if (generates(G, [...w])) { out.push(w); if (out.length >= limit) break; } }
+    if (!T.length) break;
+    const next = [];
+    for (const w of level) for (const t of T) next.push(w + t);
+    budget -= next.length;
+    if (budget < 0) break;
+    level = next;
+  }
+  return out;
+}
+
+/* =====================================================================
+   Page
+   ===================================================================== */
+const EXAMPLES = {
+  zeroone: { name: '0ⁿ1ⁿ', text: 'S -> 0S1 | ε', w: '000111' },
+  parens: { name: 'Balanced parentheses', text: 'S -> (S) | SS | ε', w: '(()())' },
+  expr: { name: 'Arithmetic expressions', text: 'E -> E+T | T\nT -> T*F | F\nF -> (E) | a', w: 'a+a*a' },
+  ambig: { name: 'Ambiguous expressions', text: 'E -> E+E | E*E | (E) | a', w: 'a+a*a' },
+  pal: { name: 'Palindromes over {a, b}', text: 'S -> aSa | bSb | a | b | ε', w: 'abba' },
+  equal: { name: 'Equal numbers of a’s and b’s', text: 'S -> aSb | bSa | SS | ε', w: 'abba' },
+};
+let G = null, cnf = null, cnfIdx = 0, cykState = null, cykRow = 0;
+
+function toast(msg) {
+  const t = $('#toast');
+  $('#toast-msg').textContent = msg;
+  $('#toast-action').hidden = true;
+  t.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => { t.hidden = true; }, 3200);
+}
+function save() { store.set(CFG_KEY, JSON.stringify({ text: $('#g-text').value, w: $('#w-input').value })); }
+function reveal(el) { try { el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (e) { /* old browsers */ } }
+
+function update() {
+  G = parseGrammar($('#g-text').value);
+  cnf = null; cykState = null;
+  const info = $('#g-info');
+  if (G.errors.length) {
+    info.innerHTML = `<ul class="notes">${G.errors.map((e) => `<li class="warn">${esc(e)}</li>`).join('')}</ul>`;
+  } else {
+    const nRules = [...G.rules.values()].reduce((t, l) => t + l.length, 0);
+    info.innerHTML = `<p class="small-text">Start variable ${varHTML(G.start)} · ${G.vars.size} variable${G.vars.size === 1 ? '' : 's'}: ${G.order.map(varHTML).join(', ')} · Σ = {${G.terms.map((t) => `<span class="gt">${esc(t)}</span>`).join(', ')}} · ${nRules} rule${nRules === 1 ? '' : 's'}</p>`
+      + (G.warnings.length ? `<ul class="notes">${G.warnings.map((x) => `<li class="warn">${varHTML(x.A)} ${esc(x.msg)}.</li>`).join('')}</ul>` : '');
+  }
+  $('#w-test').disabled = !!G.errors.length;
+  $('#w-out').innerHTML = '';
+  $('#tree-out').innerHTML = '<p class="muted small-text">Test a string to see its parse tree.</p>';
+  $('#deriv-out').innerHTML = '<p class="muted small-text">Test a string to see a leftmost derivation.</p>';
+  $('#gen-out').innerHTML = '';
+  renderCNF(true);
+  renderCYK();
+  save();
+}
+
+function testString() {
+  if (!G || G.errors.length) return;
+  const raw = $('#w-input').value.replace(/\s+/g, '');
+  const wStr = raw === 'ε' ? '' : raw;
+  const w = [...wStr];
+  const bad = w.filter((c) => !G.terms.includes(c));
+  const out = $('#w-out');
+  const shown = wStr ? `<span class="gt">${esc(wStr)}</span>` : '<span class="geps">ε</span>';
+  if (bad.length) {
+    out.innerHTML = `<span class="pill bad">✕ Not generated</span><span class="small-text">${esc([...new Set(bad)].join(', '))} ${new Set(bad).size > 1 ? 'are' : 'is'} not a terminal of this grammar.</span>`;
+    $('#tree-out').innerHTML = $('#deriv-out').innerHTML = '';
+    renderCYK();
+    return;
+  }
+  const yes = generates(G, w);
+  if (!yes) {
+    out.innerHTML = `<span class="pill bad">✕ Not generated</span><span class="small-text">The grammar cannot derive ${shown}.</span>`;
+    $('#tree-out').innerHTML = '<p class="muted small-text">No parse tree: the string is not generated.</p>';
+    $('#deriv-out').innerHTML = '<p class="muted small-text">No derivation: the string is not generated.</p>';
+    renderCYK();
+    return;
+  }
+  const { results, capped } = findDerivations(G, w, 2);
+  let note = '';
+  if (results.length >= 2) note = '<span class="pill run">Ambiguous</span><span class="small-text">This string has at least <b>two different parse trees</b>, so the grammar is ambiguous.</span>';
+  else if (results.length === 1 && !capped) note = '<span class="small-text muted">Only one parse tree was found for this string.</span>';
+  else if (capped) note = '<span class="small-text muted">The search for parse trees stopped early because the grammar branches a lot, so a second tree may exist.</span>';
+  out.innerHTML = `<span class="pill ok">✓ Generated</span><span class="small-text">The grammar derives ${shown}.</span>${note}`;
+  if (!results.length) {
+    $('#tree-out').innerHTML = '<p class="muted small-text">The string is generated, but the tree search stopped before finding a tree (the grammar branches too much).</p>';
+    $('#deriv-out').innerHTML = '';
+  } else {
+    const reps = results.map((p) => replay(G, p));
+    $('#tree-out').innerHTML = reps.map((r, i) => `<figure class="tree-fig">${reps.length > 1 ? `<figcaption>Parse tree ${i + 1}</figcaption>` : ''}<div class="tree-scroll">${treeSVG(G, r.root)}</div></figure>`).join('');
+    $('#deriv-out').innerHTML = reps.map((r, i) => `<div class="deriv">${reps.length > 1 ? `<h3>Leftmost derivation ${i + 1}</h3>` : '<h3>Leftmost derivation</h3>'}<ol>${r.forms.map((f, k) => `<li><span class="form">${k ? '⇒ ' : ''}${formHTML(G, f)}</span>${k ? `<span class="muted small-text">using ${varHTML(r.used[k - 1].A)} → ${rhsHTML(G, r.used[k - 1].rhs)}</span>` : '<span class="muted small-text">start variable</span>'}</li>`).join('')}</ol></div>`).join('');
+  }
+  renderCYK();
+  save();
+}
+
+function renderCNF(reset) {
+  const box = $('#cnf-out');
+  if (!G || G.errors.length || !G.start) { box.innerHTML = '<p class="muted small-text">Fix the grammar first.</p>'; return; }
+  if (!cnf) { cnf = toCNF(G); if (reset) cnfIdx = 0; }
+  cnfIdx = Math.max(0, Math.min(cnf.steps.length - 1, cnfIdx));
+  const st = cnf.steps[cnfIdx], k = (A, r) => A + '\u0002' + r.join('\u0001');
+  const lines = st.order.map((A) => {
+    const cur = (st.rules.get(A) || []).map((r) => `<span class="${st.added.has(k(A, r)) ? 'r-added' : ''}">${rhsHTML(cnf.C, r)}</span>`);
+    const gone = st.removed.filter((x) => x.A === A).map((x) => `<span class="r-removed">${rhsHTML(cnf.C, x.rhs)}</span>`);
+    const all = [...cur, ...gone];
+    return all.length ? `<div class="rule-line">${varHTML(A)}<span class="arrow">→</span>${all.join('<span class="bar"> | </span>')}</div>` : '';
+  }).join('');
+  box.innerHTML = `<div class="stepper"><span class="pill run">Step ${cnfIdx + 1} of ${cnf.steps.length}</span><button class="btn small" id="cnf-back" ${cnfIdx === 0 ? 'disabled' : ''}>◂ Back</button><button class="btn primary small" id="cnf-next" ${cnfIdx === cnf.steps.length - 1 ? 'disabled' : ''}>Next step ▸</button><button class="btn small" id="cnf-end" ${cnfIdx === cnf.steps.length - 1 ? 'disabled' : ''}>Jump to end</button>${cnfIdx === cnf.steps.length - 1 ? '<button class="btn small" id="cnf-copy">Copy grammar</button><button class="btn small" id="cnf-use">Edit this grammar</button>' : ''}</div>
+    <h3 class="step-title">${st.title}</h3><p class="step-text">${st.text}</p>
+    <div class="rule-list">${lines}</div>
+    <p class="small-text muted legend"><span class="r-added">green</span> = added in this step · <span class="r-removed">struck out</span> = removed</p>`;
+  $('#cnf-back').onclick = () => { cnfIdx--; renderCNF(); };
+  $('#cnf-next').onclick = () => { cnfIdx++; renderCNF(); };
+  $('#cnf-end').onclick = () => { cnfIdx = cnf.steps.length - 1; renderCNF(); };
+  if ($('#cnf-copy')) $('#cnf-copy').onclick = () => copyText(grammarText(cnf.C));
+  if ($('#cnf-use')) $('#cnf-use').onclick = () => { $('#g-text').value = grammarText(cnf.C); update(); toast('The CNF grammar is now in the editor.'); };
+}
+
+function renderCYK() {
+  const box = $('#cyk-out');
+  if (!G || G.errors.length || !G.start) { box.innerHTML = '<p class="muted small-text">Fix the grammar first.</p>'; return; }
+  if (!cnf) cnf = toCNF(G);
+  const raw = $('#w-input').value.replace(/\s+/g, '');
+  const w = [...(raw === 'ε' ? '' : raw)];
+  if (!cykState || cykState.key !== w.join('')) { cykState = { key: w.join(''), res: cyk(cnf.C, w) }; cykRow = 1; }
+  const { res } = cykState, C = cnf.C;
+  if (!w.length) {
+    box.innerHTML = `<p class="small-text">For the empty string, CYK only checks whether ${varHTML(C.start)} → ε is a rule: ${res.accept ? '<b>it is</b>, so ε is generated' : '<b>it is not</b>, so ε is not generated'}.</p>`;
+    return;
+  }
+  const n = res.n;
+  cykRow = Math.max(1, Math.min(n, cykRow));
+  const rows = [];
+  for (let l = n - 1; l >= 0; l--) {
+    const cells = [];
+    for (let i = 0; i < n; i++) {
+      if (i >= n - l) { cells.push('<td class="void"></td>'); continue; }
+      const shown = l < cykRow;
+      const set = res.table[l][i];
+      const isTop = l === n - 1;
+      const cls = [shown && l === cykRow - 1 ? 'cell-new' : '', shown && isTop && set.has(C.start) ? 'cell-start' : ''].join(' ');
+      cells.push(`<td class="${cls}">${shown ? (set.size ? [...set].sort().map(varHTML).join(', ') : '<span class="muted">∅</span>') : ''}</td>`);
+    }
+    rows.push(`<tr><th class="small-text muted">${l + 1}</th>${cells.join('')}</tr>`);
+  }
+  rows.push(`<tr class="cyk-word"><th></th>${w.map((c) => `<td><span class="gt">${esc(c)}</span></td>`).join('')}</tr>`);
+  const done = cykRow === n;
+  const text = cykRow === 1
+    ? 'Row 1 (substrings of length 1): a cell gets every variable A with a rule A → a for that symbol.'
+    : `Row ${cykRow} (substrings of length ${cykRow}): a cell gets A when there is a rule A → BC, B is in a cell for a left part and C is in the cell for the matching right part.`;
+  const verdict = done ? (res.accept
+    ? `<span class="pill ok">✓ Generated</span><span class="small-text">${varHTML(C.start)} is in the top cell, so the whole string is generated.</span>`
+    : `<span class="pill bad">✕ Not generated</span><span class="small-text">${varHTML(C.start)} is not in the top cell.</span>`) : '';
+  box.innerHTML = `<p class="small-text muted">CYK uses the grammar in Chomsky normal form (see the CNF tab). Rows are substring lengths, from 1 at the bottom to ${n} at the top.</p>
+    <div class="stepper"><span class="pill run">Row ${cykRow} of ${n}</span><button class="btn small" id="cyk-back" ${cykRow === 1 ? 'disabled' : ''}>◂ Back</button><button class="btn primary small" id="cyk-next" ${done ? 'disabled' : ''}>Next row ▸</button><button class="btn small" id="cyk-end" ${done ? 'disabled' : ''}>Fill all</button></div>
+    <p class="step-text">${text}</p>
+    <div class="table-wrap"><table class="cyk">${rows.join('')}</table></div>
+    <div class="eq-out">${verdict}</div>`;
+  $('#cyk-back').onclick = () => { cykRow--; renderCYK(); };
+  $('#cyk-next').onclick = () => { cykRow++; renderCYK(); };
+  $('#cyk-end').onclick = () => { cykRow = n; renderCYK(); };
+}
+
+function copyText(text) {
+  const done = () => toast('Copied to the clipboard.');
+  const fallback = () => {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    let ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    ta.remove();
+    toast(ok ? 'Copied to the clipboard.' : 'Could not copy. Select the text and press Ctrl+C.');
+  };
+  try { if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback(); } catch (e) { fallback(); }
+}
+
+/* ---------------- Wiring ---------------- */
+let timer = 0;
+$('#g-text').addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(update, 250); });
+$('#w-test').addEventListener('click', testString);
+$('#w-input').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); testString(); } });
+$('#w-input').addEventListener('input', () => { save(); cykState = null; renderCYK(); });
+$('#g-gen').addEventListener('click', () => {
+  if (!G || G.errors.length) return;
+  const list = shortestStrings(G);
+  $('#gen-out').innerHTML = list.length
+    ? `<span class="muted small-text">The shortest strings the grammar generates:</span><div class="chips">${list.map((w) => `<span class="chip">${w ? esc(w) : 'ε'}</span>`).join('')}</div>`
+    : '<span class="small-text">No strings up to the length checked: the language may be empty.</span>';
+  reveal($('#gen-out'));
+});
+$('#g-symbols').addEventListener('mousedown', (e) => { if (e.target.closest('[data-g]')) e.preventDefault(); });
+$('#g-symbols').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-g]');
+  if (!b) return;
+  const ta = $('#g-text'), s = ta.selectionStart, en = ta.selectionEnd, ins = b.dataset.g;
+  ta.value = ta.value.slice(0, s) + ins + ta.value.slice(en);
+  ta.focus(); ta.setSelectionRange(s + ins.length, s + ins.length);
+  update();
+});
+$('#g-examples').addEventListener('change', (e) => {
+  const ex = EXAMPLES[e.target.value];
+  e.target.value = '';
+  if (!ex) return;
+  $('#g-text').value = ex.text; $('#w-input').value = ex.w;
+  update(); testString();
+  toast(`Loaded: ${ex.name}`);
+});
+for (const t of $$('.tab')) {
+  t.addEventListener('click', () => {
+    for (const x of $$('.tab')) { x.setAttribute('aria-selected', String(x === t)); $('#' + x.getAttribute('aria-controls')).hidden = x !== t; }
+  });
+}
+// theme (shared with the other DeltaDraw pages)
+const THEMES = ['system', 'light', 'dark'];
+let theme = store.get(THEME_KEY) || 'system';
+function applyTheme() {
+  if (theme === 'system') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme', theme);
+  $('#btn-theme').title = 'Theme: ' + (theme === 'system' ? 'follows your system' : theme);
+}
+$('#btn-theme').addEventListener('click', () => {
+  theme = THEMES[(THEMES.indexOf(theme) + 1) % 3];
+  store.set(THEME_KEY, theme); applyTheme();
+  toast('Theme: ' + (theme === 'system' ? 'same as your system' : theme));
+});
+$('#btn-help').addEventListener('click', () => $('#how-to').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+
+/* ---------------- Start ---------------- */
+applyTheme();
+let saved = null;
+try { saved = JSON.parse(store.get(CFG_KEY) || 'null'); } catch (e) { saved = null; }
+$('#g-text').value = saved && typeof saved.text === 'string' ? saved.text : EXAMPLES.expr.text;
+$('#w-input').value = saved && typeof saved.w === 'string' ? saved.w : EXAMPLES.expr.w;
+update();
+testString();
+window.DeltaDrawCFG = { parseGrammar, generates, findDerivations, replay, toCNF, isCNF, cyk, shortestStrings, grammarText, analyze };
+})();
+</script>
+</body>
+</html>
