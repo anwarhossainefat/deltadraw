@@ -1921,8 +1921,52 @@ function layoutResult(Rz, shortNames, beside) {
     else if (dx < 1) l.perp = dy > 140 ? 50 : 36; // same column: curve sideways so it clears self-loops
     links.push(l);
   }
+  bendAroundStates(newNodes, links);
   const startNode = newNodes[Rz.start];
   return { nodes: newNodes, links, startNode, names };
+}
+// A straight arrow must never pass behind another state (it would look like it starts or ends there).
+// Curve such arrows away from the states in the way.
+function bendAroundStates(nodes, links) {
+  const pointsOf = (g) => {
+    const pts = [];
+    if (g.kind === 'line') { for (let i = 1; i < 48; i++) pts.push([g.sx + (g.ex - g.sx) * i / 48, g.sy + (g.ey - g.sy) * i / 48]); return pts; }
+    const span = arcSpan(g.sa, g.ea, g.ccw), dir = g.ccw ? -1 : 1;
+    for (let i = 1; i < 48; i++) { const a = g.sa + dir * span * i / 48; pts.push([g.cx + g.r * Math.cos(a), g.cy + g.r * Math.sin(a)]); }
+    return pts;
+  };
+  // how many other states the arrow's real drawn path touches
+  const hits = (l) => {
+    const g = linkGeom(l);
+    if (!g) return 0;
+    const pts = pointsOf(g);
+    let c = 0;
+    for (const n of nodes) {
+      if (n.id === l.from || n.id === l.to) continue;
+      const r = R(n) + 6;
+      if (pts.some(([x, y]) => Math.hypot(x - n.x, y - n.y) < r)) c++;
+    }
+    return c;
+  };
+  withDoc({ nodes, links, nextId: 0 }, () => {
+    for (const l of links) {
+      if (l.type !== 'link') continue;
+      let h = hits(l);
+      if (!h) continue;
+      const orig = l.perp || 0, base = Math.abs(orig), sign0 = orig ? Math.sign(orig) : 1;
+      let best = { perp: orig, h };
+      const mags = [28, 42, 60, 82, 110, 145, 185, 230, 280].map((m) => m + (base ? base : 0) * 0.5).filter((m) => m > base * 0.6);
+      search: for (const m of mags) {
+        for (const s of [sign0, -sign0]) {
+          l.perp = s * m; l.par = 0.5;
+          h = hits(l);
+          if (h < best.h) best = { perp: l.perp, h };
+          if (!h) break search;
+        }
+      }
+      l.perp = best.perp;
+    }
+  });
 }
 function applyResult(Rz, beside, msg, short = $('#opt-short').checked, outSel = '#conv-out') {
   if (!beside) { doc.nodes = []; doc.links = []; reindex(); }
@@ -2492,6 +2536,7 @@ function regexNFA(ast) {
   // name states left to right, top to bottom
   const ordered = [...nodes].sort((p, q) => p.x - q.x || p.y - q.y);
   ordered.forEach((n, k) => { n.text = k > 9 ? `q_{${k}}` : `q_${k}`; });
+  bendAroundStates(nodes, links);
   const startLink = { id: id++, type: 'start', node: root.start.id, dx: -58, dy: 0, text: '' };
   const final = { nodes, links: [...links, startLink], nextId: id };
   for (const st of steps) {
@@ -3312,7 +3357,7 @@ function init() {
       })
       .catch(() => {});
   }
-  window.DeltaDraw = { get doc() { return doc; }, buildAutomaton, runSim, tokenize, determinize, minimizeDFA, subsetWalk, minimizeWalk, product, complementDFA, compareAutomata, parseRegex, reStr, reExpand, regexNFA, gnfaWalk, shortestStrings, makeSVG, makeTikZ, makeJFF, makePNG, loadDoc, EXAMPLES };
+  window.DeltaDraw = { get doc() { return doc; }, buildAutomaton, runSim, tokenize, determinize, minimizeDFA, subsetWalk, minimizeWalk, product, complementDFA, compareAutomata, parseRegex, reStr, reExpand, regexNFA, gnfaWalk, shortestStrings, linkGeom, withDoc, R, layoutResult, determinize2: determinize, makeSVG, makeTikZ, makeJFF, makePNG, loadDoc, EXAMPLES };
 }
 init();
 })();
