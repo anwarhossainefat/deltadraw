@@ -1,8 +1,14 @@
-# DeltaDraw: free Theory of Computation toolkit
+# DeltaDraw: Draw it, run it, prove it
+
+**Theory of Computation, step by step.**
 
 **Live site:** https://anwarhossainefat.github.io/deltadraw/
 
-DeltaDraw is a free, browser-based companion for a Theory of Computation course. The home page lists the chapters (following Sipser, *Introduction to the Theory of Computation*), and each chapter links to its tools.
+DeltaDraw is a free, browser-based learning platform for a Theory of Computation course, organized by the chapters of **Michael Sipser, *Introduction to the Theory of Computation*, 3rd edition (Cengage Learning, 2013)**. Section, example and theorem numbers on the site match the book.
+
+Students draw and simulate finite automata, pushdown automata and Turing machines; convert between regular expressions, NFAs and DFAs, and between grammars and PDAs, one step at a time; prove languages are not regular or not context-free with a pumping-lemma game; run deciders and explore undecidability and NP-completeness; and practice with exercises that are checked instantly, with counterexamples. An exam mode lets instructors give drawing questions in proctored Canvas quizzes. Everything runs in the browser with no sign-up, and drawings stay on the student's own device.
+
+DeltaDraw is an independent study tool and is not affiliated with the author or the publisher of the textbook.
 
 ## Pages
 
