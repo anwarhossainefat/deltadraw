@@ -276,6 +276,9 @@ details.batch[open] summary{margin-bottom:8px}
 .ttable td.state{text-align:left}
 .ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
 
+/* ---------- Practice inside the PDA and TM pages ---------- */
+.pr-banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:var(--accent-soft);border-radius:8px;padding:7px 10px;font-size:13px}
+.pr-banner .grow{flex:1}
 /* ---------- Turing machines ---------- */
 .tm-tape{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
 .tm-tape .cell{position:relative;min-width:28px;text-align:center}
@@ -490,6 +493,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       <section class="sec" id="machine-sec" aria-live="polite">
         <h2 class="sec-title">Automaton</h2>
         <div id="machine-info"></div>
+        <div class="pr-banner" id="pr-banner" hidden></div>
         <label class="check"><input type="checkbox" id="opt-color" checked> Color states: <span class="swatch start" aria-hidden="true"></span> start, <span class="swatch accept" aria-hidden="true"></span> accepting</label>
       </section>
 
@@ -3365,6 +3369,7 @@ function pngReadText(png, keyword) {
 function isDocShape(d) {
   return !!d && Array.isArray(d.nodes) && Array.isArray(d.links) && d.nodes.every((n) => typeof n.id === 'number' && isFinite(n.x) && isFinite(n.y));
 }
+
 
 
 

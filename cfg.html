@@ -276,6 +276,9 @@ details.batch[open] summary{margin-bottom:8px}
 .ttable td.state{text-align:left}
 .ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
 
+/* ---------- Practice inside the PDA and TM pages ---------- */
+.pr-banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:var(--accent-soft);border-radius:8px;padding:7px 10px;font-size:13px}
+.pr-banner .grow{flex:1}
 /* ---------- Turing machines ---------- */
 .tm-tape{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
 .tm-tape .cell{position:relative;min-width:28px;text-align:center}
@@ -434,6 +437,9 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 .cyk td.cell-start{background:var(--ok-soft);box-shadow:inset 0 0 0 2px var(--ok)}
 .cyk tr.cyk-word td{border:0;background:transparent;font-size:16px;height:30px}
 .cyk-help{margin:0}
+.gx-answer{min-height:110px}
+.gx-given{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin-top:6px;display:grid;gap:2px}
+#gx-feedback .tree-fig{width:100%}
 
 @media (max-width: 900px){
   .cfg-main{grid-template-columns:minmax(0,1fr)}
@@ -515,11 +521,39 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <button class="tab" role="tab" id="t-deriv" aria-selected="false" aria-controls="p-deriv">Derivation</button>
         <button class="tab" role="tab" id="t-cnf" aria-selected="false" aria-controls="p-cnf">CNF</button>
         <button class="tab" role="tab" id="t-cyk" aria-selected="false" aria-controls="p-cyk">CYK</button>
+        <button class="tab" role="tab" id="t-practice" aria-selected="false" aria-controls="p-practice">Practice</button>
       </div>
       <div class="tabpanel" id="p-tree" role="tabpanel" aria-labelledby="t-tree"><div id="tree-out"></div></div>
       <div class="tabpanel" id="p-deriv" role="tabpanel" aria-labelledby="t-deriv" hidden><div id="deriv-out"></div></div>
       <div class="tabpanel" id="p-cnf" role="tabpanel" aria-labelledby="t-cnf" hidden><div id="cnf-out" class="stack"></div></div>
       <div class="tabpanel" id="p-cyk" role="tabpanel" aria-labelledby="t-cyk" hidden><div id="cyk-out" class="stack"></div></div>
+      <div class="tabpanel" id="p-practice" role="tabpanel" aria-labelledby="t-practice" hidden>
+        <div class="stack">
+          <div class="ex-top"><span class="sec-title">Exercise</span><span class="small-text muted" id="gx-progress"></span></div>
+          <div class="ex-nav">
+            <label class="sr-only" for="gx-pick">Choose an exercise</label>
+            <select class="select" id="gx-pick"></select>
+            <button class="btn icon" id="gx-prev" title="Previous exercise" aria-label="Previous exercise">◂</button>
+            <button class="btn icon" id="gx-next" title="Next exercise" aria-label="Next exercise">▸</button>
+          </div>
+          <div class="ex-card">
+            <div class="ex-meta"><span class="small-text muted" id="gx-ref"></span><span class="pill ok" id="gx-solved" hidden>✓ Solved</span></div>
+            <h3 id="gx-title"></h3>
+            <div class="ex-text" id="gx-text"></div>
+            <p class="small-text muted ex-rules" id="gx-rules"></p>
+            <textarea class="input g-text gx-answer" id="gx-answer" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your answer"></textarea>
+            <input class="input" id="gx-string" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Your string" hidden>
+            <div class="row">
+              <button class="btn primary" id="gx-check">Check</button>
+              <button class="btn small" id="gx-hint">Hint</button>
+              <button class="btn small" id="gx-solution">Show a solution</button>
+              <button class="btn small" id="gx-open" title="Copy your answer into the grammar editor on the left">Open in the editor</button>
+            </div>
+            <ul class="ex-hints" id="gx-hints"></ul>
+            <div class="eq-out small-text" id="gx-feedback" aria-live="polite"></div>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 </div>
@@ -1172,7 +1206,140 @@ $('#g-text').value = saved && typeof saved.text === 'string' ? saved.text : EXAM
 $('#w-input').value = saved && typeof saved.w === 'string' ? saved.w : EXAMPLES.expr.w;
 update();
 testString();
-window.DeltaDrawCFG = { parseGrammar, generates, findDerivations, replay, toCNF, isCNF, cyk, shortestStrings, grammarText, analyze };
+/* =====================================================================
+   Practice (Sipser Exercises 2.4, 2.6, 2.14 and ambiguity)
+   ===================================================================== */
+const gCount = (w, c) => { let n = 0; for (const x of w) if (x === c) n++; return n; };
+const GX = [
+  { id: 'g-three1', kind: 'lang', title: 'At least three 1s', ref: 'Sipser, Exercise 2.4(a)', lang: '{w ∈ {0,1}* | w contains at least three 1s}', sigma: '01', maxLen: 9, test: (w) => gCount(w, '1') >= 3,
+    hints: ['Let one variable generate any string at all: A → 0A | 1A | ε.', 'Then place three 1s with “anything” around them.'], solution: 'S -> A1A1A1A\nA -> 0A | 1A | ε' },
+  { id: 'g-sameends', kind: 'lang', title: 'Starts and ends with the same symbol', ref: 'Sipser, Exercise 2.4(b)', lang: '{w ∈ {0,1}* | w starts and ends with the same symbol}', sigma: '01', maxLen: 9, test: (w) => w.length > 0 && w[0] === w[w.length - 1],
+    hints: ['Don’t forget the strings of length 1: 0 and 1 start and end with the same symbol.', 'Otherwise the string is 0…0 or 1…1 with anything in the middle.'], solution: 'S -> 0A0 | 1A1 | 0 | 1\nA -> 0A | 1A | ε' },
+  { id: 'g-odd', kind: 'lang', title: 'Odd length', ref: 'Sipser, Exercise 2.4(c)', lang: '{w ∈ {0,1}* | the length of w is odd}', sigma: '01', maxLen: 9, test: (w) => w.length % 2 === 1,
+    hints: ['Start from a single symbol, and add two symbols at a time.'], solution: 'S -> 0 | 1 | 0S0 | 0S1 | 1S0 | 1S1' },
+  { id: 'g-pal', kind: 'lang', title: 'Palindromes', ref: 'Sipser, Exercise 2.4(e)', lang: '{w ∈ {0,1}* | w = w<sup>R</sup>}', sigma: '01', maxLen: 9, test: (w) => w === [...w].reverse().join(''),
+    hints: ['Build the string from the outside in: the same symbol on both ends.', 'The middle can be empty or a single symbol.'], solution: 'S -> 0S0 | 1S1 | 0 | 1 | ε' },
+  { id: 'g-0n1n', kind: 'lang', title: '0ⁿ1ⁿ', ref: 'Sipser, Example 2.3 style', lang: '{0<sup>n</sup>1<sup>n</sup> | n ≥ 0}', sigma: '01', maxLen: 10, test: (w) => /^0*1*$/.test(w) && gCount(w, '0') === gCount(w, '1'),
+    hints: ['Each step adds one 0 on the left and one 1 on the right.'], solution: 'S -> 0S1 | ε' },
+  { id: 'g-parens', kind: 'lang', title: 'Balanced parentheses', ref: 'A classic', lang: '{w ∈ {(,)}* | the parentheses in w are balanced}', sigma: '()', maxLen: 10, test: (w) => { let d = 0; for (const c of w) { d += c === '(' ? 1 : -1; if (d < 0) return false; } return d === 0; },
+    hints: ['A balanced string is empty, or wraps a balanced string in parentheses, or puts two balanced strings side by side.'], solution: 'S -> (S) | SS | ε' },
+  { id: 'g-equal', kind: 'lang', title: 'Equal numbers of a’s and b’s', ref: 'Sipser, Exercise 2.4-style', lang: '{w ∈ {a,b}* | w has equally many a’s and b’s}', sigma: 'ab', maxLen: 10, test: (w) => gCount(w, 'a') === gCount(w, 'b'),
+    hints: ['Look at where the count of a’s minus b’s first returns to zero.', 'Either the string is a…b or b…a around a balanced string, or two balanced strings in a row.'], solution: 'S -> aSb | bSa | SS | ε' },
+  { id: 'g-more', kind: 'lang', title: 'More a’s than b’s', ref: 'Sipser, Exercise 2.6(a)', lang: '{w ∈ {a,b}* | w has more a’s than b’s}', sigma: 'ab', maxLen: 9, test: (w) => gCount(w, 'a') > gCount(w, 'b'),
+    hints: ['Let T generate strings with at least as many a’s as b’s.', 'Then S → TaT adds the one extra a.'], solution: 'S -> TaT\nT -> TT | aTb | bTa | a | ε' },
+  { id: 'g-notanbn', kind: 'lang', title: 'The complement of aⁿbⁿ', ref: 'Sipser, Exercise 2.6(b)', lang: '{w ∈ {a,b}* | w is not of the form a<sup>n</sup>b<sup>n</sup>}', sigma: 'ab', maxLen: 9, test: (w) => !(/^a*b*$/.test(w) && gCount(w, 'a') === gCount(w, 'b')),
+    hints: ['A string fails to be aⁿbⁿ in one of two ways: it has a b before an a, or it is aⁱbʲ with i ≠ j.', 'Write one part of the grammar for each case and join them with S → X | Y.'], solution: 'S -> X | Y\nX -> RbaR\nR -> aR | bR | ε\nY -> aYb | A | B\nA -> aA | a\nB -> bB | b' },
+  { id: 'g-ijk', kind: 'lang', title: 'aⁱbʲcᵏ with i = j or j = k', ref: 'Inherently ambiguous (Sipser, Section 2.1)', lang: '{a<sup>i</sup>b<sup>j</sup>c<sup>k</sup> | i = j or j = k}', sigma: 'abc', maxLen: 7, test: (w) => { const m = /^(a*)(b*)(c*)$/.exec(w); return !!m && (m[1].length === m[2].length || m[2].length === m[3].length); },
+    hints: ['Handle the two cases separately: S → XC | AY.', 'X matches a’s with b’s, C makes any c’s; A makes any a’s, Y matches b’s with c’s.'], solution: 'S -> XC | AY\nX -> aXb | ε\nC -> cC | ε\nA -> aA | ε\nY -> bYc | ε' },
+  { id: 'g-cnf', kind: 'cnf', title: 'Convert to Chomsky normal form', ref: 'Sipser, Exercise 2.14', given: 'A -> BAB | B | ε\nB -> 00 | ε', sigma: '0', maxLen: 14,
+    hints: ['Follow Sipser’s procedure: new start variable, remove ε-rules, remove unit rules, then fix long rules and terminals.', 'Because ε is in the language, the new start variable keeps a rule → ε.', 'The CNF tab on this page shows every step for any grammar, so you can compare after trying.'] },
+  { id: 'g-amb1', kind: 'ambig', title: 'Show that a grammar is ambiguous', ref: 'Sipser, Definition 2.7', given: 'E -> E+E | E*E | (E) | a',
+    hints: ['Look for a string where the grammar does not say which operator comes first.', 'Try a string with both + and *.'], solution: 'a+a*a' },
+  { id: 'g-amb2', kind: 'ambig', title: 'Another ambiguous grammar', ref: 'The “dangling else” grammar', given: 'S -> aS | aSbS | ε',
+    hints: ['Think of a as “if” and b as “else”: which a does a b belong to?', 'Try short strings with two a’s and one b.'], solution: 'aab' },
+];
+const GX_KEY = 'deltadraw:cfg-practice:v1';
+let gx = { cur: GX[0].id, answers: {}, solved: {}, help: {}, hints: {} };
+try { const s = JSON.parse(store.get(GX_KEY) || 'null'); if (s && typeof s === 'object') gx = { ...gx, ...s }; if (!GX.some((e) => e.id === gx.cur)) gx.cur = GX[0].id; } catch (e) { /* ignore */ }
+const gxEx = () => GX.find((e) => e.id === gx.cur);
+const gxSave = () => store.set(GX_KEY, JSON.stringify(gx));
+function gxWords(sigma, maxLen) { let out = [''], lvl = ['']; for (let i = 0; i < maxLen; i++) { lvl = lvl.flatMap((w) => [...sigma].map((c) => w + c)); out = out.concat(lvl); } return out; }
+const givenHTML = (text) => { const G0 = parseGrammar(text); return `<div class="gx-given">${G0.order.map((A) => `<div class="rule-line">${varHTML(A)}<span class="arrow">→</span>${G0.rules.get(A).map((r) => rhsHTML(G0, r)).join('<span class="bar"> | </span>')}</div>`).join('')}</div>`; };
+function gxSolution(ex) { return ex.kind === 'cnf' ? grammarText(toCNF(parseGrammar(ex.given)).C) : ex.solution; }
+// why a grammar is not in CNF (Sipser's definition: A → BC with B, C not the start variable; A → a; S → ε)
+function cnfProblem(C) {
+  for (const A of C.order) for (const r of C.rules.get(A) || []) {
+    const show = `${A} → ${r.length ? r.join('') : 'ε'}`;
+    if (!r.length) { if (A !== C.start) return `${show}: only the start variable may have an ε-rule.`; continue; }
+    if (r.length === 1) { if (C.vars.has(r[0])) return `${show} is a unit rule.`; continue; }
+    if (r.length > 2) return `${show} has more than two symbols on the right.`;
+    if (!C.vars.has(r[0]) || !C.vars.has(r[1])) return `${show} mixes terminals into a two-symbol rule.`;
+    if (r.includes(C.start)) return `${show} uses the start variable on the right side.`;
+  }
+  return null;
+}
+function gxRender() {
+  const ex = gxEx(), n = GX.filter((e) => gx.solved[e.id]).length;
+  $('#gx-pick').innerHTML = GX.map((e, k) => `<option value="${e.id}">${k + 1}. ${esc(e.title)}${gx.solved[e.id] ? ' ✓' : ''}</option>`).join('');
+  $('#gx-pick').value = ex.id;
+  $('#gx-progress').textContent = `${n} of ${GX.length} solved`;
+  $('#gx-ref').textContent = ex.ref;
+  $('#gx-solved').hidden = !gx.solved[ex.id];
+  $('#gx-title').textContent = ex.title;
+  const isStr = ex.kind === 'ambig';
+  $('#gx-text').innerHTML = ex.kind === 'lang' ? `Write a context-free grammar for <span class="lbl">L = ${ex.lang}</span>.`
+    : ex.kind === 'cnf' ? `Convert this grammar to Chomsky normal form:${givenHTML(ex.given)}`
+    : `Show that this grammar is ambiguous: give a string that has two different parse trees.${givenHTML(ex.given)}`;
+  $('#gx-rules').textContent = ex.kind === 'lang' ? `Σ = {${[...ex.sigma].join(', ')}}. Variables are capital letters. Check tests every string up to length ${ex.maxLen}.`
+    : ex.kind === 'cnf' ? `Rules A → BC, A → a, and S → ε for the start variable only. Check tests the form exactly and the language on every string up to length ${ex.maxLen}.`
+    : 'Type the string. Check searches for two different leftmost derivations.';
+  $('#gx-answer').hidden = isStr; $('#gx-string').hidden = !isStr;
+  $('#gx-answer').placeholder = ex.kind === 'cnf' ? 'S_0 -> …' : 'S -> …';
+  if (isStr) $('#gx-string').value = gx.answers[ex.id] || ''; else $('#gx-answer').value = gx.answers[ex.id] || '';
+  const shown = gx.hints[ex.id] || 0;
+  $('#gx-hints').innerHTML = ex.hints.slice(0, shown).map((h) => `<li>${esc(h)}</li>`).join('');
+  $('#gx-hint').disabled = shown >= ex.hints.length;
+  $('#gx-open').hidden = isStr;
+  $('#gx-feedback').innerHTML = '';
+}
+function gxCheck() {
+  const ex = gxEx(), out = $('#gx-feedback');
+  const done = (msg) => {
+    const viaSol = gx.help[ex.id] === 'solution';
+    if (!viaSol) gx.solved[ex.id] = true;
+    gxSave(); gxRender();
+    $('#gx-feedback').innerHTML = `<span class="pill ok">✓ Correct</span><span>${msg}${viaSol ? ' (This used the shown solution, so it is not counted as solved.)' : ''}</span>`;
+  };
+  if (ex.kind === 'ambig') {
+    const raw = $('#gx-string').value.replace(/\s+/g, ''), w = raw === 'ε' ? '' : raw;
+    const G0 = parseGrammar(ex.given);
+    if (!generates(G0, [...w])) { out.innerHTML = `<span class="pill bad">✕ Not yet</span><span>The grammar does not generate ${w ? `<span class="gt">${esc(w)}</span>` : 'ε'}, so it has no parse tree.</span>`; return; }
+    const { results, capped } = findDerivations(G0, [...w], 2);
+    if (results.length < 2) { out.innerHTML = `<span class="pill bad">✕ Not yet</span><span>${capped ? 'No second parse tree was found (the search stopped early).' : `${esc(w)} has only one parse tree. Try another string.`}</span>`; return; }
+    done(`<span class="gt">${esc(w)}</span> has two different parse trees, so the grammar is ambiguous:`);
+    $('#gx-feedback').innerHTML += results.map((p, i) => `<figure class="tree-fig"><figcaption>Parse tree ${i + 1}</figcaption><div class="tree-scroll">${treeSVG(G0, replay(G0, p).root)}</div></figure>`).join('');
+    return;
+  }
+  const G = parseGrammar($('#gx-answer').value);
+  if (G.errors.length) { out.innerHTML = `<ul class="notes">${G.errors.map((e) => `<li class="warn">${esc(e)}</li>`).join('')}</ul>`; return; }
+  const sigma = ex.kind === 'cnf' ? ex.sigma : ex.sigma;
+  const extra = G.terms.filter((t) => !sigma.includes(t));
+  if (extra.length) { out.innerHTML = `<span class="pill bad">✕ Not yet</span><span>Your grammar uses ${extra.map((t) => `<span class="gt">${esc(t)}</span>`).join(', ')}, which ${extra.length > 1 ? 'are' : 'is'} not in Σ = {${[...sigma].join(', ')}}.</span>`; return; }
+  if (ex.kind === 'cnf') { const why = cnfProblem(G); if (why) { out.innerHTML = `<span class="pill bad">✕ Not in CNF yet</span><span>${esc(why)}</span>`; return; } }
+  const target = ex.kind === 'cnf' ? ((G0) => (w) => generates(G0, [...w]))(parseGrammar(ex.given)) : ex.test;
+  const words = gxWords(sigma, ex.maxLen);
+  for (const w of words) {
+    const got = generates(G, [...w]), want = target(w);
+    if (got !== want) {
+      const s = w ? `<span class="gt">${esc(w)}</span>` : 'ε';
+      out.innerHTML = `<span class="pill bad">✕ Not yet</span><span>${got ? `Your grammar generates ${s}, but ${s} is not in ${ex.kind === 'cnf' ? 'the language of the given grammar' : 'L'}.` : `${s} is in ${ex.kind === 'cnf' ? 'the language of the given grammar' : 'L'}, but your grammar does not generate it.`}</span><span class="small-text muted">This is the shortest string where they disagree.</span><button class="btn small" id="gx-try">Open in the editor and test ${w ? esc(w) : 'ε'}</button>`;
+      $('#gx-try').addEventListener('click', () => { $('#g-text').value = $('#gx-answer').value; $('#w-input').value = w || 'ε'; update(); testString(); $('#t-tree').click(); });
+      return;
+    }
+  }
+  done(`Your grammar ${ex.kind === 'cnf' ? 'is in Chomsky normal form and ' : ''}generates exactly the right strings among all ${words.length.toLocaleString()} strings up to length ${ex.maxLen}. <span class="muted">No program can compare two grammars on every string (EQ<sub>CFG</sub> is undecidable), so the check stops there.</span>`);
+}
+$('#gx-pick').addEventListener('change', (e) => { gx.cur = e.target.value; gxSave(); gxRender(); });
+const gxStep = (d) => { const k = GX.indexOf(gxEx()) + d; if (k >= 0 && k < GX.length) { gx.cur = GX[k].id; gxSave(); gxRender(); } };
+$('#gx-prev').addEventListener('click', () => gxStep(-1));
+$('#gx-next').addEventListener('click', () => gxStep(1));
+$('#gx-answer').addEventListener('input', () => { gx.answers[gx.cur] = $('#gx-answer').value; gxSave(); });
+$('#gx-string').addEventListener('input', () => { gx.answers[gx.cur] = $('#gx-string').value; gxSave(); });
+$('#gx-string').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); gxCheck(); } });
+$('#gx-check').addEventListener('click', gxCheck);
+$('#gx-hint').addEventListener('click', () => { const ex = gxEx(); gx.hints[ex.id] = Math.min(ex.hints.length, (gx.hints[ex.id] || 0) + 1); gx.help[ex.id] = gx.help[ex.id] || true; gxSave(); gxRender(); });
+$('#gx-solution').addEventListener('click', () => {
+  const ex = gxEx(), sol = gxSolution(ex);
+  gx.help[ex.id] = 'solution';
+  gx.answers[ex.id] = sol;
+  gxSave(); gxRender();
+  $('#gx-feedback').innerHTML = '<span class="small-text muted">This is one possible answer; it does not count as solved. Other answers can be right too.</span>';
+});
+$('#gx-open').addEventListener('click', () => { $('#g-text').value = $('#gx-answer').value; update(); toast('Your answer is now in the grammar editor.'); });
+gxRender();
+if (location.hash === '#practice') $('#t-practice').click();
+
+window.DeltaDrawCFG = { GX, gxSolution, cnfProblem, parseGrammar, generates, findDerivations, replay, toCNF, isCNF, cyk, shortestStrings, grammarText, analyze };
 })();
 </script>
 </body>

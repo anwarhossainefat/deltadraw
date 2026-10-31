@@ -279,6 +279,9 @@ details.batch[open] summary{margin-bottom:8px}
 .ttable td.state{text-align:left}
 .ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
 
+/* ---------- Practice inside the PDA and TM pages ---------- */
+.pr-banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:var(--accent-soft);border-radius:8px;padding:7px 10px;font-size:13px}
+.pr-banner .grow{flex:1}
 /* ---------- Turing machines ---------- */
 .tm-tape{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
 .tm-tape .cell{position:relative;min-width:28px;text-align:center}
@@ -513,6 +516,7 @@ a.tile:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
       <div class="ch-label"><span class="ch-num word">Practice</span><h3 class="ch-title">Exercises and exams</h3></div>
       <div class="tiles">
         <a class="tile" href="practice.html"><div class="tile-top"><span class="tile-sec">Chapter 1</span><span class="status live">Available</span></div><h3>Practice exercises</h3><p>22 exercises on DFAs, NFAs, minimization and regular expressions. Press Check and get a counterexample if it is wrong.</p></a>
+        <a class="tile" href="cfg.html#practice"><div class="tile-top"><span class="tile-sec">Chapters 2–3</span><span class="status live">Available</span></div><h3>Practice: grammars, PDAs, TMs</h3><p>28 exercises in the Practice tab of the <span class="nowrap">Grammars (13)</span>, Pushdown automata (8) and Turing machines (7) pages, checked with counterexamples.</p></a>
         <a class="tile" href="exam.html"><div class="tile-top"><span class="tile-sec">Instructors</span><span class="status live">Available</span></div><h3>Exam mode</h3><p>A drawing-only version for proctored online exams. Answers are saved as images for Canvas.</p></a>
       </div>
     </div>

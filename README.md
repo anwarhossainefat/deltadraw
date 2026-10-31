@@ -17,6 +17,7 @@ DeltaDraw is a free, browser-based companion for a Theory of Computation course.
 | `tm.html` | Ch 3.1: Turing machines (run on the tape, configurations, formal definition) | Live |
 | `decide.html` | Ch 4.1, 4.2, 5.2: deciders, diagonalization, the A_TM proof, PCP puzzle | Live |
 | `practice.html` | Chapter 1 practice exercises with exact checking | Live |
+| Practice tabs | Chapters 2–3 practice inside `cfg.html` (13), `pda.html` (8) and `tm.html` (7) | Live |
 | `exam.html` | Exam mode (drawing only, for proctored exams) | Live |
 | `complexity.html` | Chapter 7 | Planned |
 
@@ -63,6 +64,15 @@ Three tabs (open `decide.html#decidable`, `#undecidable` or `#pcp` directly):
 - **Decidable problems (4.1):** a map of Sipser's languages (A_DFA … EQ_TM, ALL_CFG, PCP) marked decidable, Turing-recognizable or neither, with theorem numbers and links to the tools that run them. Run the **E_DFA** decider (marking reachable states), the **EQ_DFA** decider (symmetric difference, with the shortest string where two automata disagree) and the **E_CFG** decider (marking variables round by round). Automata can be typed as text or loaded from your drawing on the finite automata or regular expressions page; grammars can be loaded from the grammars page.
 - **Undecidability (4.2):** Cantor's diagonal argument, one digit at a time, and the proof that A_TM is undecidable, following Figures 4.19–4.21 up to the "?" entry for D on ⟨D⟩.
 - **Post Correspondence Problem (5.2):** a domino puzzle (click dominoes, see where the rows agree), and a search for the shortest match that says plainly when it has to stop.
+
+## Practice for Chapters 2–3 (Practice tabs)
+
+Open `cfg.html#practice`, `pda.html#practice` or `tm.html#practice`.
+
+- **Grammars (13):** write a CFG for a language (Sipser Exercises 2.4 and 2.6 and more), convert a grammar to Chomsky normal form (Exercise 2.14; the form is checked exactly), and show that a grammar is ambiguous by giving a string with two parse trees (both trees are drawn).
+- **Pushdown automata (8)** and **Turing machines (7, deciders that must halt):** each exercise keeps its own drawing on the canvas; **Stop practicing** brings your own drawing back.
+- **Check** tests every string up to a length limit and gives the shortest string where the answer and the language disagree, with a button to test it step by step. Equivalence of grammars, PDAs and Turing machines is undecidable, so the page says plainly that the check is bounded.
+- Hints one at a time, a solution on request (it doesn't count as solved), and progress saved in the browser.
 
 ## Practice (`practice.html`)
 

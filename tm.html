@@ -276,6 +276,9 @@ details.batch[open] summary{margin-bottom:8px}
 .ttable td.state{text-align:left}
 .ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
 
+/* ---------- Practice inside the PDA and TM pages ---------- */
+.pr-banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:var(--accent-soft);border-radius:8px;padding:7px 10px;font-size:13px}
+.pr-banner .grow{flex:1}
 /* ---------- Turing machines ---------- */
 .tm-tape{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
 .tm-tape .cell{position:relative;min-width:28px;text-align:center}
@@ -472,6 +475,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       <section class="sec" id="machine-sec" aria-live="polite">
         <h2 class="sec-title">Automaton</h2>
         <div id="machine-info"></div>
+        <div class="pr-banner" id="pr-banner" hidden></div>
         <label class="check"><input type="checkbox" id="opt-color" checked> Color states: <span class="swatch start" aria-hidden="true"></span> start, <span class="swatch accept" aria-hidden="true"></span> accepting</label>
       </section>
 
@@ -508,6 +512,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       <div class="tabs" role="tablist" aria-label="Tools">
         <button class="tab" role="tab" id="tab-test" aria-controls="panel-test" aria-selected="true">Run</button>
         <button class="tab" role="tab" id="tab-table" aria-controls="panel-table" aria-selected="false">Definition</button>
+        <button class="tab" role="tab" id="tab-practice" aria-controls="panel-practice" aria-selected="false">Practice</button>
       </div>
 
       <div class="tabpanel" role="tabpanel" id="panel-test" aria-labelledby="tab-test">
@@ -544,6 +549,30 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <div class="pda-def" id="pda-def"></div>
         <div class="table-wrap" id="table-wrap"></div>
         <div class="row"><button class="btn small" id="table-copy">Copy as Markdown</button><button class="btn small" id="table-copy-tex">Copy as LaTeX</button></div>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="panel-practice" aria-labelledby="tab-practice" hidden>
+        <div class="ex-top"><h2 class="sec-title">Exercise</h2><span class="small-text muted" id="ex-progress"></span></div>
+        <div class="ex-nav">
+          <label class="sr-only" for="ex-pick">Choose an exercise</label>
+          <select class="select" id="ex-pick"></select>
+          <button class="btn icon" id="ex-prev" title="Previous exercise" aria-label="Previous exercise">◂</button>
+          <button class="btn icon" id="ex-next" title="Next exercise" aria-label="Next exercise">▸</button>
+        </div>
+        <div class="ex-card">
+          <div class="ex-meta"><span class="small-text muted" id="ex-sec-label"></span><span class="pill ok" id="ex-solved" hidden>✓ Solved</span></div>
+          <h3 id="ex-title"></h3>
+          <p class="ex-text" id="ex-text"></p>
+          <p class="small-text muted ex-rules" id="ex-rules"></p>
+          <div class="row"><button class="btn primary" id="ex-start">Draw it on the canvas</button></div>
+          <div class="row">
+            <button class="btn primary" id="ex-check">Check my drawing</button>
+            <button class="btn small" id="ex-hint">Hint</button>
+            <button class="btn small" id="ex-solution">Show a solution</button>
+          </div>
+          <ul class="ex-hints" id="ex-hints"></ul>
+          <div class="eq-out small-text" id="ex-feedback" aria-live="polite"></div>
+        </div>
+        <p class="small-text muted">Each exercise keeps its own drawing. Your own drawing comes back when you press <b>Stop practicing</b>.</p>
       </div>
     </aside>
   </main>
@@ -659,6 +688,7 @@ const store = {
   set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
 };
 function persist() {
+  if (typeof pr !== 'undefined' && pr.active) { pr.slots[pr.cur] = { nodes: doc.nodes, links: doc.links, nextId: doc.nextId }; prSave(); return; }
   store.set(STORE_KEY, JSON.stringify({ doc: { nodes: doc.nodes, links: doc.links, nextId: doc.nextId }, settings }));
 }
 
@@ -2294,6 +2324,140 @@ function makeJFF() {
   return s + '\t</automaton>\n</structure>\n';
 }
 
+/* ---------- Practice: Turing machines (Sipser Exercise 3.8 and examples) ---------- */
+const prCount = (w, c) => { let n = 0; for (const x of w) if (x === c) n++; return n; };
+const PR_EXERCISES = [
+  { id: 't-end0', title: 'Ends with 0', lang: '{w ∈ {0,1}* | w ends with 0}', sigma: '01', maxLen: 10, test: (w) => w.endsWith('0'),
+    hints: ['Move right over the input until the blank after it.', 'Step back one cell and look at the last symbol.'],
+    solution: () => makeExample([['q_1', 0, 0], ['q_2', 220, 0], ['q_{accept}', 440, 0]],
+      [['start', 'q_1'], ['q_1', 'q_1', '0,1→R'], ['q_1', 'q_2', '␣→L'], ['q_2', 'q_{accept}', '0→R']]) },
+  { id: 't-0n1n', title: '0ⁿ1ⁿ', lang: '{0<sup>n</sup>1<sup>n</sup> | n ≥ 0}', sigma: '01', maxLen: 10, test: (w) => /^0*1*$/.test(w) && prCount(w, '0') === prCount(w, '1'),
+    hints: ['Cross off a 0 (write x), go right to the first 1 and cross it off (write y), then go back.', 'Stop going back when you see an x: the next cell is the leftmost 0 that is left.', 'When no 0 is left, check that only y’s remain.'],
+    solution: () => TM_EXAMPLES.zeroone() },
+  { id: 't-equal', title: 'Equal numbers of 0s and 1s', lang: '{w ∈ {0,1}* | w has equally many 0s and 1s}', sigma: '01', maxLen: 10, test: (w) => prCount(w, '0') === prCount(w, '1'),
+    hints: ['Sipser, Exercise 3.8(a). Repeatedly cross off one 0 and one 1, in any order.', 'The head cannot see the left end of the tape. Mark the first cell with a special symbol (for example a or b instead of x) so you know where to turn around.', 'Accept when a full pass finds only crossed-off symbols.'],
+    solution: () => makeExample([['q_0', 0, 0], ['q_1', 260, 0], ['q_2', 520, -170], ['q_3', 520, 170], ['q_4', 780, 0], ['q_{accept}', 0, 230]],
+      [['start', 'q_0'], ['q_0', 'q_2', '0→a,R', -70], ['q_0', 'q_3', '1→b,R', 70], ['q_0', 'q_{accept}', '␣→R'], ['q_1', 'q_1', 'x→R', -Math.PI / 2], ['q_1', 'q_2', '0→x,R'], ['q_1', 'q_3', '1→x,R'], ['q_1', 'q_{accept}', '␣→R'],
+        ['q_2', 'q_2', '0,x→R', -Math.PI / 2], ['q_2', 'q_4', '1→x,L'], ['q_3', 'q_3', '1,x→R', Math.PI / 2], ['q_3', 'q_4', '0→x,L'], ['q_4', 'q_4', '0,1,x→L', 0], ['q_4', 'q_1', 'a,b→R']]) },
+  { id: 't-anbncn', title: 'aⁿbⁿcⁿ', lang: '{a<sup>n</sup>b<sup>n</sup>c<sup>n</sup> | n ≥ 0}', sigma: 'abc', maxLen: 9, test: (w) => /^a*b*c*$/.test(w) && prCount(w, 'a') === prCount(w, 'b') && prCount(w, 'b') === prCount(w, 'c'),
+    hints: ['Extend the 0ⁿ1ⁿ machine: each round crosses off one a, one b and one c.', 'Use different marks (x, y, z) so each phase knows what to skip.', 'When no a is left, check that only y’s and then z’s remain.'],
+    solution: () => makeExample([['q_1', 0, 0], ['q_2', 220, 0], ['q_3', 440, 0], ['q_4', 330, 200], ['q_5', 0, 200], ['q_6', 0, 380], ['q_{accept}', 220, 380]],
+      [['start', 'q_1'], ['q_1', 'q_2', 'a→x,R'], ['q_2', 'q_2', 'a,y→R', -Math.PI / 2], ['q_2', 'q_3', 'b→y,R'], ['q_3', 'q_3', 'b,z→R', -Math.PI / 2], ['q_3', 'q_4', 'c→z,L'], ['q_4', 'q_4', 'a,b,y,z→L', Math.PI / 2], ['q_4', 'q_1', 'x→R'],
+        ['q_1', 'q_5', 'y→R'], ['q_1', 'q_{accept}', '␣→R'], ['q_5', 'q_5', 'y→R', Math.PI], ['q_5', 'q_6', 'z→R'], ['q_6', 'q_6', 'z→R', Math.PI], ['q_6', 'q_{accept}', '␣→R']]) },
+  { id: 't-pal', title: 'Palindromes', lang: '{w ∈ {0,1}* | w = w<sup>R</sup>}', sigma: '01', maxLen: 10, test: (w) => w === [...w].reverse().join(''),
+    hints: ['Erase the first symbol (write ␣) and remember it in the state.', 'Run to the right end, step back, and check that the last symbol is the same. Erase it too. If you find a blank there, the middle was reached.', 'Return to the left end, which is now a blank, and repeat. Accept when nothing is left.'],
+    solution: () => makeExample([['q_1', 0, 0], ['q_2', 220, -160], ['q_3', 220, 160], ['q_4', 440, -160], ['q_5', 440, 160], ['q_6', 660, 0], ['q_{accept}', 0, 240]],
+      [['start', 'q_1'], ['q_1', 'q_2', '0→␣,R'], ['q_1', 'q_3', '1→␣,R'], ['q_1', 'q_{accept}', '␣→R'], ['q_2', 'q_2', '0,1→R', -Math.PI / 2], ['q_2', 'q_4', '␣→L'], ['q_3', 'q_3', '0,1→R', Math.PI / 2], ['q_3', 'q_5', '␣→L'],
+        ['q_4', 'q_6', '0→␣,L; ␣→L'], ['q_5', 'q_6', '1→␣,L; ␣→L'], ['q_6', 'q_6', '0,1→L', 0], ['q_6', 'q_1', '␣→R']]) },
+  { id: 't-wsharpw', title: 'w#w', lang: '{w#w | w ∈ {0,1}*}', sigma: '01#', maxLen: 7, test: (w) => { const m = /^([01]*)#([01]*)$/.exec(w); return !!m && m[1] === m[2]; },
+    hints: ['Sipser, Example 3.9: zig-zag across the #, crossing off matching symbols.', 'Remember the crossed-off symbol in the state (one branch for 0, one for 1).', 'When all symbols left of # are crossed off, check that the right side is crossed off too.'],
+    solution: () => TM_EXAMPLES.wsharpw() },
+  { id: 't-pow2', title: '0 repeated 2ⁿ times', lang: '{0<sup>2<sup>n</sup></sup> | n ≥ 0}', sigma: '0', maxLen: 40, test: (w) => w.length > 0 && (w.length & (w.length - 1)) === 0,
+    hints: ['Sipser, Example 3.7: each pass crosses off every other 0, halving the count.', 'If one 0 is left, accept. If the count is odd and more than one, reject.'],
+    solution: () => TM_EXAMPLES.pow2() },
+];
+const PR_WHAT = 'Turing machine';
+function prRun(d, w) { const r = runTM(buildTM(d), tmInput(w), 20000, 1); return { accepted: r.verdict === 'accept', halted: r.verdict === 'accept' || r.verdict === 'reject', verdict: r.verdict }; }
+/* ---------- Practice inside the page: each exercise has its own drawing ---------- */
+const PR_KEY = `deltadraw:${PAGE}-practice:v1`;
+var pr = { cur: PR_EXERCISES[0].id, active: false, // var: persist() may look at it before this line runs
+  slots: {}, solved: {}, help: {}, free: null, hints: {} };
+try {
+  const s = JSON.parse(store.get(PR_KEY) || 'null');
+  if (s && typeof s === 'object') pr = { ...pr, ...s, active: false };
+  if (!PR_EXERCISES.some((e) => e.id === pr.cur)) pr.cur = PR_EXERCISES[0].id;
+} catch (e) { /* ignore */ }
+const prEx = () => PR_EXERCISES.find((e) => e.id === pr.cur);
+const prDoc = () => ({ nodes: doc.nodes.map((n) => ({ ...n })), links: doc.links.map((l) => ({ ...l })), nextId: doc.nextId });
+function prSave() { const { active, ...rest } = pr; store.set(PR_KEY, JSON.stringify(rest)); }
+function prFresh(d) { loadDoc(d); history.stack = [snapshot()]; history.idx = 0; $('#btn-undo').disabled = true; $('#btn-redo').disabled = true; }
+function prStart(id) {
+  if (pr.active) pr.slots[pr.cur] = prDoc(); else { pr.free = prDoc(); pr.active = true; }
+  pr.cur = id;
+  prFresh(pr.slots[id] || { nodes: [], links: [], nextId: 1 });
+  prSave(); prRender();
+}
+function prStop() {
+  if (!pr.active) return;
+  pr.slots[pr.cur] = prDoc();
+  pr.active = false;
+  prFresh(pr.free || { nodes: [], links: [], nextId: 1 });
+  prSave(); prRender();
+  toast('Your own drawing is back.');
+}
+function prWords(sigma, maxLen) { let out = ['']; let lvl = ['']; for (let i = 0; i < maxLen; i++) { lvl = lvl.flatMap((w) => [...sigma].map((c) => w + c)); out = out.concat(lvl); } return out; }
+function prCheck(ex, d) {
+  const words = prWords(ex.sigma, ex.maxLen);
+  for (const w of words) {
+    const r = prRun(d, w), want = ex.test(w);
+    if (PAGE === 'tm' && !r.halted) return { ok: false, w, nohalt: r.verdict };
+    if (r.accepted !== want) return { ok: false, w, got: r.accepted };
+  }
+  return { ok: true, n: words.length };
+}
+function prRender() {
+  const ex = prEx(), solvedN = PR_EXERCISES.filter((e) => pr.solved[e.id]).length;
+  $('#ex-pick').innerHTML = PR_EXERCISES.map((e, k) => `<option value="${e.id}">${k + 1}. ${escHTML(e.title)}${pr.solved[e.id] ? ' ✓' : ''}</option>`).join('');
+  $('#ex-pick').value = ex.id;
+  $('#ex-progress').textContent = `${solvedN} of ${PR_EXERCISES.length} solved`;
+  $('#ex-sec-label').textContent = `Exercise ${PR_EXERCISES.indexOf(ex) + 1}`;
+  $('#ex-solved').hidden = !pr.solved[ex.id];
+  $('#ex-title').textContent = ex.title;
+  $('#ex-text').innerHTML = `Draw a ${PAGE === 'tm' ? 'Turing machine that <b>decides</b>' : 'PDA that recognizes'} <span class="lbl">L = ${ex.lang}</span>.`;
+  $('#ex-rules').textContent = `Σ = {${[...ex.sigma].join(', ')}}. Check tests every string up to length ${ex.maxLen}${PAGE === 'tm' ? ', and your machine must halt on each one' : ''}.`;
+  const shown = pr.hints[ex.id] || 0;
+  $('#ex-hints').innerHTML = ex.hints.slice(0, shown).map((h) => `<li>${escHTML(h)}</li>`).join('');
+  $('#ex-hint').disabled = shown >= ex.hints.length;
+  $('#ex-start').hidden = pr.active && pr.cur === ex.id;
+  $('#ex-start').textContent = pr.active ? 'Switch the canvas to this exercise' : 'Draw it on the canvas';
+  $('#ex-check').disabled = !(pr.active && pr.cur === ex.id);
+  $('#ex-feedback').innerHTML = '';
+  const ban = $('#pr-banner');
+  ban.hidden = !pr.active;
+  if (pr.active) {
+    const k = PR_EXERCISES.indexOf(prEx()) + 1;
+    ban.innerHTML = `<span>Practicing: <b>Exercise ${k}</b>, ${escHTML(prEx().title)}</span><span class="grow"></span><button class="btn small" id="pr-stop">Stop practicing</button>`;
+    $('#pr-stop').addEventListener('click', prStop);
+  }
+}
+$('#ex-pick').addEventListener('change', (e) => {
+  const id = e.target.value;
+  if (pr.active) prStart(id); else { pr.cur = id; prSave(); prRender(); }
+});
+const prStep = (d) => { const k = PR_EXERCISES.indexOf(prEx()) + d; if (k < 0 || k >= PR_EXERCISES.length) return; const id = PR_EXERCISES[k].id; if (pr.active) prStart(id); else { pr.cur = id; prSave(); prRender(); } };
+$('#ex-prev').addEventListener('click', () => prStep(-1));
+$('#ex-next').addEventListener('click', () => prStep(1));
+$('#ex-start').addEventListener('click', () => { prStart(pr.cur); toast(`The canvas now holds your answer to this exercise. Your own drawing is saved.`); canvas.focus({ preventScroll: true }); });
+$('#ex-hint').addEventListener('click', () => { const ex = prEx(); pr.hints[ex.id] = Math.min(ex.hints.length, (pr.hints[ex.id] || 0) + 1); pr.help[ex.id] = true; prSave(); prRender(); });
+$('#ex-solution').addEventListener('click', () => {
+  const ex = prEx();
+  if (!pr.active || pr.cur !== ex.id) prStart(ex.id);
+  pr.help[ex.id] = 'solution';
+  loadDoc(ex.solution());
+  prSave(); prRender();
+  $('#ex-feedback').innerHTML = '<span class="small-text muted">This is one possible answer. It does not count as solved; try drawing your own from scratch.</span>';
+  toast('Solution loaded. Press Undo to get your drawing back.', 'Undo', undo);
+});
+$('#ex-check').addEventListener('click', () => {
+  const ex = prEx(), out = $('#ex-feedback');
+  if (!doc.nodes.length) { out.innerHTML = '<span class="warn-text">Draw your machine on the canvas first.</span>'; return; }
+  const R = prCheck(ex, doc);
+  if (R.ok) {
+    const viaSolution = pr.help[ex.id] === 'solution';
+    if (!viaSolution) pr.solved[ex.id] = true;
+    prSave(); prRender();
+    out.innerHTML = `<span class="pill ok">✓ Correct</span><span>Your ${PR_WHAT} gives the right answer on all ${R.n.toLocaleString()} strings up to length ${ex.maxLen}${PAGE === 'tm' ? ' and halts on every one' : ''}.${viaSolution ? ' (This used the shown solution, so it is not counted as solved.)' : ''}</span><span class="small-text muted">No program can test every string: equivalence is undecidable for ${PAGE === 'tm' ? 'Turing machines (Theorem 5.4)' : 'PDAs and grammars (Exercise 5.1)'}, so the check stops at length ${ex.maxLen}.</span>`;
+    return;
+  }
+  const shown = R.w.length ? `<span class="mono">${escHTML(R.w)}</span>` : '<span class="math">ε</span>';
+  const why = R.nohalt ? `Your machine ${R.nohalt === 'loop' ? 'loops forever' : 'does not halt within 20,000 steps'} on ${shown}. A decider must halt on every input.`
+    : R.got ? `Your ${PR_WHAT} accepts ${shown}, but ${shown} is not in L.` : `${shown} is in L, but your ${PR_WHAT} does not accept it.`;
+  out.innerHTML = `<span class="pill bad">✕ Not yet</span><span>${why}</span><span class="small-text muted">This is the shortest string where your machine and L disagree.</span><button class="btn small" id="ex-try">Test ${R.w.length ? escHTML(R.w) : 'ε'} step by step</button>`;
+  $('#ex-try').addEventListener('click', () => { $('#sim-reset').click(); $('#sim-input').value = R.w.length ? R.w : 'ε'; $('#tab-test').click(); $('#sim-step').click(); });
+});
+if (location.hash === '#practice') $('#tab-practice').click();
+prRender();
+
 /* ---------------- Startup ---------------- */
 function init() {
   readPalette();
@@ -2323,7 +2487,7 @@ function init() {
       })
       .catch(() => {});
   }
-  window.DeltaDraw = { get doc() { return doc; }, buildTM, runTM, parseTMRule, tmInput, configPlain, TM_EXAMPLES, loadDoc, linkGeom, withDoc, R, makeSVG, makeTikZ, makeJFF, makePNG, parseJFF, measureLabel };
+  window.DeltaDraw = { get doc() { return doc; }, get pr() { return pr; }, PR_EXERCISES, prCheck, buildTM, runTM, parseTMRule, tmInput, configPlain, TM_EXAMPLES, loadDoc, linkGeom, withDoc, R, makeSVG, makeTikZ, makeJFF, makePNG, parseJFF, measureLabel };
 }
 init();
 })();

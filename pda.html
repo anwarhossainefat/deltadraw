@@ -276,6 +276,9 @@ details.batch[open] summary{margin-bottom:8px}
 .ttable td.state{text-align:left}
 .ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
 
+/* ---------- Practice inside the PDA and TM pages ---------- */
+.pr-banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;background:var(--accent-soft);border-radius:8px;padding:7px 10px;font-size:13px}
+.pr-banner .grow{flex:1}
 /* ---------- Turing machines ---------- */
 .tm-tape{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
 .tm-tape .cell{position:relative;min-width:28px;text-align:center}
@@ -473,6 +476,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       <section class="sec" id="machine-sec" aria-live="polite">
         <h2 class="sec-title">Automaton</h2>
         <div id="machine-info"></div>
+        <div class="pr-banner" id="pr-banner" hidden></div>
         <label class="check"><input type="checkbox" id="opt-color" checked> Color states: <span class="swatch start" aria-hidden="true"></span> start, <span class="swatch accept" aria-hidden="true"></span> accepting</label>
       </section>
 
@@ -509,7 +513,8 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       <div class="tabs" role="tablist" aria-label="Tools">
         <button class="tab" role="tab" id="tab-test" aria-controls="panel-test" aria-selected="true">Test</button>
         <button class="tab" role="tab" id="tab-table" aria-controls="panel-table" aria-selected="false">Definition</button>
-        <button class="tab" role="tab" id="tab-grammar" aria-controls="panel-grammar" aria-selected="false">From grammar</button>
+        <button class="tab" role="tab" id="tab-grammar" aria-controls="panel-grammar" aria-selected="false">Grammar</button>
+        <button class="tab" role="tab" id="tab-practice" aria-controls="panel-practice" aria-selected="false">Practice</button>
       </div>
 
       <div class="tabpanel" role="tabpanel" id="panel-test" aria-labelledby="tab-test">
@@ -552,6 +557,30 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
           <div class="row"><button class="btn primary small" id="pg-build">Build PDA</button></div>
           <div class="eq-out small-text" id="pg-out" aria-live="polite" hidden></div>
         </div>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="panel-practice" aria-labelledby="tab-practice" hidden>
+        <div class="ex-top"><h2 class="sec-title">Exercise</h2><span class="small-text muted" id="ex-progress"></span></div>
+        <div class="ex-nav">
+          <label class="sr-only" for="ex-pick">Choose an exercise</label>
+          <select class="select" id="ex-pick"></select>
+          <button class="btn icon" id="ex-prev" title="Previous exercise" aria-label="Previous exercise">◂</button>
+          <button class="btn icon" id="ex-next" title="Next exercise" aria-label="Next exercise">▸</button>
+        </div>
+        <div class="ex-card">
+          <div class="ex-meta"><span class="small-text muted" id="ex-sec-label"></span><span class="pill ok" id="ex-solved" hidden>✓ Solved</span></div>
+          <h3 id="ex-title"></h3>
+          <p class="ex-text" id="ex-text"></p>
+          <p class="small-text muted ex-rules" id="ex-rules"></p>
+          <div class="row"><button class="btn primary" id="ex-start">Draw it on the canvas</button></div>
+          <div class="row">
+            <button class="btn primary" id="ex-check">Check my drawing</button>
+            <button class="btn small" id="ex-hint">Hint</button>
+            <button class="btn small" id="ex-solution">Show a solution</button>
+          </div>
+          <ul class="ex-hints" id="ex-hints"></ul>
+          <div class="eq-out small-text" id="ex-feedback" aria-live="polite"></div>
+        </div>
+        <p class="small-text muted">Each exercise keeps its own drawing. Your own drawing comes back when you press <b>Stop practicing</b>.</p>
       </div>
     </aside>
   </main>
@@ -666,6 +695,7 @@ const store = {
   set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
 };
 function persist() {
+  if (typeof pr !== 'undefined' && pr.active) { pr.slots[pr.cur] = { nodes: doc.nodes, links: doc.links, nextId: doc.nextId }; prSave(); return; }
   store.set(STORE_KEY, JSON.stringify({ doc: { nodes: doc.nodes, links: doc.links, nextId: doc.nextId }, settings }));
 }
 
@@ -2393,6 +2423,143 @@ function makeJFF() {
 if (settings.pdaGrammar == null) settings.pdaGrammar = '';
 
 
+/* ---------- Practice: pushdown automata (Sipser Exercises 2.7, 2.10 and examples) ---------- */
+const prCount = (w, c) => { let n = 0; for (const x of w) if (x === c) n++; return n; };
+const PR_EXERCISES = [
+  { id: 'p-0n1n', title: '0ⁿ1ⁿ', lang: '{0<sup>n</sup>1<sup>n</sup> | n ≥ 0}', sigma: '01', maxLen: 10, test: (w) => /^0*1*$/.test(w) && prCount(w, '0') === prCount(w, '1'),
+    hints: ['Push a marker $ first, so you can tell when the stack is empty.', 'Push a symbol for every 0. Pop one for every 1.', 'Accept only after popping $, and only once all input is read.'],
+    solution: () => PDA_EXAMPLES.zeroone() },
+  { id: 'p-0n12n', title: '0ⁿ1²ⁿ', lang: '{0<sup>n</sup>1<sup>2n</sup> | n ≥ 0}', sigma: '01', maxLen: 10, test: (w) => /^0*1*$/.test(w) && 2 * prCount(w, '0') === prCount(w, '1'),
+    hints: ['Change only one rule of the 0ⁿ1ⁿ machine.', 'For every 0, push two symbols (a rule like 0,ε→00).'],
+    solution: () => makeExample([['q_1', 0, 0, true], ['q_2', 220, 0], ['q_3', 220, 180], ['q_4', 0, 180, true]],
+      [['start', 'q_1'], ['q_1', 'q_2', 'ε,ε→$'], ['q_2', 'q_2', '0,ε→00'], ['q_2', 'q_3', 'ε,ε→ε'], ['q_3', 'q_3', '1,0→ε', 0], ['q_3', 'q_4', 'ε,$→ε']]) },
+  { id: 'p-pal', title: 'Palindromes', lang: '{w ∈ {0,1}* | w = w<sup>R</sup>}', sigma: '01', maxLen: 10, test: (w) => w === [...w].reverse().join(''),
+    hints: ['Push the first half, then guess (nondeterministically) where the middle is.', 'The middle may be between two symbols, or on one symbol that is skipped: allow ε,ε→ε, 0,ε→ε and 1,ε→ε to the matching state.', 'In the second half, pop a symbol for each matching input symbol.'],
+    solution: () => makeExample([['q_1', 0, 0, true], ['q_2', 220, 0], ['q_3', 220, 200], ['q_4', 0, 200, true]],
+      [['start', 'q_1'], ['q_1', 'q_2', 'ε,ε→$'], ['q_2', 'q_2', '0,ε→0; 1,ε→1'], ['q_2', 'q_3', 'ε,ε→ε; 0,ε→ε; 1,ε→ε'], ['q_3', 'q_3', '0,0→ε; 1,1→ε', 0], ['q_3', 'q_4', 'ε,$→ε']]) },
+  { id: 'p-eq', title: 'Equal numbers of a’s and b’s', lang: '{w ∈ {a,b}* | w has equally many a’s and b’s}', sigma: 'ab', maxLen: 10, test: (w) => prCount(w, 'a') === prCount(w, 'b'),
+    hints: ['Use the stack as a counter of the surplus: it holds only a’s or only b’s.', 'On a: if b is on top, pop it; otherwise push a. Do the same for b.', 'Rules that look at $ (like a,$→a$) handle the empty-surplus case.'],
+    solution: () => makeExample([['q_1', 0, 0, true], ['q_2', 220, 0], ['q_3', 440, 0, true]],
+      [['start', 'q_1'], ['q_1', 'q_2', 'ε,ε→$'], ['q_2', 'q_2', 'a,b→ε; b,a→ε; a,a→aa; b,b→bb; a,$→a$; b,$→b$'], ['q_2', 'q_3', 'ε,$→ε']]) },
+  { id: 'p-more', title: 'More a’s than b’s', lang: '{w ∈ {a,b}* | w has more a’s than b’s}', sigma: 'ab', maxLen: 10, test: (w) => prCount(w, 'a') > prCount(w, 'b'),
+    hints: ['Start from the PDA for “equal numbers of a’s and b’s”.', 'At the end, the surplus must be made of a’s: accept only if an a is on top.'],
+    solution: () => makeExample([['q_1', 0, 0], ['q_2', 220, 0], ['q_3', 440, 0, true]],
+      [['start', 'q_1'], ['q_1', 'q_2', 'ε,ε→$'], ['q_2', 'q_2', 'a,b→ε; b,a→ε; a,a→aa; b,b→bb; a,$→a$; b,$→b$'], ['q_2', 'q_3', 'ε,a→ε']]) },
+  { id: 'p-ijk', title: 'aⁱbʲcᵏ with i = j or j = k', lang: '{a<sup>i</sup>b<sup>j</sup>c<sup>k</sup> | i = j or j = k}', sigma: 'abc', maxLen: 7, test: (w) => { const m = /^(a*)(b*)(c*)$/.exec(w); return !!m && (m[1].length === m[2].length || m[2].length === m[3].length); },
+    hints: ['Use nondeterminism: guess at the start which equality to check.', 'One branch matches a’s against b’s and then reads any c’s. The other reads any a’s and matches b’s against c’s.'],
+    solution: () => makeExample([['q_1', 0, 130], ['q_2', 180, 0], ['q_3', 380, 0], ['q_4', 580, 0, true], ['q_5', 180, 260], ['q_6', 380, 260], ['q_7', 580, 260], ['q_8', 780, 260, true]],
+      [['start', 'q_1'], ['q_1', 'q_2', 'ε,ε→$'], ['q_2', 'q_2', 'a,ε→a', -Math.PI / 2], ['q_2', 'q_3', 'ε,ε→ε'], ['q_3', 'q_3', 'b,a→ε', -Math.PI / 2], ['q_3', 'q_4', 'ε,$→ε'], ['q_4', 'q_4', 'c,ε→ε', -Math.PI / 2],
+        ['q_1', 'q_5', 'ε,ε→$'], ['q_5', 'q_5', 'a,ε→ε', Math.PI / 2], ['q_5', 'q_6', 'ε,ε→ε'], ['q_6', 'q_6', 'b,ε→b', Math.PI / 2], ['q_6', 'q_7', 'ε,ε→ε'], ['q_7', 'q_7', 'c,b→ε', Math.PI / 2], ['q_7', 'q_8', 'ε,$→ε']]) },
+  { id: 'p-parens', title: 'Balanced parentheses', lang: '{w ∈ {(,)}* | the parentheses in w are balanced}', sigma: '()', maxLen: 10, test: (w) => { let d = 0; for (const c of w) { d += c === '(' ? 1 : -1; if (d < 0) return false; } return d === 0; },
+    hints: ['Push for “(” and pop for “)”.', 'Accept when $ is back on top and the input is finished.'],
+    solution: () => PDA_EXAMPLES.parens() },
+  { id: 'p-three1', title: 'At least three 1s', lang: '{w ∈ {0,1}* | w contains at least three 1s}', sigma: '01', maxLen: 9, test: (w) => prCount(w, '1') >= 3,
+    hints: ['This language is regular. A PDA can simply ignore its stack.', 'Every rule can be of the form 0,ε→ε or 1,ε→ε.'],
+    solution: () => makeExample([['q_0', 0, 0], ['q_1', 180, 0], ['q_2', 360, 0], ['q_3', 540, 0, true]],
+      [['start', 'q_0'], ['q_0', 'q_0', '0,ε→ε'], ['q_0', 'q_1', '1,ε→ε'], ['q_1', 'q_1', '0,ε→ε'], ['q_1', 'q_2', '1,ε→ε'], ['q_2', 'q_2', '0,ε→ε'], ['q_2', 'q_3', '1,ε→ε'], ['q_3', 'q_3', '0,ε→ε; 1,ε→ε']]) },
+];
+const PR_WHAT = 'PDA';
+function prRun(d, w) { const r = decidePDA(buildPDA(d), [...w]); return { accepted: r.accepted, sure: r.complete !== false }; }
+/* ---------- Practice inside the page: each exercise has its own drawing ---------- */
+const PR_KEY = `deltadraw:${PAGE}-practice:v1`;
+var pr = { cur: PR_EXERCISES[0].id, active: false, // var: persist() may look at it before this line runs
+  slots: {}, solved: {}, help: {}, free: null, hints: {} };
+try {
+  const s = JSON.parse(store.get(PR_KEY) || 'null');
+  if (s && typeof s === 'object') pr = { ...pr, ...s, active: false };
+  if (!PR_EXERCISES.some((e) => e.id === pr.cur)) pr.cur = PR_EXERCISES[0].id;
+} catch (e) { /* ignore */ }
+const prEx = () => PR_EXERCISES.find((e) => e.id === pr.cur);
+const prDoc = () => ({ nodes: doc.nodes.map((n) => ({ ...n })), links: doc.links.map((l) => ({ ...l })), nextId: doc.nextId });
+function prSave() { const { active, ...rest } = pr; store.set(PR_KEY, JSON.stringify(rest)); }
+function prFresh(d) { loadDoc(d); history.stack = [snapshot()]; history.idx = 0; $('#btn-undo').disabled = true; $('#btn-redo').disabled = true; }
+function prStart(id) {
+  if (pr.active) pr.slots[pr.cur] = prDoc(); else { pr.free = prDoc(); pr.active = true; }
+  pr.cur = id;
+  prFresh(pr.slots[id] || { nodes: [], links: [], nextId: 1 });
+  prSave(); prRender();
+}
+function prStop() {
+  if (!pr.active) return;
+  pr.slots[pr.cur] = prDoc();
+  pr.active = false;
+  prFresh(pr.free || { nodes: [], links: [], nextId: 1 });
+  prSave(); prRender();
+  toast('Your own drawing is back.');
+}
+function prWords(sigma, maxLen) { let out = ['']; let lvl = ['']; for (let i = 0; i < maxLen; i++) { lvl = lvl.flatMap((w) => [...sigma].map((c) => w + c)); out = out.concat(lvl); } return out; }
+function prCheck(ex, d) {
+  const words = prWords(ex.sigma, ex.maxLen);
+  for (const w of words) {
+    const r = prRun(d, w), want = ex.test(w);
+    if (PAGE === 'tm' && !r.halted) return { ok: false, w, nohalt: r.verdict };
+    if (r.accepted !== want) return { ok: false, w, got: r.accepted };
+  }
+  return { ok: true, n: words.length };
+}
+function prRender() {
+  const ex = prEx(), solvedN = PR_EXERCISES.filter((e) => pr.solved[e.id]).length;
+  $('#ex-pick').innerHTML = PR_EXERCISES.map((e, k) => `<option value="${e.id}">${k + 1}. ${escHTML(e.title)}${pr.solved[e.id] ? ' ✓' : ''}</option>`).join('');
+  $('#ex-pick').value = ex.id;
+  $('#ex-progress').textContent = `${solvedN} of ${PR_EXERCISES.length} solved`;
+  $('#ex-sec-label').textContent = `Exercise ${PR_EXERCISES.indexOf(ex) + 1}`;
+  $('#ex-solved').hidden = !pr.solved[ex.id];
+  $('#ex-title').textContent = ex.title;
+  $('#ex-text').innerHTML = `Draw a ${PAGE === 'tm' ? 'Turing machine that <b>decides</b>' : 'PDA that recognizes'} <span class="lbl">L = ${ex.lang}</span>.`;
+  $('#ex-rules').textContent = `Σ = {${[...ex.sigma].join(', ')}}. Check tests every string up to length ${ex.maxLen}${PAGE === 'tm' ? ', and your machine must halt on each one' : ''}.`;
+  const shown = pr.hints[ex.id] || 0;
+  $('#ex-hints').innerHTML = ex.hints.slice(0, shown).map((h) => `<li>${escHTML(h)}</li>`).join('');
+  $('#ex-hint').disabled = shown >= ex.hints.length;
+  $('#ex-start').hidden = pr.active && pr.cur === ex.id;
+  $('#ex-start').textContent = pr.active ? 'Switch the canvas to this exercise' : 'Draw it on the canvas';
+  $('#ex-check').disabled = !(pr.active && pr.cur === ex.id);
+  $('#ex-feedback').innerHTML = '';
+  const ban = $('#pr-banner');
+  ban.hidden = !pr.active;
+  if (pr.active) {
+    const k = PR_EXERCISES.indexOf(prEx()) + 1;
+    ban.innerHTML = `<span>Practicing: <b>Exercise ${k}</b>, ${escHTML(prEx().title)}</span><span class="grow"></span><button class="btn small" id="pr-stop">Stop practicing</button>`;
+    $('#pr-stop').addEventListener('click', prStop);
+  }
+}
+$('#ex-pick').addEventListener('change', (e) => {
+  const id = e.target.value;
+  if (pr.active) prStart(id); else { pr.cur = id; prSave(); prRender(); }
+});
+const prStep = (d) => { const k = PR_EXERCISES.indexOf(prEx()) + d; if (k < 0 || k >= PR_EXERCISES.length) return; const id = PR_EXERCISES[k].id; if (pr.active) prStart(id); else { pr.cur = id; prSave(); prRender(); } };
+$('#ex-prev').addEventListener('click', () => prStep(-1));
+$('#ex-next').addEventListener('click', () => prStep(1));
+$('#ex-start').addEventListener('click', () => { prStart(pr.cur); toast(`The canvas now holds your answer to this exercise. Your own drawing is saved.`); canvas.focus({ preventScroll: true }); });
+$('#ex-hint').addEventListener('click', () => { const ex = prEx(); pr.hints[ex.id] = Math.min(ex.hints.length, (pr.hints[ex.id] || 0) + 1); pr.help[ex.id] = true; prSave(); prRender(); });
+$('#ex-solution').addEventListener('click', () => {
+  const ex = prEx();
+  if (!pr.active || pr.cur !== ex.id) prStart(ex.id);
+  pr.help[ex.id] = 'solution';
+  loadDoc(ex.solution());
+  prSave(); prRender();
+  $('#ex-feedback').innerHTML = '<span class="small-text muted">This is one possible answer. It does not count as solved; try drawing your own from scratch.</span>';
+  toast('Solution loaded. Press Undo to get your drawing back.', 'Undo', undo);
+});
+$('#ex-check').addEventListener('click', () => {
+  const ex = prEx(), out = $('#ex-feedback');
+  if (!doc.nodes.length) { out.innerHTML = '<span class="warn-text">Draw your machine on the canvas first.</span>'; return; }
+  const R = prCheck(ex, doc);
+  if (R.ok) {
+    const viaSolution = pr.help[ex.id] === 'solution';
+    if (!viaSolution) pr.solved[ex.id] = true;
+    prSave(); prRender();
+    out.innerHTML = `<span class="pill ok">✓ Correct</span><span>Your ${PR_WHAT} gives the right answer on all ${R.n.toLocaleString()} strings up to length ${ex.maxLen}${PAGE === 'tm' ? ' and halts on every one' : ''}.${viaSolution ? ' (This used the shown solution, so it is not counted as solved.)' : ''}</span><span class="small-text muted">No program can test every string: equivalence is undecidable for ${PAGE === 'tm' ? 'Turing machines (Theorem 5.4)' : 'PDAs and grammars (Exercise 5.1)'}, so the check stops at length ${ex.maxLen}.</span>`;
+    return;
+  }
+  const shown = R.w.length ? `<span class="mono">${escHTML(R.w)}</span>` : '<span class="math">ε</span>';
+  const why = R.nohalt ? `Your machine ${R.nohalt === 'loop' ? 'loops forever' : 'does not halt within 20,000 steps'} on ${shown}. A decider must halt on every input.`
+    : R.got ? `Your ${PR_WHAT} accepts ${shown}, but ${shown} is not in L.` : `${shown} is in L, but your ${PR_WHAT} does not accept it.`;
+  out.innerHTML = `<span class="pill bad">✕ Not yet</span><span>${why}</span><span class="small-text muted">This is the shortest string where your machine and L disagree.</span><button class="btn small" id="ex-try">Test ${R.w.length ? escHTML(R.w) : 'ε'} step by step</button>`;
+  $('#ex-try').addEventListener('click', () => { $('#sim-reset').click(); $('#sim-input').value = R.w.length ? R.w : 'ε'; $('#tab-test').click(); $('#sim-step').click(); });
+});
+if (location.hash === '#practice') $('#tab-practice').click();
+prRender();
+
 /* ---------------- Startup ---------------- */
 function init() {
   readPalette();
@@ -2422,7 +2589,7 @@ function init() {
       })
       .catch(() => {});
   }
-  window.DeltaDraw = { get doc() { return doc; }, buildPDA, runPDA, pdaDecide, decidePDA, pdaSyms, parseRule, parseCFG, cfgToPDA, PDA_EXAMPLES, loadDoc, linkGeom, withDoc, R, makeSVG, makeTikZ, makeJFF, makePNG, parseJFF, measureLabel };
+  window.DeltaDraw = { get doc() { return doc; }, get pr() { return pr; }, PR_EXERCISES, prCheck, buildPDA, runPDA, pdaDecide, decidePDA, pdaSyms, parseRule, parseCFG, cfgToPDA, PDA_EXAMPLES, loadDoc, linkGeom, withDoc, R, makeSVG, makeTikZ, makeJFF, makePNG, parseJFF, measureLabel };
 }
 init();
 })();
