@@ -214,6 +214,30 @@ details.batch[open] summary{margin-bottom:8px}
 .conv-card h3{margin:0;font:600 14px var(--font-ui)}
 .conv-card p{margin:0;font-size:12.5px;color:var(--muted)}
 .result-note{font-size:12.5px;margin:0;padding:8px 10px;border-radius:7px;background:var(--surface-2)}
+.slots{display:grid;gap:8px}
+.slot{border:1px solid var(--line);border-radius:9px;padding:9px 10px;display:grid;gap:8px}
+.slot-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.slot-head b{font:600 15px var(--font-mono)}
+.eq-out{display:grid;gap:6px;justify-items:start}
+
+/* ---------- Step-by-step walkthrough card (over the canvas) ---------- */
+.walk{position:absolute;left:12px;right:12px;bottom:52px;max-height:min(48%,440px);overflow:auto;z-index:3;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:grid;gap:10px}
+.walk-head{display:flex;align-items:center;gap:10px}
+.walk-head strong{flex:1;font-size:14px}
+.walk-text{margin:0;font-size:14px;line-height:1.6;max-width:90ch}
+.walk-text .lbl,.walk-text b.lbl{font:italic 16px var(--font-math)}
+.grow{flex:1}
+.ttable td.cur{background:var(--hl-soft);box-shadow:inset 0 0 0 2px var(--hl)}
+.ttable tr.newrow td.state{background:var(--accent-soft)}
+.walk .ttable{min-width:0;width:auto}
+.ttable.pairs{min-width:0}
+.ttable.pairs td{min-width:42px;height:30px}
+.ttable.pairs td.void{border:0;background:transparent}
+.ttable.pairs th{background:transparent;border:0;font-family:var(--font-math);font-style:italic;font-size:15px}
+.mk{color:var(--bad);font-weight:600}
+.mk sub{font:500 10px var(--font-mono)}
+@media (max-width: 860px){ .walk{bottom:12px;max-height:62%} }
 
 .table-wrap{overflow-x:auto}
 .ttable{border-collapse:collapse;font:13px var(--font-mono);min-width:100%}
@@ -385,8 +409,8 @@ a.tile:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
     <div class="chapter">
       <div class="ch-label"><span class="ch-num">1</span><h3 class="ch-title">Regular languages</h3></div>
       <div class="tiles">
-        <a class="tile" href="fa.html"><div class="tile-top"><span class="tile-sec">1.1</span><span class="status live">Available</span></div><h3>Finite automata</h3><p>Draw DFAs, test strings step by step, minimize, and export PNG, SVG or LaTeX.</p></a>
-        <a class="tile" href="fa.html"><div class="tile-top"><span class="tile-sec">1.2</span><span class="status live">Available</span></div><h3>Nondeterminism</h3><p>Simulate NFAs and ε-NFAs, and convert an NFA to an equivalent DFA.</p></a>
+        <a class="tile" href="fa.html"><div class="tile-top"><span class="tile-sec">1.1</span><span class="status live">Available</span></div><h3>Finite automata</h3><p>Draw DFAs, test strings, minimize step by step, and combine machines: union, intersection, complement and equivalence.</p></a>
+        <a class="tile" href="fa.html"><div class="tile-top"><span class="tile-sec">1.2</span><span class="status live">Available</span></div><h3>Nondeterminism</h3><p>Simulate NFAs and ε-NFAs, and convert an NFA to a DFA step by step with the subset table.</p></a>
         <div class="tile is-soon"><div class="tile-top"><span class="tile-sec">1.3</span><span class="status soon">Coming soon</span></div><h3>Regular expressions</h3><p>Regular expression to NFA and NFA to regular expression, step by step.</p></div>
         <div class="tile is-soon"><div class="tile-top"><span class="tile-sec">1.4</span><span class="status soon">Coming soon</span></div><h3>Nonregular languages</h3><p>A pumping lemma game: choose the split and try to stay in the language.</p></div>
       </div>
@@ -446,7 +470,8 @@ a.tile:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
       <ul>
         <li>DFA, NFA and ε-NFA diagrams with curved arrows and self-loops</li>
         <li>Step-by-step string simulation with highlighted states</li>
-        <li>NFA to DFA conversion and DFA minimization</li>
+        <li>Step-by-step NFA to DFA conversion and DFA minimization</li>
+        <li>Union, intersection, complement and equivalence of automata</li>
         <li>Automatic transition table</li>
         <li>Export to PNG, SVG, LaTeX/TikZ and JFLAP</li>
         <li>Exam mode for proctored online exams</li>
@@ -462,7 +487,7 @@ a.tile:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
     </dl>
   </div>
   <footer class="foot">
-    <span>DeltaDraw v1.3</span>
+    <span>DeltaDraw v1.4</span>
     <a href="fa.html">Finite automata</a>
     <a href="exam.html">Exam mode</a>
     <a href="https://github.com/anwarhossainefat/deltadraw" rel="noopener" target="_blank">Source on GitHub</a>

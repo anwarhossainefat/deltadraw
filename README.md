@@ -22,8 +22,9 @@ The finite automata tool lets you draw DFA, NFA and ε-NFA state diagrams. Draw 
 - Draw states, transitions, curved arrows, self-loops, start arrows and accepting states
 - Labels with subscripts (`q_0` → q₀) and symbols (`\epsilon` → ε, `\Sigma` → Σ, …)
 - Step-by-step string simulation with highlighted states, plus batch testing
-- NFA → DFA conversion (subset construction with ε-closures)
-- DFA minimization
+- NFA → DFA conversion (subset construction with ε-closures), with a **step-by-step walkthrough** that fills the subset table one cell at a time and highlights the NFA states involved
+- DFA minimization, with a **step-by-step pair table** (table-filling method) showing why each pair is distinguishable
+- **Combine** two machines A and B: union, intersection, difference, complement (product construction), and an **equivalence check** that gives the shortest counterexample string
 - Automatic transition table (copy as Markdown or LaTeX)
 - Export to PNG (white or transparent, up to 4×), SVG, LaTeX/TikZ and JFLAP
 - Open JFLAP `.jff` files; save and reopen your own drawings (`.json`)

@@ -211,6 +211,30 @@ details.batch[open] summary{margin-bottom:8px}
 .conv-card h3{margin:0;font:600 14px var(--font-ui)}
 .conv-card p{margin:0;font-size:12.5px;color:var(--muted)}
 .result-note{font-size:12.5px;margin:0;padding:8px 10px;border-radius:7px;background:var(--surface-2)}
+.slots{display:grid;gap:8px}
+.slot{border:1px solid var(--line);border-radius:9px;padding:9px 10px;display:grid;gap:8px}
+.slot-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.slot-head b{font:600 15px var(--font-mono)}
+.eq-out{display:grid;gap:6px;justify-items:start}
+
+/* ---------- Step-by-step walkthrough card (over the canvas) ---------- */
+.walk{position:absolute;left:12px;right:12px;bottom:52px;max-height:min(48%,440px);overflow:auto;z-index:3;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:grid;gap:10px}
+.walk-head{display:flex;align-items:center;gap:10px}
+.walk-head strong{flex:1;font-size:14px}
+.walk-text{margin:0;font-size:14px;line-height:1.6;max-width:90ch}
+.walk-text .lbl,.walk-text b.lbl{font:italic 16px var(--font-math)}
+.grow{flex:1}
+.ttable td.cur{background:var(--hl-soft);box-shadow:inset 0 0 0 2px var(--hl)}
+.ttable tr.newrow td.state{background:var(--accent-soft)}
+.walk .ttable{min-width:0;width:auto}
+.ttable.pairs{min-width:0}
+.ttable.pairs td{min-width:42px;height:30px}
+.ttable.pairs td.void{border:0;background:transparent}
+.ttable.pairs th{background:transparent;border:0;font-family:var(--font-math);font-style:italic;font-size:15px}
+.mk{color:var(--bad);font-weight:600}
+.mk sub{font:500 10px var(--font-mono)}
+@media (max-width: 860px){ .walk{bottom:12px;max-height:62%} }
 
 .table-wrap{overflow-x:auto}
 .ttable{border-collapse:collapse;font:13px var(--font-mono);min-width:100%}
@@ -376,6 +400,23 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         </div>
       </div>
       <div class="hint" id="hint"></div>
+      <div class="walk" id="walk" role="region" aria-label="Step-by-step walkthrough" hidden>
+        <div class="walk-head">
+          <strong id="walk-title"></strong>
+          <span class="pill run" id="walk-count"></span>
+          <button class="btn icon small" id="walk-close" aria-label="Close walkthrough" title="Close (Esc)">✕</button>
+        </div>
+        <p class="walk-text" id="walk-text" aria-live="polite"></p>
+        <div class="table-wrap" id="walk-table"></div>
+        <div class="row">
+          <button class="btn small" id="walk-back">◂ Back</button>
+          <button class="btn primary small" id="walk-next">Next step ▸</button>
+          <button class="btn small" id="walk-all">Jump to end</button>
+          <span class="grow"></span>
+          <button class="btn primary small" id="walk-draw" hidden>Draw the result</button>
+          <button class="btn small" id="walk-beside" hidden>Draw beside</button>
+        </div>
+      </div>
       <div class="zoom seg">
         <button class="btn" id="zoom-out" title="Zoom out" aria-label="Zoom out">−</button>
         <button class="btn zoom-level" id="zoom-level" title="Reset zoom to 100%">100%</button>
@@ -422,6 +463,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       <div class="tabs" role="tablist" aria-label="Tools">
         <button class="tab" role="tab" id="tab-test" aria-controls="panel-test" aria-selected="true">Test</button>
         <button class="tab" role="tab" id="tab-convert" aria-controls="panel-convert" aria-selected="false">Convert</button>
+        <button class="tab" role="tab" id="tab-combine" aria-controls="panel-combine" aria-selected="false">Combine</button>
         <button class="tab" role="tab" id="tab-table" aria-controls="panel-table" aria-selected="false">Table</button>
       </div>
 
@@ -456,18 +498,58 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
           <p>Subset construction with ε-closures. Each new state is a set of the old states.</p>
           <div class="row">
             <button class="btn primary small" id="conv-dfa">Convert</button>
+            <button class="btn small" id="conv-dfa-steps">Step by step</button>
             <button class="btn small" id="conv-dfa-beside">Add beside drawing</button>
           </div>
         </div>
         <div class="conv-card">
           <h3>Minimize DFA</h3>
-          <p>Merges equivalent states. An NFA is converted to a DFA first.</p>
+          <p>Merges equivalent states using the table of state pairs. An NFA is converted to a DFA first.</p>
           <div class="row">
             <button class="btn primary small" id="conv-min">Minimize</button>
+            <button class="btn small" id="conv-min-steps">Step by step</button>
             <button class="btn small" id="conv-min-beside">Add beside drawing</button>
           </div>
         </div>
         <p class="result-note" id="conv-out" hidden></p>
+      </div>
+
+      <div class="tabpanel" role="tabpanel" id="panel-combine" aria-labelledby="tab-combine" hidden>
+        <p class="small-text muted">Save two machines as A and B, then combine or compare them. NFAs are converted to DFAs first.</p>
+        <div class="slots">
+          <div class="slot">
+            <div class="slot-head"><b>A</b><span class="small-text" id="slot-A"></span></div>
+            <div class="row"><button class="btn small" id="slot-use-A">Use drawing as A</button><button class="btn small" id="slot-open-A">Open A</button></div>
+          </div>
+          <div class="slot">
+            <div class="slot-head"><b>B</b><span class="small-text" id="slot-B"></span></div>
+            <div class="row"><button class="btn small" id="slot-use-B">Use drawing as B</button><button class="btn small" id="slot-open-B">Open B</button></div>
+          </div>
+        </div>
+        <div class="conv-card">
+          <h3>Operations</h3>
+          <p>Product construction on complete DFAs. The result is drawn as a new DFA.</p>
+          <div class="row">
+            <button class="btn small" data-op="union" title="Strings accepted by A or B">A ∪ B</button>
+            <button class="btn small" data-op="inter" title="Strings accepted by both A and B">A ∩ B</button>
+            <button class="btn small" data-op="diff" title="Strings accepted by A but not B">A − B</button>
+            <button class="btn small" data-op="comp" title="Strings A rejects">Complement of A</button>
+          </div>
+          <div class="checks">
+            <label class="check"><input type="checkbox" id="cmb-short" checked> Rename states to q₀, q₁ …</label>
+            <label class="check"><input type="checkbox" id="cmb-dead"> Include dead states</label>
+          </div>
+          <label class="field" for="cmb-place">The result
+            <select class="select" id="cmb-place"><option value="replace">replaces the drawing</option><option value="beside">goes beside the drawing</option></select>
+          </label>
+        </div>
+        <p class="result-note" id="cmb-out" hidden></p>
+        <div class="conv-card">
+          <h3>Equivalence</h3>
+          <p>Do A and B accept exactly the same strings? If not, you get the shortest string that tells them apart.</p>
+          <div class="row"><button class="btn primary small" id="cmb-eq-btn">Check A ≡ B</button></div>
+          <div class="eq-out small-text" id="cmb-eq" aria-live="polite" hidden></div>
+        </div>
       </div>
 
       <div class="tabpanel" role="tabpanel" id="panel-table" aria-labelledby="tab-table" hidden>
@@ -555,7 +637,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
   </div>
 
   <footer class="foot">
-    <span>DeltaDraw v1.3 · finite automata drawer</span>
+    <span>DeltaDraw v1.4 · finite automata drawer</span>
     <a href="index.html">All chapters</a>
     <a href="https://github.com/anwarhossainefat/deltadraw" rel="noopener" target="_blank">Source on GitHub</a>
   </footer>
@@ -611,10 +693,11 @@ const $ = (s) => document.querySelector(s);
 const $$ = (s) => Array.from(document.querySelectorAll(s));
 const TAU = Math.PI * 2;
 const STORE_KEY = 'deltadraw:v2';
-const VERSION = '1.3';
+const VERSION = '1.4';
 const NODE_MIN_R = 26;
 const GRID = 20;
 let sim = null; // active string simulation (full version only)
+let walk = null; // active step-by-step walkthrough (full version only)
 
 /* ---------------- Storage (wrapped: may be unavailable) ---------------- */
 const store = {
@@ -1006,7 +1089,8 @@ function paint() {
   ctx.setTransform(dpr * view.s, 0, 0, dpr * view.s, dpr * view.tx, dpr * view.ty);
   ctx.lineCap = 'round'; ctx.lineJoin = 'round';
   const pen = new CanvasPen(ctx);
-  const step2 = sim && sim.steps[sim.idx];
+  // highlights come from a running walkthrough (full version) or the string simulation
+  const step2 = (walk && walk.steps[walk.idx]) || (sim && sim.steps[sim.idx]);
   drawDiagram(pen, { P: PAL, sel: selection, nodeFill: PAL.node, colors: settings.colorStates, hlNodes: step2 && step2.set, hlLinks: step2 && step2.used });
   // link being created
   if (drag && (drag.mode === 'newlink' || drag.mode === 'newstart')) {
@@ -1025,11 +1109,15 @@ function diagramBBox(forExport) {
 function fitView() {
   const bb = diagramBBox();
   if (!bb) { view.s = 1; view.tx = W / 2; view.ty = H / 2; render(); return; }
-  const pad = 56;
-  const s = Math.min(1.3, Math.max(0.25, Math.min((W - 2 * pad) / Math.max(bb.w, 1), (H - 2 * pad - 30) / Math.max(bb.h, 1))));
+  const pad = 48;
+  // keep clear of the bottom bar, or of the walkthrough card when one is open
+  const card = document.getElementById('walk');
+  const reserve = card && !card.hidden ? Math.min(H * 0.62, card.offsetHeight + 64) : 30;
+  const availH = Math.max(120, H - reserve);
+  const s = Math.min(1.3, Math.max(0.2, Math.min((W - 2 * pad) / Math.max(bb.w, 1), (availH - 2 * pad + 20) / Math.max(bb.h, 1))));
   view.s = s;
   view.tx = W / 2 - (bb.x + bb.w / 2) * s;
-  view.ty = (H - 30) / 2 - (bb.y + bb.h / 2) * s;
+  view.ty = availH / 2 - (bb.y + bb.h / 2) * s;
   render();
 }
 function zoomAt(factor, cx, cy) {
@@ -1121,6 +1209,7 @@ function docChanged() {
   measureCache.size > 2000 && measureCache.clear();
   persist();
   resetSim(true);
+  checkWalkStillValid();
   updateMachineInfo();
   updateTable();
   $('#welcome').hidden = doc.nodes.length > 0;
@@ -1383,6 +1472,8 @@ document.addEventListener('keydown', (e) => {
   if (mod && (e.key === 'z' || e.key === 'Z')) { e.preventDefault(); e.shiftKey ? redo() : undo(); return; }
   if (mod && (e.key === 'y' || e.key === 'Y')) { e.preventDefault(); redo(); return; }
   if (mod) return;
+  if (walk && !selection && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) { e.preventDefault(); walkStep(e.key === 'ArrowRight' ? 1 : -1); return; }
+  if (walk && !selection && e.key === 'Escape') { closeWalk(); return; }
   // only handle canvas-level keys when focus is on the page/canvas, not on buttons in the about section
   const o = selectedObj();
   if (e.key === 'Escape') { select(null); setTool('select'); return; }
@@ -1470,10 +1561,12 @@ function splitSymbols(text) {
 }
 function natCmp(a, b) { return String(a).localeCompare(String(b), undefined, { numeric: true }); }
 
-function buildAutomaton() {
-  const A = { ids: doc.nodes.map((n) => n.id), names: new Map(), start: null, accept: new Set(), trans: new Map(), eps: new Map(), alphabet: [], notes: [], warnings: [], isDFA: true, missing: 0, hasEps: false };
+// src: any drawing {nodes, links}; defaults to the one on the canvas (slots A/B use their own)
+function buildAutomaton(src = doc) {
+  const has = new Set(src.nodes.map((n) => n.id));
+  const A = { ids: src.nodes.map((n) => n.id), names: new Map(), start: null, accept: new Set(), trans: new Map(), eps: new Map(), alphabet: [], notes: [], warnings: [], isDFA: true, missing: 0, hasEps: false };
   const seen = new Map();
-  for (const n of doc.nodes) {
+  for (const n of src.nodes) {
     const nm = (n.text || '').trim();
     A.names.set(n.id, nm || '·');
     if (!nm) A.warnings.push('A state has no name.');
@@ -1482,15 +1575,15 @@ function buildAutomaton() {
     if (n.accept) A.accept.add(n.id);
     A.trans.set(n.id, new Map()); A.eps.set(n.id, []);
   }
-  const starts = doc.links.filter((l) => l.type === 'start' && node(l.node));
+  const starts = src.links.filter((l) => l.type === 'start' && has.has(l.node));
   if (starts.length) A.start = starts[0].node;
-  else if (doc.nodes.length) A.warnings.push('No initial state. Select a state and tick “Initial state”.');
+  else if (src.nodes.length) A.warnings.push('No initial state. Select a state and tick “Initial state”.');
   const alpha = new Set();
   let unlabeled = 0;
-  for (const l of doc.links) {
+  for (const l of src.links) {
     if (l.type === 'start') continue;
     const from = l.type === 'self' ? l.node : l.from, to = l.type === 'self' ? l.node : l.to;
-    if (!node(from) || !node(to)) continue;
+    if (!has.has(from) || !has.has(to)) continue;
     const syms = splitSymbols(l.text);
     if (!syms.length) { unlabeled++; continue; }
     for (const s of syms) {
@@ -1567,7 +1660,9 @@ function runSim(A, tokens) {
 }
 
 /* ---------- Subset construction (NFA -> DFA) ---------- */
-function determinize(A, withDead) {
+// sigma: alphabet to use (defaults to the automaton's own); products pass the union of two alphabets
+function determinize(A, withDead, sigma) {
+  const alphabet = sigma || A.alphabet;
   const order = new Map(A.ids.map((id, i) => [id, i]));
   const key = (set) => [...set].sort((a, b) => order.get(a) - order.get(b)).join(',');
   const states = [], index = new Map(), trans = [];
@@ -1582,7 +1677,7 @@ function determinize(A, withDead) {
   };
   add(closure(A, new Set([A.start])).set);
   for (let i = 0; i < states.length; i++) {
-    for (const sym of A.alphabet) {
+    for (const sym of alphabet) {
       const next = new Set();
       for (const s of states[i].members) for (const t of A.trans.get(s)?.get(sym) || []) next.add(t.to);
       const c = closure(A, next).set;
@@ -1596,7 +1691,7 @@ function determinize(A, withDead) {
       : allSingle && !A.hasEps ? A.names.get(s.members[0])
       : '{' + s.members.map((m) => A.names.get(m)).join(',') + '}';
   }
-  return { states, trans, alphabet: A.alphabet, start: 0, fromDFA: allSingle && !A.hasEps };
+  return { states, trans, alphabet, start: 0, fromDFA: allSingle && !A.hasEps };
 }
 
 /* ---------- Minimization (Moore partition refinement) ---------- */
@@ -1703,10 +1798,24 @@ function layoutResult(Rz, shortNames, beside) {
       pair.get(k).push(a);
     }
   });
+  // a self-loop goes on the emptiest side: opposite the average direction of the state's neighbours
+  const loopAngle = (i) => {
+    let sx = 0, sy = 0;
+    for (const k of pair.keys()) {
+      const [a, b] = k.split('>').map(Number);
+      const o = a === i && b !== i ? b : b === i && a !== i ? a : -1;
+      if (o < 0) continue;
+      const vx = pos[o].x - pos[i].x, vy = pos[o].y - pos[i].y, len = Math.hypot(vx, vy) || 1;
+      sx += vx / len; sy += vy / len;
+    }
+    if (Math.hypot(sx, sy) < 0.35) return -Math.PI / 2;
+    const a = Math.atan2(-sy, -sx);
+    return Math.round(a / (Math.PI / 4)) * (Math.PI / 4); // snap to 45° steps for a tidy look
+  };
   for (const [k, syms] of pair) {
     const [i, t] = k.split('>').map(Number);
     const text = syms.join(',');
-    if (i === t) { links.push({ id: newId(), type: 'self', node: ids[i], angle: -Math.PI / 2, text }); continue; }
+    if (i === t) { links.push({ id: newId(), type: 'self', node: ids[i], angle: loopAngle(i), text }); continue; }
     const l = { id: newId(), type: 'link', from: ids[i], to: ids[t], par: 0.5, perp: 0, text };
     const dx = Math.abs(pos[i].x - pos[t].x), dy = Math.abs(pos[i].y - pos[t].y);
     const span = Math.abs(depth[i] - depth[t]);
@@ -1715,16 +1824,14 @@ function layoutResult(Rz, shortNames, beside) {
       // skip over the states in between: bend well below them (self-loops sit on top)
       const mag = 70 + 25 * (span - 2);
       l.perp = hasRev ? mag : (pos[t].x > pos[i].x ? mag : -mag);
-    } else if (hasRev) l.perp = 30;
-    else if (dx < 1 && dy > 140) l.perp = 40;
+    } else if (hasRev) l.perp = dx < 1 ? 34 : 30;
+    else if (dx < 1) l.perp = dy > 140 ? 50 : 36; // same column: curve sideways so it clears self-loops
     links.push(l);
   }
   const startNode = newNodes[Rz.start];
   return { nodes: newNodes, links, startNode, names };
 }
-function applyResult(Rz, beside, msg) {
-  const short = $('#opt-short').checked;
-  const before = beside ? null : snapshot();
+function applyResult(Rz, beside, msg, short = $('#opt-short').checked, outSel = '#conv-out') {
   if (!beside) { doc.nodes = []; doc.links = []; reindex(); }
   const L = layoutResult(Rz, short, beside);
   if (beside) doc.links = doc.links.filter((l) => l.type !== 'start');
@@ -1734,7 +1841,7 @@ function applyResult(Rz, beside, msg) {
   select(null);
   commit();
   fitView();
-  const out = $('#conv-out');
+  const out = $(outSel);
   out.hidden = false;
   out.textContent = msg + (beside ? ' The start arrow moved to the new automaton.' : '') + ' Press Undo to go back.';
   toast(msg, 'Undo', undo);
@@ -1761,6 +1868,335 @@ $('#conv-dfa').addEventListener('click', () => convertToDFA(false));
 $('#conv-dfa-beside').addEventListener('click', () => convertToDFA(true));
 $('#conv-min').addEventListener('click', () => minimize(false));
 $('#conv-min-beside').addEventListener('click', () => minimize(true));
+
+/* =====================================================================
+   Step-by-step walkthroughs (NFA → DFA, minimization)
+   walk = { title, steps:[{text, table, set, used}], idx, sig, onDraw(beside) }
+   ===================================================================== */
+function automatonSig(d = doc) {
+  // what the automaton *is* (not where things are drawn): moving states keeps a walkthrough open
+  return JSON.stringify([d.nodes.map((n) => [n.id, n.text, !!n.accept]), d.links.map((l) => [l.id, l.type, l.from, l.to, l.node, l.text])]);
+}
+const setHTML = (A, ids) => `<span class="lbl">${ids.length ? '{' + ids.map((id) => labelHTML(A.names.get(id))).join(', ') + '}' : '∅'}</span>`;
+function openWalk(w) {
+  sim = null; $('#sim-out').innerHTML = '';
+  walk = { ...w, idx: 0, sig: automatonSig() };
+  $('#walk').hidden = false; $('#hint').hidden = true;
+  showWalk();
+  // reserve room for the tallest step so states never hide behind the card
+  const card = $('#walk'), tbl = $('#walk-table');
+  tbl.innerHTML = walk.steps[walk.steps.length - 1].table || '';
+  const tall = card.offsetHeight;
+  showWalk();
+  card.style.minHeight = Math.min(tall, card.parentElement.clientHeight * 0.48) + 'px';
+  fitView();
+}
+function closeWalk() {
+  if (!walk) return;
+  walk = null;
+  $('#walk').hidden = true; $('#hint').hidden = false;
+  $('#walk').style.minHeight = '';
+  render();
+}
+function checkWalkStillValid() {
+  if (walk && automatonSig() !== walk.sig) { closeWalk(); toast('Walkthrough closed because the automaton changed.'); }
+}
+function showWalk() {
+  const st = walk.steps[walk.idx], last = walk.idx === walk.steps.length - 1;
+  $('#walk-title').textContent = walk.title;
+  $('#walk-count').textContent = `Step ${walk.idx + 1} of ${walk.steps.length}`;
+  $('#walk-text').innerHTML = st.text;
+  $('#walk-table').innerHTML = st.table || '';
+  $('#walk-back').disabled = walk.idx === 0;
+  $('#walk-next').disabled = last;
+  $('#walk-all').disabled = last;
+  $('#walk-draw').hidden = !last;
+  $('#walk-beside').hidden = !last;
+  const cur = $('#walk-table .cur');
+  if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  render();
+}
+function walkStep(d) {
+  if (!walk) return;
+  walk.idx = Math.max(0, Math.min(walk.steps.length - 1, walk.idx + d));
+  showWalk();
+}
+$('#walk-back').addEventListener('click', () => walkStep(-1));
+$('#walk-next').addEventListener('click', () => walkStep(1));
+$('#walk-all').addEventListener('click', () => walkStep(1e9));
+$('#walk-close').addEventListener('click', closeWalk);
+$('#walk-draw').addEventListener('click', () => { const f = walk && walk.onDraw; closeWalk(); if (f) f(false); });
+$('#walk-beside').addEventListener('click', () => { const f = walk && walk.onDraw; closeWalk(); if (f) f(true); });
+
+/* ---------- Subset construction, one table cell per step ---------- */
+function subsetWalk(A, withDead) {
+  const order = new Map(A.ids.map((id, i) => [id, i]));
+  const sortIds = (s) => [...s].sort((a, b) => order.get(a) - order.get(b));
+  const rows = [], index = new Map(), cells = [];
+  const add = (set) => {
+    const ids = sortIds(set), k = ids.join(',');
+    if (index.has(k)) return [index.get(k), false];
+    index.set(k, rows.length);
+    rows.push({ ids, accept: ids.some((s) => A.accept.has(s)) });
+    cells.push(new Map());
+    return [rows.length - 1, true];
+  };
+  const sigma = A.alphabet;
+  const table = (cur) => {
+    const head = `<tr><th>δ</th>${sigma.map((s) => `<th class="lbl">${labelHTML(s)}</th>`).join('')}</tr>`;
+    const body = rows.map((r, i) => {
+      const tds = sigma.map((s) => {
+        const isCur = cur && cur.row === i && cur.sym === s;
+        const v = cells[i].get(s);
+        const inner = !cells[i].has(s) ? '' : v == null ? '<span class="muted">—</span>' : setHTML(A, rows[v].ids);
+        return `<td class="${isCur ? 'cur' : ''}">${inner}</td>`;
+      }).join('');
+      return `<tr${cur && cur.newRow === i ? ' class="newrow"' : ''}><td class="state"><span class="mark">${i === 0 ? '→' : '&nbsp;'}${r.accept ? '*' : '&nbsp;'}</span>${setHTML(A, r.ids)}</td>${tds}</tr>`;
+    }).join('');
+    return `<table class="ttable">${head}${body}</table>`;
+  };
+  const steps = [];
+  const startName = `<span class="lbl">${labelHTML(A.names.get(A.start))}</span>`;
+  const c0 = closure(A, new Set([A.start]));
+  add(c0.set);
+  steps.push({
+    text: c0.set.size > 1
+      ? `Each DFA state is a <b>set</b> of NFA states. The DFA starts in the ε-closure of ${startName}: every state reachable from it using only ε-moves, which is ${setHTML(A, rows[0].ids)}.`
+      : `Each DFA state is a <b>set</b> of NFA states. The DFA starts in ${setHTML(A, rows[0].ids)}. Now fill in one row at a time.`,
+    table: table({ newRow: 0 }), set: c0.set, used: c0.used,
+  });
+  for (let i = 0; i < rows.length; i++) {
+    for (const sym of sigma) {
+      const move = new Set(), used = new Set();
+      for (const s of rows[i].ids) for (const t of A.trans.get(s)?.get(sym) || []) { move.add(t.to); used.add(t.link); }
+      const c = closure(A, move);
+      for (const u of c.used) used.add(u);
+      const from = setHTML(A, rows[i].ids), symH = `<b class="lbl">${labelHTML(sym)}</b>`;
+      if (!c.set.size && !withDead) {
+        cells[i].set(sym, null);
+        steps.push({ text: `From ${from} on ${symH}: no NFA state can move, so this DFA cell stays empty (the dead state ∅ is left out).`, table: table({ row: i, sym }), set: new Set(rows[i].ids), used });
+        continue;
+      }
+      const [j, isNew] = add(c.set);
+      cells[i].set(sym, j);
+      let t;
+      if (!c.set.size) t = `From ${from} on ${symH}: no NFA state can move, so the DFA goes to the dead state ∅${isNew ? ', a new state' : ''}.`;
+      else {
+        t = `From ${from} on ${symH}: the NFA can move to ${setHTML(A, sortIds(move))}`;
+        if (c.set.size !== move.size) t += `, and following ε-moves reaches ${setHTML(A, rows[j].ids)}`;
+        t += isNew ? '. That set is <b>new</b>, so it becomes a new DFA state (a new row).' : '. That set is already a row in the table.';
+      }
+      steps.push({ text: t, table: table({ row: i, sym, newRow: isNew ? j : -1 }), set: c.set, used });
+    }
+  }
+  const acc = rows.filter((r) => r.accept);
+  steps.push({
+    text: `Done. Every row is filled, so the DFA has <b>${rows.length}</b> state${rows.length === 1 ? '' : 's'}. A DFA state is accepting (*) when it contains an accepting NFA state: ${acc.length ? acc.map((r) => setHTML(A, r.ids)).join(', ') : 'none'}.`,
+    table: table(null), set: new Set(A.accept), used: new Set(),
+  });
+  return steps;
+}
+
+/* ---------- Minimization with the pair table (table-filling), one mark per step ---------- */
+function minimizeWalk(A, withDead) {
+  const D = determinize(A, true);
+  const n = D.states.length, sigma = D.alphabet;
+  const names = D.states.map((s) => `<span class="lbl">${labelHTML(s.name)}</span>`);
+  const canvasId = (i) => (D.fromDFA && D.states[i].members.length === 1 ? D.states[i].members[0] : null);
+  const hl = (idx) => new Set(idx.map(canvasId).filter((x) => x != null));
+  const mark = Array.from({ length: n }, () => new Array(n).fill(0)); // round in which (i, j) was marked; 0 = unmarked
+  const table = (cur) => {
+    if (n < 2) return '';
+    let h = '<table class="ttable pairs"><tbody>';
+    for (let i = 1; i < n; i++) {
+      h += `<tr><th>${names[i]}</th>`;
+      for (let j = 0; j < n - 1; j++) {
+        if (j >= i) { h += '<td class="void"></td>'; continue; }
+        const m = mark[i][j], isCur = cur && cur[0] === i && cur[1] === j;
+        h += `<td class="${isCur ? 'cur' : ''}">${m ? `<span class="mk">×<sub>${m}</sub></span>` : ''}</td>`;
+      }
+      h += '</tr>';
+    }
+    return h + `<tr><th></th>${names.slice(0, n - 1).map((nm) => `<th>${nm}</th>`).join('')}</tr></tbody></table>`;
+  };
+  const notes = [];
+  if (!A.isDFA) notes.push('This is an NFA, so it was converted to a DFA first.');
+  if (D.states.some((s) => !s.members.length)) notes.push('A dead state ∅ was added so every state has a move on every symbol.');
+  if (D.fromDFA) {
+    const reach = new Set(D.states.flatMap((s) => s.members));
+    const un = A.ids.filter((id) => !reach.has(id));
+    if (un.length) notes.push(`Unreachable state${un.length > 1 ? 's' : ''} ${un.map((id) => `<span class="lbl">${labelHTML(A.names.get(id))}</span>`).join(', ')} ${un.length > 1 ? 'were' : 'was'} removed.`);
+  }
+  const none = new Set();
+  const steps = [{
+    text: `${notes.length ? notes.join(' ') + ' ' : ''}The table has one cell for each <b>pair</b> of states. A mark × means the two states are <b>distinguishable</b>: some string is accepted from one and rejected from the other. The small number is the round in which the pair was marked.`,
+    table: table(null), set: none, used: none,
+  }];
+  let first = 0;
+  for (let i = 1; i < n; i++) for (let j = 0; j < i; j++) if (D.states[i].accept !== D.states[j].accept) { mark[i][j] = 1; first++; }
+  steps.push({
+    text: first
+      ? `Round 1: mark every pair where one state is accepting and the other is not. The empty string ε already tells them apart. That marks ${first} pair${first > 1 ? 's' : ''}.`
+      : 'Round 1: the states are all accepting or all non-accepting, so nothing is marked yet.',
+    table: table(null), set: hl(D.states.map((s, i) => (s.accept ? i : -1)).filter((i) => i >= 0)), used: none,
+  });
+  for (let round = 2; ; round++) {
+    let changed = false;
+    for (let i = 1; i < n; i++) for (let j = 0; j < i; j++) {
+      if (mark[i][j]) continue;
+      for (const sym of sigma) {
+        const a = D.trans[i].get(sym), b = D.trans[j].get(sym);
+        if (a === b) continue;
+        const x = Math.max(a, b), y = Math.min(a, b);
+        if (mark[x][y] && mark[x][y] < round) {
+          mark[i][j] = round; changed = true;
+          steps.push({
+            text: `Round ${round}: pair (${names[i]}, ${names[j]}). On <b class="lbl">${labelHTML(sym)}</b>, ${names[i]} goes to ${names[a]} and ${names[j]} goes to ${names[b]}. The pair (${names[x]}, ${names[y]}) is already marked, so (${names[i]}, ${names[j]}) is distinguishable too: mark it.`,
+            table: table([i, j]), set: hl([i, j]), used: none,
+          });
+          break;
+        }
+      }
+    }
+    if (!changed) {
+      steps.push({ text: `Round ${round}: no unmarked pair leads to a marked pair on any symbol, so no new marks. The table is final.`, table: table(null), set: none, used: none });
+      break;
+    }
+  }
+  const parent = D.states.map((_, i) => i);
+  const find = (x) => (parent[x] === x ? x : (parent[x] = find(parent[x])));
+  for (let i = 1; i < n; i++) for (let j = 0; j < i; j++) if (!mark[i][j]) parent[find(i)] = find(j);
+  const classes = new Map();
+  D.states.forEach((_, i) => { const r = find(i); if (!classes.has(r)) classes.set(r, []); classes.get(r).push(i); });
+  const merged = [...classes.values()].filter((g) => g.length > 1);
+  const M = minimizeDFA(A, withDead);
+  const deadNote = M.states.length < classes.size ? ' The dead state is left out of the drawing (see “Include dead state”).' : '';
+  steps.push({
+    text: (merged.length
+      ? `Unmarked pairs are equivalent, so they merge: ${merged.map((g) => '{' + g.map((i) => names[i]).join(', ') + '}').join(', ')}. The minimal DFA has <b>${classes.size}</b> state${classes.size === 1 ? '' : 's'}.`
+      : `Every pair is marked, so no states merge. This DFA is already minimal, with <b>${n}</b> state${n === 1 ? '' : 's'}.`) + deadNote,
+    table: table(null), set: hl(merged.flat()), used: none,
+  });
+  return steps;
+}
+function startSubsetWalk() {
+  const A = buildAutomaton();
+  if (!requireStart(A)) return;
+  if (!A.alphabet.length) { toast('Label some transitions first, so the automaton has an alphabet.'); return; }
+  openWalk({ title: 'NFA → DFA, step by step', steps: subsetWalk(A, $('#opt-dead').checked), onDraw: (beside) => convertToDFA(beside) });
+}
+function startMinimizeWalk() {
+  const A = buildAutomaton();
+  if (!requireStart(A)) return;
+  if (!A.alphabet.length) { toast('Label some transitions first, so the automaton has an alphabet.'); return; }
+  openWalk({ title: 'Minimization, step by step', steps: minimizeWalk(A, $('#opt-dead').checked), onDraw: (beside) => minimize(beside) });
+}
+$('#conv-dfa-steps').addEventListener('click', startSubsetWalk);
+$('#conv-min-steps').addEventListener('click', startMinimizeWalk);
+
+/* =====================================================================
+   Combine: slots A and B, product construction, complement, equivalence
+   ===================================================================== */
+const SLOT_KEY = 'deltadraw:slots';
+let slots = {};
+try { slots = JSON.parse(store.get(SLOT_KEY) || '{}') || {}; } catch (e) { slots = {}; }
+const slotFilled = (k) => !!(slots[k] && isDocShape(slots[k].doc) && slots[k].doc.nodes.length);
+function updateSlots() {
+  for (const k of ['A', 'B']) {
+    let info = '<span class="muted">empty</span>';
+    if (slotFilled(k)) {
+      const A = buildAutomaton(slots[k].doc);
+      info = `${A.ids.length} state${A.ids.length === 1 ? '' : 's'} · ${A.isDFA ? 'DFA' : 'NFA'} · Σ = {${A.alphabet.map(labelHTML).join(', ')}}`;
+    }
+    $('#slot-' + k).innerHTML = info;
+    $('#slot-open-' + k).disabled = !slotFilled(k);
+  }
+}
+function useAsSlot(k) {
+  if (!doc.nodes.length) { toast('Draw an automaton first.'); return; }
+  slots[k] = { doc: JSON.parse(snapshot()), time: new Date().toISOString() };
+  store.set(SLOT_KEY, JSON.stringify(slots));
+  updateSlots();
+  toast(`Saved the drawing as ${k}.${k === 'A' && !slotFilled('B') ? ' Now draw another machine and save it as B.' : ''}`);
+}
+function slotAutomaton(k) {
+  if (!slotFilled(k)) { toast(`Save a drawing as ${k} first.`); return null; }
+  const A = buildAutomaton(slots[k].doc);
+  if (A.start == null) { toast(`${k} has no initial state.`); return null; }
+  return A;
+}
+function product(A, B, op) {
+  const sigma = [...new Set([...A.alphabet, ...B.alphabet])].sort(natCmp);
+  const DA = determinize(A, true, sigma), DB = determinize(B, true, sigma);
+  const acc = { union: (a, b) => a || b, inter: (a, b) => a && b, diff: (a, b) => a && !b, xor: (a, b) => a !== b }[op];
+  const states = [], trans = [], index = new Map(), parent = [];
+  const add = (i, j, from, sym) => {
+    const k = i + ',' + j;
+    if (index.has(k)) return index.get(k);
+    const x = states.length;
+    index.set(k, x);
+    states.push({ i, j, name: `(${DA.states[i].name},${DB.states[j].name})`, accept: acc(DA.states[i].accept, DB.states[j].accept) });
+    trans.push(new Map());
+    parent.push(from == null ? null : [from, sym]);
+    return x;
+  };
+  add(0, 0, null, null);
+  for (let x = 0; x < states.length; x++) {
+    const { i, j } = states[x];
+    for (const s of sigma) trans[x].set(s, add(DA.trans[i].get(s), DB.trans[j].get(s), x, s));
+  }
+  return { states, trans, alphabet: sigma, start: 0, DA, DB, parent, sigmaDiffers: A.alphabet.join('\u0000') !== B.alphabet.join('\u0000') };
+}
+function complementDFA(A) {
+  const D = determinize(A, true);
+  return { ...D, states: D.states.map((s) => ({ ...s, accept: !s.accept })) };
+}
+function pruneDead(Rz) {
+  if ($('#cmb-dead').checked) return Rz;
+  const dead = (s, i) => i !== Rz.start && !s.accept && Rz.alphabet.every((a) => Rz.trans[i].get(a) === i);
+  return Rz.states.some(dead) ? dropStates(Rz, dead) : Rz;
+}
+function runOp(op) {
+  const A = slotAutomaton('A');
+  if (!A) return;
+  let Rz, label;
+  if (op === 'comp') { Rz = complementDFA(A); label = 'Complement of A'; }
+  else {
+    const B = slotAutomaton('B');
+    if (!B) return;
+    Rz = product(A, B, op);
+    label = { union: 'A ∪ B', inter: 'A ∩ B', diff: 'A − B' }[op];
+  }
+  const note = Rz.sigmaDiffers ? ' The two alphabets were combined.' : '';
+  Rz = pruneDead(Rz);
+  applyResult(Rz, $('#cmb-place').value === 'beside', `${label}: ${Rz.states.length} state${Rz.states.length === 1 ? '' : 's'}.${note}`, $('#cmb-short').checked, '#cmb-out');
+}
+function checkEquivalent() {
+  const A = slotAutomaton('A'), B = A && slotAutomaton('B');
+  if (!A || !B) return;
+  const P = product(A, B, 'xor');
+  const out = $('#cmb-eq');
+  const x = P.states.findIndex((s) => s.accept); // breadth-first order, so the first one gives a shortest string
+  const note = P.sigmaDiffers ? `<span class="muted">Compared over Σ = {${P.alphabet.map(labelHTML).join(', ')}}.</span>` : '';
+  if (x < 0) {
+    out.innerHTML = `<span class="pill ok">✓ Equivalent</span><span>L(A) = L(B): both accept exactly the same strings.</span>${note}`;
+  } else {
+    const word = [];
+    for (let y = x; P.parent[y]; y = P.parent[y][0]) word.unshift(P.parent[y][1]);
+    const multi = P.alphabet.some((s) => [...s].length > 1);
+    const w = word.length ? escHTML(word.join(multi ? ' ' : '')) : 'ε';
+    const inA = P.DA.states[P.states[x].i].accept;
+    out.innerHTML = `<span class="pill bad">✕ Not equivalent</span><span>Shortest counterexample: <b class="math">${w}</b> is accepted by ${inA ? 'A' : 'B'} but not by ${inA ? 'B' : 'A'}.</span>${note}`;
+  }
+  out.hidden = false;
+}
+for (const k of ['A', 'B']) {
+  $('#slot-use-' + k).addEventListener('click', () => useAsSlot(k));
+  $('#slot-open-' + k).addEventListener('click', () => { if (slotFilled(k)) { loadDoc(slots[k].doc); toast(`Opened ${k}.`, 'Undo', undo); } });
+}
+for (const b of $$('[data-op]')) b.addEventListener('click', () => runOp(b.dataset.op));
+$('#cmb-eq-btn').addEventListener('click', checkEquivalent);
+updateSlots();
 
 /* ---------------- Machine info card ---------------- */
 function updateMachineInfo() {
@@ -1831,6 +2267,7 @@ function resetSim(fromEdit) {
   render();
 }
 function startSim() {
+  closeWalk();
   const A = buildAutomaton();
   if (!requireStart(A)) return null;
   const tokens = tokenize(A, $('#sim-input').value);
@@ -2297,7 +2734,7 @@ function init() {
       })
       .catch(() => {});
   }
-  window.DeltaDraw = { get doc() { return doc; }, buildAutomaton, runSim, tokenize, determinize, minimizeDFA, makeSVG, makeTikZ, makeJFF, makePNG, loadDoc, EXAMPLES };
+  window.DeltaDraw = { get doc() { return doc; }, buildAutomaton, runSim, tokenize, determinize, minimizeDFA, subsetWalk, minimizeWalk, product, complementDFA, makeSVG, makeTikZ, makeJFF, makePNG, loadDoc, EXAMPLES };
 }
 init();
 })();
