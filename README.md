@@ -15,9 +15,10 @@ DeltaDraw is a free, browser-based companion for a Theory of Computation course.
 | `cfg.html` | Ch 2.1: context-free grammars (parse trees, CNF, CYK) | Live |
 | `pda.html` | Ch 2.2: pushdown automata (draw, run with the stack, grammar → PDA) | Live |
 | `tm.html` | Ch 3.1: Turing machines (run on the tape, configurations, formal definition) | Live |
+| `decide.html` | Ch 4.1, 4.2, 5.2: deciders, diagonalization, the A_TM proof, PCP puzzle | Live |
 | `practice.html` | Chapter 1 practice exercises with exact checking | Live |
 | `exam.html` | Exam mode (drawing only, for proctored exams) | Live |
-| `decide.html`, `complexity.html` | Later chapters | Planned |
+| `complexity.html` | Chapter 7 | Planned |
 
 ## Pumping lemma (`pumping.html`)
 
@@ -54,6 +55,14 @@ A proof game for the pumping lemma for regular languages (Sipser, Theorem 1.70) 
 - Nondeterministic machines are explored branch by branch, and an accepting branch is shown.
 - **Definition:** the 7-tuple with δ as a table (copy as Markdown or LaTeX).
 - Examples: Sipser 3.7 (0 repeated 2ⁿ times), 3.9 (w#w) and a 0ⁿ1ⁿ decider. Export PNG, SVG, LaTeX (TikZ) or JFLAP.
+
+## Decidability (`decide.html`)
+
+Three tabs (open `decide.html#decidable`, `#undecidable` or `#pcp` directly):
+
+- **Decidable problems (4.1):** a map of Sipser's languages (A_DFA … EQ_TM, ALL_CFG, PCP) marked decidable, Turing-recognizable or neither, with theorem numbers and links to the tools that run them. Run the **E_DFA** decider (marking reachable states), the **EQ_DFA** decider (symmetric difference, with the shortest string where two automata disagree) and the **E_CFG** decider (marking variables round by round). Automata can be typed as text or loaded from your drawing on the finite automata or regular expressions page; grammars can be loaded from the grammars page.
+- **Undecidability (4.2):** Cantor's diagonal argument, one digit at a time, and the proof that A_TM is undecidable, following Figures 4.19–4.21 up to the "?" entry for D on ⟨D⟩.
+- **Post Correspondence Problem (5.2):** a domino puzzle (click dominoes, see where the rows agree), and a search for the shortest match that says plainly when it has to stop.
 
 ## Practice (`practice.html`)
 

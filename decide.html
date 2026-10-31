@@ -1,0 +1,1151 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Decidability and Undecidability – Deciders, Diagonalization, PCP Puzzle | DeltaDraw</title>
+<meta name="description" content="Decidability for Theory of Computation (Sipser 4.1, 4.2, 5.2): run the E_DFA, EQ_DFA and E_CFG deciders step by step, follow the diagonal proof that A_TM is undecidable, and play the Post Correspondence Problem as a domino puzzle.">
+<link rel="canonical" href="https://anwarhossainefat.github.io/deltadraw/decide.html">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Decidability and Undecidability – Deciders, Diagonalization, PCP Puzzle | DeltaDraw">
+<meta property="og:description" content="Decidability for Theory of Computation (Sipser 4.1, 4.2, 5.2): run the E_DFA, EQ_DFA and E_CFG deciders step by step, follow the diagonal proof that A_TM is undecidable, and play the Post Correspondence Problem as a domino puzzle.">
+<meta property="og:url" content="https://anwarhossainefat.github.io/deltadraw/decide.html">
+<meta name="twitter:card" content="summary">
+<meta name="theme-color" content="#2a55c9">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%232a55c9'/%3E%3Ctext x='32' y='45' font-family='Times New Roman,serif' font-style='italic' font-size='42' text-anchor='middle' fill='white'%3E%CE%B4%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,500;1,400;1,500&display=swap">
+</head>
+<body>
+<style>
+/* Layout: toolbar band on top, drawing stage left, inspector panel right (stacks under the stage on phones); about/how-to text below the fold */
+:root{
+  --bg:#f2f4f8;
+  --surface:#ffffff;
+  --surface-2:#eef1f6;
+  --ink:#151922;
+  --muted:#5a6375;
+  --line:#d7dce5;
+  --accent:#2a55c9;
+  --accent-ink:#ffffff;
+  --accent-soft:#e3eafb;
+  --hl:#c27400;
+  --hl-soft:#ffefcc;
+  --ok:#1a7a45;
+  --ok-soft:#dff2e6;
+  --bad:#b8321f;
+  --bad-soft:#fbe4e0;
+  --stage:#fbfcfe;
+  --grid:#c9d1de;
+  --start-fill:#d4e1ff;
+  --accept-fill:#cdeedb;
+  --shadow:0 10px 30px rgba(20,28,45,.14);
+  --font-ui:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --font-math:"STIX Two Text","Times New Roman",Times,serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e1117; --surface:#161a22; --surface-2:#1d222c; --ink:#e5e8ee; --muted:#97a0b0; --line:#2b313d;
+    --accent:#86a6ff; --accent-ink:#0e1117; --accent-soft:#1f2944;
+    --hl:#f2a93b; --hl-soft:#3b2d12; --ok:#55c98a; --ok-soft:#163323; --bad:#ff8173; --bad-soft:#3d1c18;
+    --stage:#11151c; --grid:#2a313d; --shadow:0 10px 30px rgba(0,0,0,.5);
+    --start-fill:#1e2a47; --accept-fill:#173322;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e1117; --surface:#161a22; --surface-2:#1d222c; --ink:#e5e8ee; --muted:#97a0b0; --line:#2b313d;
+  --accent:#86a6ff; --accent-ink:#0e1117; --accent-soft:#1f2944;
+  --hl:#f2a93b; --hl-soft:#3b2d12; --ok:#55c98a; --ok-soft:#163323; --bad:#ff8173; --bad-soft:#3d1c18;
+  --stage:#11151c; --grid:#2a313d; --shadow:0 10px 30px rgba(0,0,0,.5);
+  --start-fill:#1e2a47; --accept-fill:#173322;
+  color-scheme:dark;
+}
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font:14px/1.45 var(--font-ui);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Site menu (chapters), shared by every page except exam mode ---------- */
+.sitenav{
+  display:flex;align-items:center;gap:6px 18px;min-height:40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--bg);border-bottom:1px solid var(--line);font-size:13px;
+}
+.sitenav-brand{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink);text-decoration:none;white-space:nowrap}
+.mini-delta{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;background:var(--accent);color:var(--accent-ink);font:italic 500 15px/1 var(--font-math);padding-bottom:2px}
+.sitenav-links{display:flex;gap:2px;overflow-x:auto;min-width:0;scrollbar-width:none;flex:1}
+.sitenav-links::-webkit-scrollbar{display:none}
+.nav-item{display:inline-flex;align-items:center;gap:6px;padding:10px 9px 8px;color:var(--muted);text-decoration:none;white-space:nowrap;border-bottom:2px solid transparent}
+a.nav-item:hover{color:var(--ink)}
+.nav-item.active{color:var(--ink);border-bottom-color:var(--accent)}
+.nav-item.soon{opacity:.5;cursor:default}
+.nav-ch{font:500 11px var(--font-mono);color:var(--muted);letter-spacing:.02em}
+
+/* ---------- App shell ---------- */
+.app{display:flex;flex-direction:column;height:100vh;height:100dvh;min-height:560px}
+.topbar{
+  display:flex;align-items:center;gap:12px 18px;flex-wrap:wrap;
+  padding-block:8px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:var(--surface);border-bottom:1px solid var(--line);
+}
+.brand{display:flex;align-items:center;gap:10px;margin-right:6px}
+.brand-delta{
+  width:34px;height:34px;border-radius:8px;display:grid;place-items:center;
+  background:var(--accent);color:var(--accent-ink);
+  font:italic 500 24px/1 var(--font-math);padding-bottom:3px;
+}
+.brand-text{display:grid;line-height:1.1}
+.brand-name{margin:0;font:600 17px/1.1 var(--font-ui);letter-spacing:-.01em}
+.brand-sub{margin:0;font-size:11.5px;color:var(--muted)}
+.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;flex:1}
+.toolbar .spacer{flex:1}
+.group{display:inline-flex;gap:4px}
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  height:34px;padding:0 11px;border:1px solid var(--line);border-radius:7px;
+  background:var(--surface);color:var(--ink);font:500 13px/1 var(--font-ui);cursor:pointer;white-space:nowrap;
+  text-decoration:none;
+}
+.gate{width:min(440px,100%);height:auto;align-self:center}
+.gate .input{height:auto}
+.code-chip{font:600 13px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:2px 7px;letter-spacing:.04em}
+.input.code-field{text-transform:uppercase;letter-spacing:.06em}
+.btn:hover{background:var(--surface-2)}
+.btn:disabled{opacity:.42;cursor:default;background:var(--surface)}
+.btn svg{width:16px;height:16px;flex:none}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.danger{color:var(--bad)}
+.btn.small{height:28px;padding:0 9px;font-size:12px}
+.btn.icon{width:34px;padding:0}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--surface)}
+.seg .btn{border:0;border-radius:0;height:32px}
+.seg .btn+.btn{border-left:1px solid var(--line)}
+.seg .btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.select{height:34px;border:1px solid var(--line);border-radius:7px;background:var(--surface);padding:0 8px;font:500 13px var(--font-ui);cursor:pointer}
+
+.workspace{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px}
+.stage{position:relative;overflow:hidden;background:var(--stage);min-height:0}
+#canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;display:block;outline:none}
+.hint{
+  position:absolute;left:12px;bottom:12px;max-width:calc(100% - 210px);
+  font-size:12px;color:var(--muted);background:var(--surface);border:1px solid var(--line);
+  border-radius:7px;padding:6px 10px;pointer-events:none;
+}
+.zoom{position:absolute;right:12px;bottom:12px;display:flex;align-items:center}
+.welcome{position:absolute;inset:0;display:grid;place-items:center;padding:16px 16px 80px;pointer-events:none}
+.welcome-card{pointer-events:auto;text-align:center;display:grid;justify-items:center;gap:10px;max-width:360px;padding:26px 24px;border:1.5px dashed var(--line);border-radius:14px;background:var(--surface)}
+.welcome-card h2{margin:4px 0 0;font:500 24px/1.2 var(--font-math)}
+.welcome-card p{margin:0;color:var(--muted);font-size:14px}
+.welcome-card .row{justify-content:center;margin-top:6px}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:50%;border:1.5px solid var(--ink);vertical-align:-1px;margin:0 2px}
+.swatch.start{background:var(--start-fill)}
+.swatch.accept{background:var(--accept-fill)}
+.zoom .btn{height:30px;min-width:30px;padding:0 8px;font-variant-numeric:tabular-nums}
+.zoom-level{min-width:54px}
+
+/* ---------- Inspector panel ---------- */
+.panel{background:var(--surface);border-left:1px solid var(--line);overflow:auto;display:flex;flex-direction:column;min-height:0}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line);display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
+.sec-title{margin:0;font:600 11px/1 var(--font-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.muted{color:var(--muted)}
+.small-text{font-size:12.5px;margin:0}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.field{display:grid;gap:5px;font-size:12px;color:var(--muted)}
+.input,textarea.input{
+  width:100%;border:1px solid var(--line);border-radius:7px;background:var(--surface-2);color:var(--ink);
+  padding:7px 10px;font:15px/1.35 var(--font-mono);
+}
+.input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+textarea.input{resize:vertical;font-size:14px}
+.checks{display:grid;gap:6px}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);cursor:pointer}
+.check input{width:16px;height:16px;accent-color:var(--accent);margin:0}
+.symbols{display:flex;gap:4px;flex-wrap:wrap}
+.symbols .btn{height:26px;min-width:30px;padding:0 7px;font:italic 15px/1 var(--font-math)}
+.symbols .btn.plain{font:500 11.5px/1 var(--font-ui)}
+
+.machine-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.type-badge{font:600 12px/1 var(--font-mono);padding:5px 9px;border-radius:999px;letter-spacing:.04em}
+.type-badge.dfa{background:var(--ok-soft);color:var(--ok)}
+.type-badge.nfa{background:var(--accent-soft);color:var(--accent)}
+.type-badge.none{background:var(--surface-2);color:var(--muted)}
+.sigma{font:15px var(--font-math);margin:0}
+.notes{margin:0;padding-left:18px;display:grid;gap:3px;font-size:12.5px;color:var(--muted)}
+.notes li.warn{color:var(--bad)}
+
+.tabs{display:flex;border-bottom:1px solid var(--line);padding:0 8px;position:sticky;top:0;background:var(--surface);z-index:1}
+.tab{flex:1;background:none;border:0;border-bottom:2px solid transparent;padding:11px 6px 9px;font:500 13px var(--font-ui);color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.tabpanel{padding:14px 16px 20px;display:grid;gap:12px;align-content:start}
+
+.tape{display:flex;flex-wrap:wrap;gap:3px;font:14px var(--font-mono)}
+.cell{min-width:24px;height:28px;padding:0 5px;display:grid;place-items:center;border:1px solid var(--line);border-radius:4px;background:var(--surface-2)}
+.cell.done{color:var(--muted);opacity:.7}
+.cell.cur{border-color:var(--hl);background:var(--hl-soft);color:var(--ink);font-weight:500}
+.cell.eps{font-family:var(--font-math);font-style:italic}
+.sim-out{display:grid;gap:8px}
+.sim-line{font-size:13px}
+.math{font-family:var(--font-math);font-size:15px}
+.pill{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 var(--font-ui);padding:6px 10px;border-radius:999px}
+.pill.ok{background:var(--ok-soft);color:var(--ok)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.run{background:var(--hl-soft);color:var(--hl)}
+details.batch{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+details.batch summary{cursor:pointer;font-weight:500;font-size:13px}
+details.batch[open] summary{margin-bottom:8px}
+.batch-body{display:grid;gap:8px}
+.batch-out{list-style:none;margin:0;padding:0;display:grid;gap:4px;font:13px var(--font-mono)}
+.batch-out li{display:flex;justify-content:space-between;gap:8px;border-bottom:1px dashed var(--line);padding:3px 0}
+.batch-out .ok{color:var(--ok)} .batch-out .bad{color:var(--bad)}
+
+.conv-card{border:1px solid var(--line);border-radius:9px;padding:12px;display:grid;gap:8px}
+.conv-card h3{margin:0;font:600 14px var(--font-ui)}
+.conv-card p{margin:0;font-size:12.5px;color:var(--muted)}
+.result-note{font-size:12.5px;margin:0;padding:8px 10px;border-radius:7px;background:var(--surface-2)}
+.walk-list{margin:8px 0 0;padding-left:18px;display:grid;gap:4px;font-size:13.5px}
+.re-input{font:italic 18px var(--font-math);letter-spacing:.02em}
+.re-read{margin:0;min-height:1.4em}
+.re-read .math{font-size:16px}
+.re-read.err{color:var(--bad)}
+.re-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.re-opts .select{width:100%;height:32px}
+.re-opts .input{font-size:13px;padding:5px 8px}
+.re-out{display:grid;gap:6px}
+.re-out .chips{display:flex;flex-wrap:wrap;gap:4px}
+.re-out .chip{font:14px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+.regex-result{font:italic 17px var(--font-math);word-break:break-word;background:var(--surface-2);border-radius:6px;padding:6px 9px}
+.app[data-page="regex"] #tab-regex{order:-1}
+/* practice page: no solving tools, just drawing, Test and Table */
+.app[data-page="practice"] #tab-convert,.app[data-page="practice"] #tab-combine,.app[data-page="practice"] #tab-regex,
+.app[data-page="practice"] #examples,.app[data-page="practice"] #btn-exam,.app[data-page="practice"] #welcome-example,
+.app[data-page="practice"] #btn-open{display:none}
+.ex-sec{background:var(--surface)}
+.ex-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ex-nav{display:flex;gap:4px}
+.ex-nav .select{flex:1;min-width:0;width:0;height:32px}
+.ex-nav .btn{height:32px;width:32px}
+.ex-card{display:grid;gap:9px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.ex-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ex-card h3{margin:0;font:600 15.5px/1.3 var(--font-ui)}
+.ex-text{margin:0;font-size:14px;line-height:1.55}
+.ex-text .lbl{font:italic 16px var(--font-math)}
+.ex-rules{margin:0}
+.ex-figure{border:1px solid var(--line);border-radius:8px;background:var(--stage);padding:6px;color:var(--ink)}
+.ex-figure svg{display:block;width:100%;height:auto;max-height:200px}
+.ex-hints{margin:0;padding-left:18px;display:grid;gap:5px;font-size:13px}
+.ex-hints:empty{display:none}
+.slots{display:grid;gap:8px}
+.slot{border:1px solid var(--line);border-radius:9px;padding:9px 10px;display:grid;gap:8px}
+.slot-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.slot-head b{font:600 15px var(--font-mono)}
+.eq-out{display:grid;gap:6px;justify-items:start}
+
+/* ---------- Step-by-step walkthrough card (over the canvas) ---------- */
+.walk{position:absolute;left:12px;right:12px;bottom:52px;max-height:min(48%,440px);overflow:auto;z-index:3;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px;display:grid;gap:10px}
+.walk-head{display:flex;align-items:center;gap:10px}
+.walk-head strong{flex:1;font-size:14px}
+.walk-text{margin:0;font-size:14px;line-height:1.6;max-width:90ch}
+.walk-text .lbl,.walk-text b.lbl{font:italic 16px var(--font-math)}
+.grow{flex:1}
+.ttable td.cur{background:var(--hl-soft);box-shadow:inset 0 0 0 2px var(--hl)}
+.ttable tr.newrow td.state{background:var(--accent-soft)}
+.walk .ttable{min-width:0;width:auto}
+.ttable.pairs{min-width:0}
+.ttable.pairs td{min-width:42px;height:30px}
+.ttable.pairs td.void{border:0;background:transparent}
+.ttable.pairs th{background:transparent;border:0;font-family:var(--font-math);font-style:italic;font-size:15px}
+.mk{color:var(--bad);font-weight:600}
+.mk sub{font:500 10px var(--font-mono)}
+@media (max-width: 860px){ .walk{bottom:12px;max-height:62%} }
+
+.table-wrap{overflow-x:auto}
+.ttable{border-collapse:collapse;font:13px var(--font-mono);min-width:100%}
+.ttable th,.ttable td{border:1px solid var(--line);padding:5px 9px;text-align:center;white-space:nowrap}
+.ttable th{background:var(--surface-2);font-weight:500}
+.ttable .lbl{font-family:var(--font-math);font-style:italic;font-size:15px}
+.ttable td.state{text-align:left}
+.ttable .mark{color:var(--muted);font-style:normal;font-family:var(--font-mono);font-size:12px;margin-right:4px}
+
+/* ---------- Turing machines ---------- */
+.tm-tape{display:flex;flex-wrap:nowrap;gap:3px;overflow-x:auto;padding:16px 2px 4px;scrollbar-width:thin}
+.tm-tape .cell{position:relative;min-width:28px;text-align:center}
+.tm-tape .cell.blank{color:var(--muted)}
+.tm-tape .cell.head{background:var(--hl-soft);border-color:var(--hl);box-shadow:inset 0 0 0 1px var(--hl)}
+.tm-tape .cell.head::before{content:"▼";position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--hl)}
+.tm-trace{margin:0;padding-left:28px;display:grid;gap:2px;font:15px/1.5 var(--font-math);max-height:280px;overflow:auto}
+.tm-trace li.cur{background:var(--hl-soft);border-radius:4px}
+.tm-trace .st{font-style:italic;color:var(--accent);margin:0 3px}
+.cfg-line{font:16px var(--font-math)}
+.cfg-line .st{font-style:italic;color:var(--accent);margin:0 3px}
+/* ---------- Pushdown automata ---------- */
+.pda-run{display:flex;gap:14px;align-items:flex-start}
+.pda-run .sim-lines{display:grid;gap:6px;min-width:0;flex:1}
+.pda-stack{display:flex;flex-direction:column;align-items:stretch;min-width:48px;flex:none}
+.pda-stack .cap{font:600 10.5px var(--font-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center;margin-bottom:3px}
+.pda-stack .well{display:flex;flex-direction:column;border:1.5px solid var(--ink);border-top:0;border-radius:0 0 6px 6px;min-height:34px;justify-content:flex-end}
+.pda-stack .sc{font:italic 17px/1.2 var(--font-math);text-align:center;padding:3px 10px;border-top:1px solid var(--line)}
+.pda-stack .sc.top{background:var(--hl-soft);border-top-color:var(--hl)}
+.pda-stack .sc.more{font:12px var(--font-ui);color:var(--muted);font-style:normal}
+.pda-stack .none{font:12px var(--font-ui);color:var(--muted);text-align:center;padding:8px 4px}
+.move{font-size:13px}
+.trace td.cur{background:var(--hl-soft);box-shadow:none}
+.trace{font-size:12.5px}
+.trace th,.trace td{text-align:left;padding:4px 7px}
+.trace .lbl{font-size:14.5px}
+.pda-def{display:grid;gap:3px;font-size:13.5px}
+.pda-def .math{font-size:15px}
+/* ---------- Modals & toast ---------- */
+.modal{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:rgba(10,14,22,.5)}
+.dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);width:min(780px,100%);max-height:calc(100dvh - 32px);overflow:auto;display:grid;grid-template-rows:auto 1fr}
+.dialog-head{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.dialog-head h2{margin:0;font:600 16px var(--font-ui);flex:1}
+.dialog-body{padding:16px;display:grid;gap:14px;min-width:0;align-content:start}
+.preview{border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:46vh;display:grid;place-items:center;padding:12px;
+  background-color:#fff;background-image:linear-gradient(45deg,#e9ecf1 25%,transparent 25%),linear-gradient(-45deg,#e9ecf1 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#e9ecf1 75%),linear-gradient(-45deg,transparent 75%,#e9ecf1 75%);
+  background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0}
+.preview img{max-width:100%;height:auto;display:block}
+.code{width:100%;min-height:220px;font:12.5px/1.45 var(--font-mono);border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink);padding:10px;resize:vertical;white-space:pre}
+.opt-row{display:flex;gap:14px 22px;flex-wrap:wrap;align-items:center;font-size:13px}
+.opt-row .label{color:var(--muted);font-size:12px}
+.radio{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.radio input{accent-color:var(--accent);margin:0}
+
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;
+  display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--bg);border-radius:9px;padding:9px 12px 9px 14px;box-shadow:var(--shadow);font-size:13px;max-width:calc(100% - 32px)}
+.toast button{background:none;border:0;color:var(--bg);font-weight:600;text-decoration:underline;cursor:pointer;padding:2px 4px}
+
+/* ---------- About / how-to (below the app) ---------- */
+.about{max-width:1020px;margin:0 auto;padding-block:56px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:40px}
+.about h2{margin:0 0 10px;font:500 30px/1.15 var(--font-math);text-wrap:balance;letter-spacing:-.005em}
+.about h3{margin:0 0 6px;font:600 15px var(--font-ui)}
+.about p,.about li{font-size:15px;line-height:1.6;max-width:68ch}
+.about p{margin:0 0 10px}
+.lead{font-size:17px!important;color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:24px 32px}
+.cols>div{min-width:0}
+.about ol,.about ul{margin:0;padding-left:20px;display:grid;gap:6px}
+kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:1px 6px;background:var(--surface)}
+.syntax{border-collapse:collapse;font-size:14px;width:100%}
+.syntax td,.syntax th{border-bottom:1px solid var(--line);padding:7px 10px 7px 0;text-align:left;vertical-align:top}
+.syntax th{font:600 11px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.syntax code{font:13px var(--font-mono);background:var(--surface-2);padding:1px 5px;border-radius:4px}
+.syntax .out{font:italic 17px var(--font-math)}
+.faq dt{font-weight:600;margin-top:12px}
+.faq dd{margin:4px 0 0;color:var(--muted);max-width:68ch}
+.foot{border-top:1px solid var(--line);padding-top:18px;font-size:13px;color:var(--muted);display:flex;gap:8px 18px;flex-wrap:wrap}
+.foot a{color:var(--accent)}
+
+@media (max-width: 1020px){
+  .btn .lbl-wide{display:none}
+}
+@media (max-width: 860px){
+  .app{height:auto;min-height:0}
+  .workspace{grid-template-columns:1fr;grid-template-rows:64vh auto}
+  .panel{border-left:0;border-top:1px solid var(--line);overflow:visible}
+  .tabs{position:static}
+  .hint{max-width:calc(100% - 24px);bottom:52px}
+  .about h2{font-size:25px}
+}
+@media (max-width: 560px){
+  .topbar{gap:8px}
+  .brand-sub{display:none}
+  .toolbar{gap:6px}
+  .toolbar .spacer{display:none}
+  .btn{height:32px;padding:0 9px}
+  .btn.icon{width:32px}
+  .seg .btn{height:30px}
+  .select{height:32px;max-width:132px}
+  .hint{font-size:11.5px;padding:5px 8px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+<style>
+/* ---------- Decidability page (Chapters 4 and 5) ---------- */
+.dc-app{min-height:calc(100dvh - 44px)}
+.dc-main{padding:16px max(16px,env(safe-area-inset-right,0px)) 24px max(16px,env(safe-area-inset-left,0px));max-width:1320px;margin:0 auto;display:grid;gap:16px}
+.dtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.dtab{background:none;border:0;border-bottom:2px solid transparent;padding:10px 14px 9px;font:500 14px var(--font-ui);color:var(--muted);cursor:pointer;white-space:nowrap}
+.dtab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
+.dtab .ch{font:11px var(--font-mono);color:var(--muted);margin-right:6px}
+.dc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:grid;gap:10px;min-width:0;align-content:start}
+.card h2{margin:0;font:600 16px var(--font-ui)}
+.card h2 .lang{font-family:var(--font-math);font-weight:500;font-size:18px}
+.card>p{margin:0;font-size:13.5px;line-height:1.55}
+.card .sub{color:var(--muted)}
+.wide{grid-column:1/-1}
+.fa-text{min-height:150px;font:14px/1.5 var(--font-mono)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width: 560px){ .pair{grid-template-columns:1fr} }
+.verdict{display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-radius:8px;padding:9px 12px;font-size:13.5px;line-height:1.5}
+.verdict.ok{background:var(--ok-soft)}
+.verdict.bad{background:var(--bad-soft)}
+.verdict.run{background:var(--hl-soft)}
+.mark-steps{margin:0;padding-left:22px;display:grid;gap:3px;font-size:13.5px;line-height:1.5}
+.mark-steps i,.card i{font-family:var(--font-math);font-size:1.08em}
+.eps{font-family:var(--font-math);font-style:italic;color:var(--muted)}
+.mono{font-family:var(--font-mono)}
+.over{text-decoration:overline}
+.warn-text{color:var(--bad)}
+.out{display:grid;gap:8px}
+.map{font-family:var(--font-ui)}
+.map td,.map th{text-align:left;white-space:normal;vertical-align:top}
+.map td:first-child{font-family:var(--font-math);font-size:15px;white-space:nowrap}
+.st{display:inline-block;font:600 11.5px var(--font-ui);padding:2px 8px;border-radius:999px;white-space:nowrap}
+.st.dec{background:var(--ok-soft);color:var(--ok)}
+.st.rec{background:var(--hl-soft);color:var(--hl)}
+.st.no{background:var(--bad-soft);color:var(--bad)}
+.dtable{font-family:var(--font-ui)}
+.dtable th,.dtable td{text-align:center}
+.dg{background:var(--hl-soft);outline:1px solid var(--hl);border-radius:2px}
+.dg.done{background:var(--ok-soft);outline-color:var(--ok)}
+.atm td{min-width:58px;font-size:12.5px}
+.atm td.rej{color:var(--muted)}
+.atm td.diag{background:var(--hl-soft);box-shadow:inset 0 0 0 2px var(--hl)}
+.atm tr.drow th,.atm tr.drow td{background:var(--accent-soft)}
+.atm td.dval{font-weight:600}
+.atm td.qmark{background:var(--bad-soft);color:var(--bad);font:700 18px var(--font-ui)}
+.stepper{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.step-title{margin:0;font:600 14px var(--font-ui)}
+.domino{display:inline-grid;grid-template-rows:1fr 1fr;border:1.5px solid var(--ink);border-radius:6px;background:var(--surface);min-width:44px;position:relative;font:16px var(--font-mono)}
+.domino .dt,.domino .db{padding:3px 8px;text-align:center}
+.domino .dt{border-bottom:1.5px solid var(--ink)}
+.domino .dn{position:absolute;top:-8px;left:-8px;font:600 10px var(--font-ui);background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:1px 5px}
+.domino.small{font-size:14px;min-width:34px}
+.domino.small .dt,.domino.small .db{padding:1px 5px}
+.dom-set{display:flex;flex-wrap:wrap;gap:12px;padding:8px 4px}
+.dom-btn{background:none;border:0;padding:0;cursor:pointer;border-radius:8px}
+.dom-btn:hover .domino{background:var(--accent-soft)}
+.dom-seq{display:flex;flex-wrap:wrap;gap:6px;padding:6px 4px;min-height:52px;align-items:center}
+.pcp-row{display:flex;gap:10px;align-items:baseline;font-size:17px;overflow-x:auto}
+.pcp-row .lab{font:12px var(--font-ui);color:var(--muted);width:52px;flex:none}
+.m-ok{background:var(--ok-soft)}
+.m-bad{background:var(--bad-soft);color:var(--bad);font-weight:600}
+.m-over{color:var(--hl)}
+</style>
+
+<nav class="sitenav" aria-label="Chapters"><a class="sitenav-brand" href="index.html"><span class="mini-delta" aria-hidden="true">δ</span>DeltaDraw</a><div class="sitenav-links"><a class="nav-item" href="fa.html"><span class="nav-ch">Ch 1</span>Finite automata</a><a class="nav-item" href="regex.html"><span class="nav-ch">Ch 1</span>Regular expressions</a><a class="nav-item" href="pumping.html"><span class="nav-ch">Ch 1–2</span>Pumping lemma</a><a class="nav-item" href="cfg.html"><span class="nav-ch">Ch 2</span>Grammars</a><a class="nav-item" href="pda.html"><span class="nav-ch">Ch 2</span>Pushdown automata</a><a class="nav-item" href="tm.html"><span class="nav-ch">Ch 3</span>Turing machines</a><a class="nav-item active" aria-current="page" href="decide.html"><span class="nav-ch">Ch 4–5</span>Decidability</a><span class="nav-item soon" title="Coming soon"><span class="nav-ch">Ch 7</span>Complexity</span><a class="nav-item" href="practice.html"><span class="nav-ch">Ch 1</span>Practice</a></div></nav>
+<div class="dc-app" data-page="decide">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-delta" aria-hidden="true">δ</span>
+      <div class="brand-text">
+        <h1 class="brand-name">Decidability</h1>
+        <p class="brand-sub">Deciders, diagonalization, PCP · Chapters 4–5</p>
+      </div>
+    </div>
+    <div class="toolbar">
+      <span class="spacer"></span>
+      <div class="group">
+        <button class="btn icon" id="btn-theme" title="Theme: follows your system" aria-label="Change theme">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5v11" /><path d="M8 2.5a5.5 5.5 0 010 11z" fill="currentColor"/></svg>
+        </button>
+        <button class="btn icon" id="btn-help" title="About this page" aria-label="About this page">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="8" cy="8" r="6"/><path d="M6.3 6.2a1.8 1.8 0 113 1.4c-.7.4-1.3.8-1.3 1.6"/><circle cx="8" cy="11.4" r=".4" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="dc-main">
+    <div class="dtabs" role="tablist" aria-label="Sections">
+      <button class="dtab" role="tab" data-tab="decidable" aria-controls="sec-decidable" aria-selected="true"><span class="ch">4.1</span>Decidable problems</button>
+      <button class="dtab" role="tab" data-tab="undecidable" aria-controls="sec-undecidable" aria-selected="false"><span class="ch">4.2</span>Undecidability</button>
+      <button class="dtab" role="tab" data-tab="pcp" aria-controls="sec-pcp" aria-selected="false"><span class="ch">5.2</span>Post Correspondence</button>
+    </div>
+
+    <!-- ================= 4.1 ================= -->
+    <section id="sec-decidable" role="tabpanel" class="dc-grid">
+      <div class="card wide">
+        <h2>Which problems are decidable?</h2>
+        <p class="sub">Each problem is a language of encoded inputs, as in Sipser. Theorem numbers are from the 3rd edition.</p>
+        <div class="table-wrap"><table class="ttable map">
+          <thead><tr><th>Language</th><th>Question</th><th>Status</th><th>Sipser</th><th>Try it</th></tr></thead>
+          <tbody>
+            <tr><td>A<sub>DFA</sub>, A<sub>NFA</sub></td><td>Does the automaton accept w?</td><td><span class="st dec">decidable</span></td><td>Theorems 4.1, 4.2</td><td><a href="fa.html">Finite automata → Test</a></td></tr>
+            <tr><td>A<sub>REX</sub></td><td>Does the regular expression generate w?</td><td><span class="st dec">decidable</span></td><td>Theorem 4.3</td><td><a href="regex.html">Regular expressions</a></td></tr>
+            <tr><td>E<sub>DFA</sub></td><td>Is L(A) empty?</td><td><span class="st dec">decidable</span></td><td>Theorem 4.4</td><td>Below</td></tr>
+            <tr><td>EQ<sub>DFA</sub></td><td>Is L(A) = L(B)?</td><td><span class="st dec">decidable</span></td><td>Theorem 4.5</td><td>Below</td></tr>
+            <tr><td>A<sub>CFG</sub></td><td>Does the grammar generate w?</td><td><span class="st dec">decidable</span></td><td>Theorems 4.7, 7.16</td><td><a href="cfg.html">Grammars → CYK</a></td></tr>
+            <tr><td>E<sub>CFG</sub></td><td>Is L(G) empty?</td><td><span class="st dec">decidable</span></td><td>Theorem 4.8</td><td>Below</td></tr>
+            <tr><td>EQ<sub>CFG</sub>, ALL<sub>CFG</sub></td><td>Are two grammars equivalent? Does G generate every string?</td><td><span class="st no">undecidable</span></td><td>Theorem 5.13, Exercise 5.1</td><td></td></tr>
+            <tr><td>A<sub>TM</sub></td><td>Does the Turing machine accept w?</td><td><span class="st rec">recognizable, not decidable</span></td><td>Theorem 4.11</td><td>Undecidability tab</td></tr>
+            <tr><td><span class="over">A<sub>TM</sub></span></td><td>Does M fail to accept w?</td><td><span class="st no">not recognizable</span></td><td>Corollary 4.23</td><td></td></tr>
+            <tr><td>HALT<sub>TM</sub></td><td>Does M halt on w?</td><td><span class="st rec">recognizable, not decidable</span></td><td>Theorem 5.1</td><td><a href="tm.html">Turing machines</a> (step limit)</td></tr>
+            <tr><td>E<sub>TM</sub>, REGULAR<sub>TM</sub></td><td>Is L(M) empty? Is it regular?</td><td><span class="st no">undecidable</span></td><td>Theorems 5.2, 5.3</td><td></td></tr>
+            <tr><td>EQ<sub>TM</sub></td><td>Do two TMs recognize the same language?</td><td><span class="st no">neither recognizable nor co-recognizable</span></td><td>Theorems 5.4, 5.30</td><td></td></tr>
+            <tr><td>PCP</td><td>Does a set of dominoes have a match?</td><td><span class="st rec">recognizable, not decidable</span></td><td>Theorem 5.15</td><td>Post Correspondence tab</td></tr>
+          </tbody>
+        </table></div>
+        <p class="small-text muted">A language is decidable exactly when it and its complement are both Turing-recognizable (Theorem 4.22).</p>
+      </div>
+
+      <div class="card">
+        <h2>Automata A and B</h2>
+        <p class="sub">One move per line: <code>from symbol to</code>. Use commas for several symbols and ε for an empty move.</p>
+        <div class="pair">
+          <label class="field">A
+            <textarea class="input fa-text" id="dfa-a" spellcheck="false" aria-label="Automaton A"></textarea>
+          </label>
+          <label class="field">B
+            <textarea class="input fa-text" id="dfa-b" spellcheck="false" aria-label="Automaton B"></textarea>
+          </label>
+        </div>
+        <div class="row">
+          <span class="small-text muted">Load into A:</span>
+          <button class="btn small" id="load-a" title="Your drawing on the Finite automata page">my FA drawing</button>
+          <button class="btn small" id="load-a-re" title="Your drawing on the Regular expressions page">my regex-page drawing</button>
+          <button class="btn small" id="ex-a">example</button>
+        </div>
+        <div class="row">
+          <span class="small-text muted">Load into B:</span>
+          <button class="btn small" id="load-b">my FA drawing</button>
+          <button class="btn small" id="load-b-re">my regex-page drawing</button>
+          <button class="btn small" id="ex-b">example</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><span class="lang">E<sub>DFA</sub></span> = {⟨A⟩ | L(A) = ∅}</h2>
+        <p>The decider marks the start state, then keeps marking any state with an arrow coming in from a marked state. A accepts some string exactly when an accepting state gets marked (Theorem 4.4).</p>
+        <div><button class="btn primary small" id="edfa-run">Run on A</button></div>
+        <div class="out" id="edfa-out" hidden></div>
+        <h2><span class="lang">EQ<sub>DFA</sub></span> = {⟨A, B⟩ | L(A) = L(B)}</h2>
+        <p>The decider builds C that accepts the strings where A and B disagree, and runs the E<sub>DFA</sub> decider on C (Theorem 4.5).</p>
+        <div><button class="btn primary small" id="eq-run">Run on A and B</button></div>
+        <div class="out" id="eq-out" hidden></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="lang">E<sub>CFG</sub></span> = {⟨G⟩ | L(G) = ∅}</h2>
+        <p>The decider marks every terminal, then marks a variable A whenever some rule A → U<sub>1</sub>⋯U<sub>k</sub> has every U<sub>i</sub> marked. L(G) is empty exactly when the start variable is never marked (Theorem 4.8).</p>
+        <textarea class="input fa-text" id="cfg-text" spellcheck="false" aria-label="Grammar"></textarea>
+        <div class="row"><button class="btn primary small" id="ecfg-run">Run</button><button class="btn small" id="load-g">Load my grammar from the Grammars page</button></div>
+        <div class="out" id="ecfg-out" hidden></div>
+      </div>
+    </section>
+
+    <!-- ================= 4.2 ================= -->
+    <section id="sec-undecidable" role="tabpanel" class="dc-grid" hidden>
+      <div class="card">
+        <h2>The diagonal method</h2>
+        <p class="sub">Cantor's argument that the real numbers cannot be listed (Theorem 4.17).</p>
+        <div class="table-wrap" id="cantor-table"></div>
+        <div class="small-text" id="cantor-x"></div>
+        <p id="cantor-text"></p>
+        <div class="stepper"><button class="btn primary small" id="cantor-next">Next digit ▸</button><button class="btn small" id="cantor-new">New list</button></div>
+      </div>
+      <div class="card">
+        <h2><span class="lang">A<sub>TM</sub></span> is undecidable</h2>
+        <p class="sub">The proof of Theorem 4.11, with the tables of Figures 4.19–4.21.</p>
+        <p class="step-title" id="atm-title"></p>
+        <p id="atm-text"></p>
+        <div class="table-wrap" id="atm-table"></div>
+        <div class="stepper"><button class="btn small" id="atm-back">◂ Back</button><button class="btn primary small" id="atm-next">Next step ▸</button><button class="btn small" id="atm-new" title="Fill the table with other made-up entries">New table</button></div>
+        <p class="small-text muted">The entries are made up: the argument works no matter what the table holds.</p>
+      </div>
+    </section>
+
+    <!-- ================= 5.2 ================= -->
+    <section id="sec-pcp" role="tabpanel" class="dc-grid" hidden>
+      <div class="card wide">
+        <h2>The Post Correspondence Problem</h2>
+        <p>A <b>match</b> is a sequence of dominoes, repeats allowed, whose top row and bottom row spell the same string. Deciding whether a set of dominoes has a match is undecidable (Theorem 5.15), so this puzzle has no general algorithm. Try it by hand, then let the computer search.</p>
+        <div class="dom-set" id="pcp-set"></div>
+        <div class="dom-seq" id="pcp-seq"></div>
+        <div id="pcp-rows" class="out"></div>
+        <div class="stepper">
+          <button class="btn small" id="pcp-undo">Undo</button>
+          <button class="btn small" id="pcp-clear">Clear</button>
+          <button class="btn primary small" id="pcp-solve">Search for a match</button>
+          <select class="select" id="pcp-examples" aria-label="Load an example">
+            <option value="">Examples…</option>
+            <option value="sipser">Sipser’s example (has a match)</option>
+            <option value="nomatch">Sipser’s example with no match</option>
+            <option value="four">A match of length 4</option>
+            <option value="longer">A hard instance (the search stops)</option>
+          </select>
+        </div>
+        <div class="out" id="pcp-solve-out" hidden></div>
+      </div>
+      <div class="card">
+        <h2>Your dominoes</h2>
+        <p class="sub">One domino per line: <code>top / bottom</code>.</p>
+        <textarea class="input fa-text" id="pcp-text" spellcheck="false" aria-label="Dominoes"></textarea>
+        <div id="pcp-err"></div>
+      </div>
+      <div class="card">
+        <h2>Why a search cannot always decide</h2>
+        <p>A program can try sequences of 1, 2, 3, … dominoes and stop when it finds a match, so PCP is Turing-recognizable. But when there is no match the search may never end, and Sipser shows (by reducing A<sub>TM</sub> to PCP) that no program can always tell the two cases apart.</p>
+        <p>The search here stops after 14 dominoes. If it finds nothing and still has ways to continue, it says so rather than guessing.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<section class="about" id="how-to">
+  <div>
+    <h2>Decidability, step by step</h2>
+    <p class="lead">Chapter 4 of Sipser asks which questions about machines an algorithm can answer. Some can be decided by simple marking procedures; others, like whether a Turing machine accepts a string, cannot be decided at all. This page lets you run the deciders, follow the diagonal proofs, and play with an undecidable puzzle.</p>
+  </div>
+  <div class="cols">
+    <div>
+      <h3>Writing an automaton</h3>
+      <table class="syntax">
+        <thead><tr><th>Line</th><th>Means</th></tr></thead>
+        <tbody>
+          <tr><td><code>start: q0</code></td><td>the start state (default: the first state)</td></tr>
+          <tr><td><code>accept: q1, q2</code></td><td>the accepting states</td></tr>
+          <tr><td><code>q0 a q1</code></td><td>q0 goes to q1 on a</td></tr>
+          <tr><td><code>q1 a,b q1</code></td><td>the same move for a and b</td></tr>
+          <tr><td><code>q0 ε q2</code></td><td>an ε-move</td></tr>
+        </tbody>
+      </table>
+      <p class="small-text muted">Or load the drawing you made on the Finite automata page: it is read straight from this browser.</p>
+    </div>
+    <div>
+      <h3>Deciders</h3>
+      <ol>
+        <li>A <strong>decider</strong> is a Turing machine that halts on every input, answering accept or reject.</li>
+        <li>E<sub>DFA</sub> and E<sub>CFG</sub> are decided by marking: keep marking until nothing changes, then look at what got marked.</li>
+        <li>EQ<sub>DFA</sub> reduces to E<sub>DFA</sub>: two machines agree exactly when the machine for their symmetric difference accepts nothing.</li>
+      </ol>
+    </div>
+    <div>
+      <h3>Undecidable problems</h3>
+      <ol>
+        <li>The diagonal method builds an object that differs from every item in a list.</li>
+        <li>Applied to Turing machines, it gives a machine D that disagrees with itself, so A<sub>TM</sub> has no decider.</li>
+        <li>Chapter 5 spreads this result by reductions: HALT<sub>TM</sub>, E<sub>TM</sub>, EQ<sub>TM</sub> and PCP are undecidable too.</li>
+      </ol>
+    </div>
+  </div>
+  <footer class="foot">
+    <span>DeltaDraw v1.8 · decidability</span>
+    <a href="index.html">All chapters</a>
+    <a href="tm.html">Turing machines</a>
+    <a href="fa.html">Finite automata</a>
+  </footer>
+</section>
+
+<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden></button></div>
+
+<script>
+(() => {
+'use strict';
+
+/* =====================================================================
+   DeltaDraw · Decidability (Sipser 4.1, 4.2 and 5.2)
+   ===================================================================== */
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+const store = {
+  get(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { window.localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
+};
+const KEY = 'deltadraw:decide:v1', THEME_KEY = 'deltadraw:theme';
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// q_0 → q₀ style subscripts for display
+const nm = (s) => esc(s).replace(/_\{([^}]*)\}|_(\w)/g, (m, a, b) => `<sub>${a != null ? a : b}</sub>`);
+const symH = (s) => (s === 'ε' ? '<span class="eps">ε</span>' : esc(s));
+const wordH = (w) => (w.length ? `<span class="mono">${esc(w)}</span>` : '<span class="eps">ε</span>');
+let state = { tab: 'decidable', dfaA: '', dfaB: '', grammar: '', pcp: '', pcpSeq: [] };
+function save() { store.set(KEY, JSON.stringify(state)); }
+function toast(msg) {
+  const t = $('#toast');
+  $('#toast-msg').textContent = msg;
+  $('#toast-action').hidden = true;
+  t.hidden = false;
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => { t.hidden = true; }, 3200);
+}
+
+/* =====================================================================
+   Finite automata as text
+     start: q0
+     accept: q1, q2
+     q0 a q1          (q0 goes to q1 on a)
+     q1 a,b q1        (several symbols)
+     q0 ε q2          (an ε-move)
+   ===================================================================== */
+const EPS_WORDS = new Set(['ε', 'eps', 'epsilon', '\\epsilon', '\\varepsilon', 'λ']);
+function parseFA(text) {
+  const errors = [], states = [], seen = new Set(), accept = new Set(), delta = new Map(), alpha = new Set();
+  let start = null, hasEps = false;
+  const add = (q) => { if (!seen.has(q)) { seen.add(q); states.push(q); delta.set(q, new Map()); } };
+  text.split('\n').forEach((raw, k) => {
+    const line = raw.replace(/#.*$/, '').trim();
+    if (!line) return;
+    let m = line.match(/^start\s*:?\s*(\S+)$/i);
+    if (m) { start = m[1]; add(start); return; }
+    m = line.match(/^(accept|final)\s*:?\s*(.*)$/i);
+    if (m) { for (const q of m[2].split(/[\s,]+/).filter(Boolean)) { accept.add(q); add(q); } return; }
+    const parts = line.split(/\s+/);
+    if (parts.length !== 3) { errors.push(`Line ${k + 1}: write a move as “from symbol to”, like  q0 a q1`); return; }
+    const [p, syms, q] = parts;
+    add(p); add(q);
+    for (let a of syms.split(',').filter((x) => x.length)) {
+      if (EPS_WORDS.has(a)) { a = 'ε'; hasEps = true; } else alpha.add(a);
+      const row = delta.get(p);
+      if (!row.has(a)) row.set(a, new Set());
+      row.get(a).add(q);
+    }
+  });
+  if (!states.length && !errors.length) errors.push('Type a machine first, or load one of your drawings.');
+  if (start == null) start = states[0];
+  let isDFA = !hasEps;
+  for (const row of delta.values()) for (const set of row.values()) if (set.size > 1) isDFA = false;
+  return { states, start, accept, delta, alphabet: [...alpha].sort(), hasEps, isDFA, errors };
+}
+function faText(M) {
+  const lines = [`start: ${M.start}`, `accept: ${[...M.accept].join(', ')}`];
+  for (const p of M.states) {
+    const byTarget = new Map();
+    for (const [a, set] of M.delta.get(p)) for (const q of set) { if (!byTarget.has(q)) byTarget.set(q, []); byTarget.get(q).push(a); }
+    for (const [q, syms] of byTarget) lines.push(`${p} ${syms.join(',')} ${q}`);
+  }
+  return lines.join('\n');
+}
+// a drawing saved by the finite automata or regex page (same site, so the same browser storage)
+function drawingText(storeKey) {
+  let saved = null;
+  try { saved = JSON.parse(store.get(storeKey) || 'null'); } catch (e) { saved = null; }
+  const d = saved && saved.doc;
+  if (!d || !Array.isArray(d.nodes) || !d.nodes.length) return null;
+  const used = new Set(), name = new Map();
+  for (const n of d.nodes) {
+    let t = String(n.text || '').replace(/\\([A-Za-z]+)/g, '$1').replace(/\s+/g, '').replace(/[,#:]/g, '') || `s${n.id}`;
+    while (used.has(t)) t += "'";
+    used.add(t); name.set(n.id, t);
+  }
+  const startLink = d.links.find((l) => l.type === 'start');
+  const lines = [`start: ${startLink ? name.get(startLink.node) : name.get(d.nodes[0].id)}`, `accept: ${d.nodes.filter((n) => n.accept).map((n) => name.get(n.id)).join(', ')}`];
+  for (const l of d.links) {
+    if (l.type === 'start') continue;
+    const from = l.type === 'self' ? l.node : l.from, to = l.type === 'self' ? l.node : l.to;
+    if (!name.has(from) || !name.has(to)) continue;
+    const syms = String(l.text || '').split(',').map((s) => s.trim().replace(/^\\(var)?epsilon$|^λ$/, 'ε')).filter((s) => s.length && !/\s/.test(s));
+    if (syms.length) lines.push(`${name.get(from)} ${syms.join(',')} ${name.get(to)}`);
+  }
+  return lines.join('\n');
+}
+
+/* ---------- E_DFA (Theorem 4.4): mark the states reachable from the start ---------- */
+function emptinessSteps(M) {
+  const marked = new Set([M.start]), steps = [{ q: M.start, from: null, a: null }], queue = [M.start];
+  while (queue.length) {
+    const p = queue.shift();
+    for (const [a, set] of M.delta.get(p)) for (const q of set) if (!marked.has(q)) { marked.add(q); steps.push({ q, from: p, a }); queue.push(q); }
+  }
+  const acc = [...marked].filter((q) => M.accept.has(q));
+  return { steps, marked, acc, empty: !acc.length };
+}
+/* ---------- EQ_DFA (Theorem 4.5): C = (A ∩ ¬B) ∪ (¬A ∩ B), then test L(C) = ∅ ---------- */
+function closure(M, set) {
+  const out = new Set(set), st = [...set];
+  while (st.length) { const p = st.pop(); const e = M.delta.get(p).get('ε'); if (e) for (const q of e) if (!out.has(q)) { out.add(q); st.push(q); } }
+  return out;
+}
+function toDFA(M, sigma) { // subset construction, complete over sigma (the empty set is the dead state)
+  const key = (s) => [...s].sort().join('\u0001');
+  const s0 = closure(M, [M.start]);
+  const states = new Map([[key(s0), s0]]), trans = new Map(), queue = [s0];
+  while (queue.length) {
+    const S = queue.shift(), k = key(S), row = new Map();
+    for (const a of sigma) {
+      const T = new Set();
+      for (const p of S) { const set = M.delta.get(p).get(a); if (set) for (const q of set) T.add(q); }
+      const U = closure(M, T), ku = key(U);
+      if (!states.has(ku)) { states.set(ku, U); queue.push(U); }
+      row.set(a, ku);
+    }
+    trans.set(k, row);
+  }
+  const accept = new Set([...states].filter(([, S]) => [...S].some((q) => M.accept.has(q))).map(([k]) => k));
+  return { start: key(s0), trans, accept, size: states.size };
+}
+function equivalence(A, B) {
+  const sigma = [...new Set([...A.alphabet, ...B.alphabet])].sort();
+  const DA = toDFA(A, sigma), DB = toDFA(B, sigma);
+  const start = DA.start + '\u0002' + DB.start;
+  const parent = new Map([[start, null]]), queue = [start];
+  let diff = 0, witness = null;
+  while (queue.length) {
+    const k = queue.shift();
+    const [x, y] = k.split('\u0002');
+    if (DA.accept.has(x) !== DB.accept.has(y)) { diff++; if (witness == null) witness = k; }
+    for (const a of sigma) {
+      const k2 = DA.trans.get(x).get(a) + '\u0002' + DB.trans.get(y).get(a);
+      if (!parent.has(k2)) { parent.set(k2, [k, a]); queue.push(k2); }
+    }
+  }
+  let word = null, inA = null;
+  if (witness != null) {
+    const w = [];
+    for (let k = witness; parent.get(k); k = parent.get(k)[0]) w.unshift(parent.get(k)[1]);
+    word = w;
+    inA = DA.accept.has(witness.split('\u0002')[0]);
+  }
+  return { sigma, sizeA: DA.size, sizeB: DB.size, pairs: parent.size, diff, equal: witness == null, word, inA };
+}
+
+/* =====================================================================
+   E_CFG (Theorem 4.8): mark terminals, then every variable with a rule whose right side is all marked
+   ===================================================================== */
+function parseCFG(text) {
+  const errors = [], rules = [], vars = [], terms = new Set();
+  let start = null;
+  const toks = (str) => {
+    const out = [];
+    const s = str.replace(/\\(var)?epsilon/g, 'ε');
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (/\s/.test(c) || c === 'ε' || c === 'λ') continue;
+      if (/[A-Z]/.test(c)) {
+        let j = i + 1;
+        if (s[j] === '_') { if (s[j + 1] === '{') { const k = s.indexOf('}', j); j = k < 0 ? s.length : k + 1; } else j += 2; }
+        while (s[j] === "'") j++;
+        out.push({ v: true, s: s.slice(i, j) }); i = j - 1; continue;
+      }
+      out.push({ v: false, s: c });
+    }
+    return out;
+  };
+  text.split('\n').forEach((raw, k) => {
+    const line = raw.replace(/(^|\s)#.*$/, '').trim();
+    if (!line) return;
+    const m = line.match(/^(.*?)(->|→|::=)(.*)$/);
+    if (!m) { errors.push(`Line ${k + 1}: write a rule like  S -> aSb | ε`); return; }
+    const lhs = toks(m[1]);
+    if (lhs.length !== 1 || !lhs[0].v) { errors.push(`Line ${k + 1}: the left side must be one variable, like S.`); return; }
+    const A = lhs[0].s;
+    if (!start) start = A;
+    if (!vars.includes(A)) vars.push(A);
+    for (const alt of m[3].split('|')) {
+      const r = toks(alt);
+      for (const t of r) if (t.v) { if (!vars.includes(t.s)) vars.push(t.s); } else terms.add(t.s);
+      rules.push({ A, rhs: r.map((t) => t.s), vs: r.map((t) => t.v) });
+    }
+  });
+  if (!start && !errors.length) errors.push('Type a grammar first, like  S -> aSb | ε');
+  return { start, rules, vars, terms: [...terms].sort(), errors };
+}
+function cfgEmptiness(G) {
+  const marked = new Set(G.terms), rounds = [];
+  for (;;) {
+    const fresh = [];
+    for (const r of G.rules) if (!marked.has(r.A) && !fresh.some((f) => f.A === r.A) && r.rhs.every((s) => marked.has(s))) fresh.push(r);
+    if (!fresh.length) break;
+    for (const r of fresh) marked.add(r.A);
+    rounds.push(fresh);
+  }
+  return { rounds, marked, empty: !marked.has(G.start) };
+}
+
+/* =====================================================================
+   Post Correspondence Problem (Section 5.2)
+   ===================================================================== */
+function parseDominoes(text) {
+  const out = [], errors = [];
+  text.split('\n').forEach((raw, k) => {
+    const line = raw.replace(/#.*$/, '').trim();
+    if (!line) return;
+    const parts = line.includes('/') ? line.split('/') : line.split(/\s+/);
+    if (parts.length !== 2) { errors.push(`Line ${k + 1}: write a domino as  top / bottom, like  ab / a`); return; }
+    const [t, b] = parts.map((x) => x.trim().replace(/^ε$/, ''));
+    if (/\s/.test(t) || /\s/.test(b)) { errors.push(`Line ${k + 1}: the top and bottom strings cannot contain spaces.`); return; }
+    if (!t.length && !b.length) { errors.push(`Line ${k + 1}: a domino needs at least one symbol.`); return; }
+    out.push({ t, b });
+  });
+  if (!out.length && !errors.length) errors.push('Type at least one domino.');
+  return { dominoes: out, errors };
+}
+// Breadth-first search over the part of one string that sticks out past the other.
+// Returns the shortest match (fewest dominoes), or tells how far the search went.
+function solvePCP(D, maxLen = 14, cap = 300000) {
+  const startStates = [];
+  const step = (over, top, d) => { // over: the overhang string; top: true if the top row is ahead
+    const T = top ? over + d.t : d.t, B = top ? d.b : over + d.b;
+    const n = Math.min(T.length, B.length);
+    if (T.slice(0, n) !== B.slice(0, n)) return null;
+    return T.length >= B.length ? { over: T.slice(n), top: true } : { over: B.slice(n), top: false };
+  };
+  D.forEach((d, i) => { const s = step('', true, d); if (s) startStates.push({ ...s, seq: [i] }); });
+  const seen = new Set();
+  let level = startStates, nodes = 0, capped = false;
+  for (let len = 1; len <= maxLen && level.length; len++) {
+    for (const st of level) if (st.over === '') return { found: true, seq: st.seq, explored: nodes };
+    const next = [];
+    for (const st of level) {
+      const k = (st.top ? 'T' : 'B') + st.over;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      D.forEach((d, i) => {
+        const s = step(st.over, st.top, d);
+        if (s && s.over.length <= 60) next.push({ ...s, seq: [...st.seq, i] });
+      });
+      if (++nodes > cap) { capped = true; break; }
+    }
+    if (capped) break;
+    level = next;
+  }
+  return { found: false, exhausted: !level.length && !capped, maxLen, explored: nodes, capped };
+}
+// quick reasons why no match can exist (Sipser's example: every top is longer than its bottom)
+function pcpObviousNo(D) {
+  if (D.every((d) => d.t.length > d.b.length)) return 'Every top string is longer than its bottom string, so the top row always stays longer: no match is possible.';
+  if (D.every((d) => d.t.length < d.b.length)) return 'Every bottom string is longer than its top string, so the bottom row always stays longer: no match is possible.';
+  if (!D.some((d) => d.t.startsWith(d.b) || d.b.startsWith(d.t))) return 'No domino can start a match: in every domino, one string is not a prefix of the other.';
+  return null;
+}
+const PCP_EXAMPLES = {
+  sipser: { name: 'Sipser’s example (has a match)', text: 'b / ca\na / ab\nca / a\nabc / c' },
+  nomatch: { name: 'Sipser’s example with no match', text: 'abc / ab\nca / a\nacc / ba' },
+  four: { name: 'A match of length 4', text: 'a / baa\nab / aa\nbba / bb' },
+  longer: { name: 'A hard instance (the search stops at 14)', text: 'aab / a\nab / abb\nab / bab\nba / aab' },
+};
+
+/* =====================================================================
+   Page: tabs
+   ===================================================================== */
+function showTab(name) {
+  state.tab = name; save();
+  for (const t of $$('.dtab')) { const on = t.dataset.tab === name; t.setAttribute('aria-selected', String(on)); $('#' + t.getAttribute('aria-controls')).hidden = !on; }
+  try { history.replaceState(null, '', '#' + name); } catch (e) { /* file:// */ }
+}
+for (const t of $$('.dtab')) t.addEventListener('click', () => showTab(t.dataset.tab));
+
+/* ---------- Decidable tab: E_DFA ---------- */
+function machineSummary(M) {
+  return `<p class="small-text muted">${M.states.length} state${M.states.length === 1 ? '' : 's'}, Σ = {${M.alphabet.map(symH).join(', ')}}, start ${nm(M.start)}, accepting {${[...M.accept].map(nm).join(', ')}}${M.isDFA ? '' : M.hasEps ? ' · an NFA with ε-moves' : ' · an NFA'}</p>`;
+}
+function runEDFA() {
+  const M = parseFA($('#dfa-a').value), out = $('#edfa-out');
+  out.hidden = false;
+  if (M.errors.length) { out.innerHTML = `<ul class="notes">${M.errors.map((e) => `<li class="warn">${esc(e)}</li>`).join('')}</ul>`; return; }
+  const R = emptinessSteps(M);
+  out.innerHTML = machineSummary(M) + `<ol class="mark-steps">${R.steps.map((s, k) => `<li>${k === 0 ? `Mark the start state ${nm(s.q)}.` : `Mark ${nm(s.q)}: it has an arrow from marked ${nm(s.from)} on ${symH(s.a)}.`}${M.accept.has(s.q) ? ' <span class="pill run">accepting</span>' : ''}</li>`).join('')}<li>No new state can be marked.</li></ol>`
+    + (R.empty
+      ? `<div class="verdict ok"><span class="pill ok">accept</span><span>No accepting state is marked, so L(A) = ∅ and ⟨A⟩ ∈ E<sub>DFA</sub>.</span></div>`
+      : `<div class="verdict bad"><span class="pill bad">reject</span><span>The accepting state${R.acc.length > 1 ? 's' : ''} ${R.acc.map(nm).join(', ')} ${R.acc.length > 1 ? 'are' : 'is'} marked, so A accepts some string and ⟨A⟩ ∉ E<sub>DFA</sub>.</span></div>`)
+    + (M.isDFA ? '' : '<p class="small-text muted">The same marking works for an NFA: it only asks which states can be reached.</p>');
+}
+function runEQ() {
+  const A = parseFA($('#dfa-a').value), B = parseFA($('#dfa-b').value), out = $('#eq-out');
+  out.hidden = false;
+  const errs = [...A.errors.map((e) => 'A: ' + e), ...B.errors.map((e) => 'B: ' + e)];
+  if (errs.length) { out.innerHTML = `<ul class="notes">${errs.map((e) => `<li class="warn">${esc(e)}</li>`).join('')}</ul>`; return; }
+  const R = equivalence(A, B);
+  const conv = !A.isDFA || !B.isDFA ? `<li>${!A.isDFA && !B.isDFA ? 'A and B are NFAs' : !A.isDFA ? 'A is an NFA' : 'B is an NFA'}, so first convert to DFAs (subset construction).</li>` : '';
+  out.innerHTML = `<ol class="mark-steps">${conv}
+      <li>Complete both DFAs over Σ = {${R.sigma.map(symH).join(', ')}}: A has ${R.sizeA} state${R.sizeA === 1 ? '' : 's'} and B has ${R.sizeB} (counting a dead state if one is needed).</li>
+      <li>Build C with L(C) = (L(A) ∩ <span class="over">L(B)</span>) ∪ (<span class="over">L(A)</span> ∩ L(B)): its states are pairs, and a pair accepts when exactly one of A, B accepts. ${R.pairs} pair${R.pairs === 1 ? ' is' : 's are'} reachable.</li>
+      <li>Run the E<sub>DFA</sub> decider on C: ${R.diff ? `${R.diff} reachable pair${R.diff === 1 ? '' : 's'} accept${R.diff === 1 ? 's' : ''}, so L(C) ≠ ∅` : 'no reachable pair accepts, so L(C) = ∅'}.</li></ol>`
+    + (R.equal
+      ? '<div class="verdict ok"><span class="pill ok">accept</span><span>L(A) = L(B), so ⟨A, B⟩ ∈ EQ<sub>DFA</sub>.</span></div>'
+      : `<div class="verdict bad"><span class="pill bad">reject</span><span>L(A) ≠ L(B). The shortest string in L(C) is ${wordH(R.word.join(''))}: ${R.inA ? 'A accepts it and B does not' : 'B accepts it and A does not'}.</span></div>`);
+}
+function loadDrawing(target, key, label) {
+  const t = drawingText(key);
+  if (!t) { toast(`No saved drawing found on the ${label} page in this browser.`); return; }
+  $(target).value = t; state[target === '#dfa-a' ? 'dfaA' : 'dfaB'] = t; save();
+  toast(`Loaded your drawing from the ${label} page.`);
+}
+$('#edfa-run').addEventListener('click', runEDFA);
+$('#eq-run').addEventListener('click', runEQ);
+$('#dfa-a').addEventListener('input', () => { state.dfaA = $('#dfa-a').value; save(); });
+$('#dfa-b').addEventListener('input', () => { state.dfaB = $('#dfa-b').value; save(); });
+$('#load-a').addEventListener('click', () => loadDrawing('#dfa-a', 'deltadraw:v2', 'Finite automata'));
+$('#load-a-re').addEventListener('click', () => loadDrawing('#dfa-a', 'deltadraw:regex:v1', 'Regular expressions'));
+$('#load-b').addEventListener('click', () => loadDrawing('#dfa-b', 'deltadraw:v2', 'Finite automata'));
+$('#load-b-re').addEventListener('click', () => loadDrawing('#dfa-b', 'deltadraw:regex:v1', 'Regular expressions'));
+const FA_EXAMPLES = {
+  a: 'start: q0\naccept: q2\nq0 0 q0\nq0 1 q1\nq1 0 q0\nq1 1 q2\nq2 0,1 q2',
+  b: 'start: p0\naccept: p1\np0 0 p0\np0 1 p1\np1 0,1 p1',
+};
+$('#ex-a').addEventListener('click', () => { $('#dfa-a').value = FA_EXAMPLES.a; state.dfaA = FA_EXAMPLES.a; save(); });
+$('#ex-b').addEventListener('click', () => { $('#dfa-b').value = FA_EXAMPLES.b; state.dfaB = FA_EXAMPLES.b; save(); });
+
+/* ---------- Decidable tab: E_CFG ---------- */
+function runECFG() {
+  const G = parseCFG($('#cfg-text').value), out = $('#ecfg-out');
+  out.hidden = false;
+  if (G.errors.length) { out.innerHTML = `<ul class="notes">${G.errors.map((e) => `<li class="warn">${esc(e)}</li>`).join('')}</ul>`; return; }
+  const R = cfgEmptiness(G);
+  const rhs = (r) => (r.rhs.length ? r.rhs.map((s, k) => (r.vs[k] ? `<i>${nm(s)}</i>` : esc(s))).join('') : '<span class="eps">ε</span>');
+  out.innerHTML = `<ol class="mark-steps"><li>Mark every terminal: ${G.terms.length ? G.terms.map(esc).join(', ') : '(there are none)'}.</li>${R.rounds.map((round) => `<li>Mark ${round.map((r) => `<i>${nm(r.A)}</i> <span class="muted">(because ${nm(r.A)} → ${rhs(r)})</span>`).join(', ')}.</li>`).join('')}<li>No new variable can be marked.</li></ol>`
+    + (R.empty
+      ? `<div class="verdict ok"><span class="pill ok">accept</span><span>The start variable <i>${nm(G.start)}</i> is not marked, so it cannot generate any string of terminals: L(G) = ∅ and ⟨G⟩ ∈ E<sub>CFG</sub>.</span></div>`
+      : `<div class="verdict bad"><span class="pill bad">reject</span><span>The start variable <i>${nm(G.start)}</i> is marked, so G generates some string: ⟨G⟩ ∉ E<sub>CFG</sub>.</span></div>`)
+    + (G.vars.filter((v) => !R.marked.has(v)).length && !R.empty ? `<p class="small-text muted">Never marked: ${G.vars.filter((v) => !R.marked.has(v)).map((v) => `<i>${nm(v)}</i>`).join(', ')}. These variables cannot produce a string of terminals.</p>` : '');
+}
+$('#ecfg-run').addEventListener('click', runECFG);
+$('#cfg-text').addEventListener('input', () => { state.grammar = $('#cfg-text').value; save(); });
+$('#load-g').addEventListener('click', () => {
+  let saved = null;
+  try { saved = JSON.parse(store.get('deltadraw:cfg:v1') || 'null'); } catch (e) { saved = null; }
+  if (!saved || !saved.text) { toast('No saved grammar found on the Grammars page in this browser.'); return; }
+  $('#cfg-text').value = saved.text; state.grammar = saved.text; save();
+  toast('Loaded your grammar from the Grammars page.');
+});
+
+/* ---------- Undecidable tab: Cantor's diagonal argument (Theorem 4.17) ---------- */
+let cantor = null;
+function newCantor() {
+  const rows = [];
+  for (let n = 0; n < 6; n++) { let d = ''; for (let k = 0; k < 8; k++) d += Math.floor(Math.random() * 10); rows.push({ int: Math.floor(Math.random() * 10), digits: d }); }
+  cantor = { rows, k: 0 };
+  renderCantor();
+}
+const pickDigit = (d) => (d === 1 ? 2 : 1); // never 0 or 9 (Sipser avoids them), and different from d
+function renderCantor() {
+  const { rows, k } = cantor;
+  const x = rows.slice(0, k).map((r, n) => pickDigit(Number(r.digits[n]))).join('');
+  $('#cantor-table').innerHTML = `<table class="ttable dtable"><thead><tr><th>n</th><th>f(n)</th></tr></thead><tbody>${rows.map((r, n) => `<tr><td>${n + 1}</td><td class="mono">${r.int}.${[...r.digits].map((c, j) => `<span class="${j === n ? (n < k ? 'dg done' : 'dg') : ''}">${c}</span>`).join('')}…</td></tr>`).join('')}</tbody></table>`;
+  const done = k === rows.length;
+  $('#cantor-x').innerHTML = `x = <span class="mono">0.${[...x].map((c) => `<b>${c}</b>`).join('')}${done ? '…' : '<span class="muted">?</span>'}</span>`;
+  $('#cantor-text').innerHTML = k === 0
+    ? 'Suppose f lists every real number: f(1), f(2), f(3), … We build a number x that is not in the list. Press Next digit.'
+    : done
+      ? `x differs from f(1) in digit 1, from f(2) in digit 2, …, from f(n) in digit n. So x is not f(n) for any n, and the list was not complete. No such list exists: the real numbers are uncountable (Theorem 4.17). The same diagonal idea shows that some languages are not Turing-recognizable (Corollary 4.18).`
+      : `Digit ${k} of f(${k}) is ${rows[k - 1].digits[k - 1]}, so x gets a different digit there: ${pickDigit(Number(rows[k - 1].digits[k - 1]))}. Now x ≠ f(${k}). (Sipser avoids 0 and 9 so that x has only one decimal expansion.)`;
+  $('#cantor-next').disabled = done;
+}
+$('#cantor-next').addEventListener('click', () => { if (cantor.k < cantor.rows.length) { cantor.k++; renderCantor(); } });
+$('#cantor-new').addEventListener('click', newCantor);
+
+/* ---------- Undecidable tab: A_TM is undecidable (Theorem 4.11, Figures 4.19–4.21) ---------- */
+let atm = null;
+const ATM_N = 5;
+function newATM() {
+  const acc = Array.from({ length: ATM_N }, () => Array.from({ length: ATM_N }, () => Math.random() < 0.45));
+  atm = { acc, step: 0 };
+  renderATM();
+}
+const ATM_STEPS = [
+  { title: 'Assume H decides A<sub>TM</sub>', text: 'Suppose some TM H decides A<sub>TM</sub>: on input ⟨M, w⟩ it halts, accepting if M accepts w and rejecting otherwise. List all Turing machines M<sub>1</sub>, M<sub>2</sub>, … The table shows what M<sub>i</sub> does on input ⟨M<sub>j</sub>⟩: accept, or blank if it rejects or loops (Figure 4.19).' },
+  { title: 'H’s answers', text: 'H always halts, so entry (i, j) of H’s table is accept or reject: H(⟨M<sub>i</sub>, ⟨M<sub>j</sub>⟩⟩) (Figure 4.20). Every blank became reject, including the ones where M<sub>i</sub> loops.' },
+  { title: 'Build D from H', text: 'Define D: on input ⟨M⟩, run H on ⟨M, ⟨M⟩⟩ and output the <b>opposite</b>. So D(⟨M<sub>i</sub>⟩) is the opposite of the diagonal entry H(⟨M<sub>i</sub>, ⟨M<sub>i</sub>⟩⟩), shown highlighted.' },
+  { title: 'D is in the list too', text: 'D is a Turing machine, so it is one of the rows, and ⟨D⟩ is one of the columns. The entry for D on ⟨D⟩ must be the opposite of itself (Figure 4.21): if D accepts ⟨D⟩, then D rejects ⟨D⟩, and the other way round. That is a contradiction, so H cannot exist: A<sub>TM</sub> is undecidable.' },
+];
+function renderATM() {
+  const { acc, step } = atm;
+  const N = ATM_N;
+  const head = `<tr><th></th>${Array.from({ length: N }, (_, j) => `<th>⟨M<sub>${j + 1}</sub>⟩</th>`).join('')}${step >= 3 ? '<th>…</th><th>⟨D⟩</th>' : ''}</tr>`;
+  const cell = (i, j) => {
+    const a = acc[i][j], diag = i === j && step >= 2;
+    const v = step === 0 ? (a ? 'accept' : '') : (a ? 'accept' : 'reject');
+    return `<td class="${diag ? 'diag' : ''}${v === 'reject' ? ' rej' : ''}">${v}</td>`;
+  };
+  let body = Array.from({ length: N }, (_, i) => `<tr><th>M<sub>${i + 1}</sub></th>${Array.from({ length: N }, (_, j) => cell(i, j)).join('')}${step >= 3 ? '<td>…</td><td></td>' : ''}</tr>`).join('');
+  if (step >= 2) {
+    if (step >= 3) body += `<tr><th>⋮</th>${'<td></td>'.repeat(N + 2)}</tr>`;
+    body += `<tr class="drow"><th>D</th>${Array.from({ length: N }, (_, j) => `<td class="dval">${acc[j][j] ? 'reject' : 'accept'}</td>`).join('')}${step >= 3 ? '<td>…</td><td class="qmark">?</td>' : ''}</tr>`;
+  }
+  $('#atm-table').innerHTML = `<table class="ttable dtable atm">${head}${body}</table>`;
+  $('#atm-title').innerHTML = `Step ${step + 1} of ${ATM_STEPS.length}: ${ATM_STEPS[step].title}`;
+  $('#atm-text').innerHTML = ATM_STEPS[step].text;
+  $('#atm-back').disabled = step === 0;
+  $('#atm-next').disabled = step === ATM_STEPS.length - 1;
+}
+$('#atm-next').addEventListener('click', () => { if (atm.step < ATM_STEPS.length - 1) { atm.step++; renderATM(); } });
+$('#atm-back').addEventListener('click', () => { if (atm.step > 0) { atm.step--; renderATM(); } });
+$('#atm-new').addEventListener('click', () => { const s = atm.step; newATM(); atm.step = s; renderATM(); });
+
+/* ---------- PCP tab ---------- */
+let D = [];
+function pcpLoad() {
+  const P = parseDominoes($('#pcp-text').value);
+  state.pcp = $('#pcp-text').value;
+  const err = $('#pcp-err');
+  if (P.errors.length) { err.innerHTML = `<ul class="notes">${P.errors.map((e) => `<li class="warn">${esc(e)}</li>`).join('')}</ul>`; D = []; } else { err.innerHTML = ''; D = P.dominoes; }
+  state.pcpSeq = (state.pcpSeq || []).filter((i) => i < D.length);
+  save();
+  renderPCP();
+  $('#pcp-solve-out').hidden = true;
+}
+const dominoHTML = (d, i, small) => `<span class="domino${small ? ' small' : ''}"><span class="dt">${d.t ? esc(d.t) : '<span class="eps">ε</span>'}</span><span class="db">${d.b ? esc(d.b) : '<span class="eps">ε</span>'}</span>${i != null ? `<span class="dn">${i + 1}</span>` : ''}</span>`;
+function renderPCP() {
+  $('#pcp-set').innerHTML = D.map((d, i) => `<button class="dom-btn" data-dom="${i}" title="Add domino ${i + 1}">${dominoHTML(d, i)}</button>`).join('');
+  const seq = state.pcpSeq;
+  const top = seq.map((i) => D[i].t).join(''), bot = seq.map((i) => D[i].b).join('');
+  const n = Math.min(top.length, bot.length);
+  let agree = 0;
+  while (agree < n && top[agree] === bot[agree]) agree++;
+  const row = (s) => [...s].map((c, k) => `<span class="${k < agree ? 'm-ok' : k < n ? 'm-bad' : 'm-over'}">${esc(c)}</span>`).join('');
+  $('#pcp-seq').innerHTML = seq.length ? seq.map((i) => dominoHTML(D[i], i, true)).join('') : '<span class="muted small-text">Click dominoes above to line them up. You may use each one as often as you like.</span>';
+  let verdict = '';
+  if (seq.length) {
+    if (agree < n) verdict = `<span class="pill bad">The rows disagree at symbol ${agree + 1}</span>`;
+    else if (top.length === bot.length) verdict = '<span class="pill ok">✓ A match! The top and bottom read the same string.</span>';
+    else verdict = `<span class="pill run">So far so good: the ${top.length > bot.length ? 'top' : 'bottom'} row is ${Math.abs(top.length - bot.length)} symbol${Math.abs(top.length - bot.length) === 1 ? '' : 's'} ahead</span>`;
+  }
+  $('#pcp-rows').innerHTML = seq.length ? `<div class="pcp-row"><span class="lab">top</span><span class="mono">${row(top)}</span></div><div class="pcp-row"><span class="lab">bottom</span><span class="mono">${row(bot)}</span></div><div>${verdict}</div>` : '';
+  for (const b of $$('[data-dom]')) b.addEventListener('click', () => { state.pcpSeq.push(Number(b.dataset.dom)); save(); renderPCP(); });
+  $('#pcp-undo').disabled = !seq.length;
+  $('#pcp-clear').disabled = !seq.length;
+}
+$('#pcp-text').addEventListener('input', () => { clearTimeout(pcpLoad.t); pcpLoad.t = setTimeout(() => { state.pcpSeq = []; pcpLoad(); }, 300); });
+$('#pcp-undo').addEventListener('click', () => { state.pcpSeq.pop(); save(); renderPCP(); });
+$('#pcp-clear').addEventListener('click', () => { state.pcpSeq = []; save(); renderPCP(); });
+$('#pcp-examples').addEventListener('change', (e) => {
+  const ex = PCP_EXAMPLES[e.target.value];
+  e.target.value = '';
+  if (!ex) return;
+  $('#pcp-text').value = ex.text; state.pcpSeq = []; pcpLoad();
+  toast(`Loaded: ${ex.name}`);
+});
+$('#pcp-solve').addEventListener('click', () => {
+  const out = $('#pcp-solve-out');
+  out.hidden = false;
+  if (!D.length) { out.innerHTML = '<span class="warn-text">Type some dominoes first.</span>'; return; }
+  const obvious = pcpObviousNo(D);
+  if (obvious) { out.innerHTML = `<div class="verdict bad"><span class="pill bad">No match</span><span>${esc(obvious)}</span></div>`; return; }
+  const R = solvePCP(D);
+  if (R.found) {
+    out.innerHTML = `<div class="verdict ok"><span class="pill ok">Match found</span><span>The shortest match uses ${R.seq.length} domino${R.seq.length === 1 ? '' : 'es'}: ${R.seq.map((i) => i + 1).join(', ')}. It spells <span class="mono">${esc(R.seq.map((i) => D[i].t).join(''))}</span>.</span><button class="btn small" id="pcp-show">Show it</button></div>`;
+    $('#pcp-show').addEventListener('click', () => { state.pcpSeq = R.seq.slice(); save(); renderPCP(); });
+  } else if (R.exhausted) {
+    out.innerHTML = '<div class="verdict bad"><span class="pill bad">No match</span><span>The search ran out of possibilities: every way to continue gets stuck, so this instance has no match.</span></div>';
+  } else {
+    out.innerHTML = `<div class="verdict run"><span class="pill run">No match up to ${R.maxLen} dominoes</span><span>A longer match may still exist. PCP is undecidable (Theorem 5.15): no program can always say whether a match exists, so any search has to stop somewhere.</span></div>`;
+  }
+});
+
+/* ---------- theme ---------- */
+const THEMES = ['system', 'light', 'dark'];
+let theme = store.get(THEME_KEY) || 'system';
+function applyTheme() {
+  if (theme === 'system') document.documentElement.removeAttribute('data-theme'); else document.documentElement.setAttribute('data-theme', theme);
+  $('#btn-theme').title = 'Theme: ' + (theme === 'system' ? 'follows your system' : theme);
+}
+$('#btn-theme').addEventListener('click', () => { theme = THEMES[(THEMES.indexOf(theme) + 1) % 3]; store.set(THEME_KEY, theme); applyTheme(); toast('Theme: ' + (theme === 'system' ? 'same as your system' : theme)); });
+$('#btn-help').addEventListener('click', () => $('#how-to').scrollIntoView({ behavior: 'smooth', block: 'start' }));
+
+/* ---------- start ---------- */
+applyTheme();
+try { const s = JSON.parse(store.get(KEY) || 'null'); if (s && typeof s === 'object') state = { ...state, ...s, pcpSeq: Array.isArray(s.pcpSeq) ? s.pcpSeq : [] }; } catch (e) { /* ignore */ }
+$('#dfa-a').value = state.dfaA || FA_EXAMPLES.a;
+$('#dfa-b').value = state.dfaB || FA_EXAMPLES.b;
+$('#cfg-text').value = state.grammar || 'S -> aSb | A\nA -> aA\nB -> b';
+$('#pcp-text').value = state.pcp || PCP_EXAMPLES.sipser.text;
+pcpLoad();
+newCantor();
+newATM();
+const hash = (location.hash || '').slice(1);
+showTab(['decidable', 'undecidable', 'pcp'].includes(hash) ? hash : ['decidable', 'undecidable', 'pcp'].includes(state.tab) ? state.tab : 'decidable');
+window.DeltaDrawDecide = { parseFA, emptinessSteps, equivalence, toDFA, parseCFG, cfgEmptiness, parseDominoes, solvePCP, pcpObviousNo, drawingText, PCP_EXAMPLES };
+})();
+</script>
+</body>
+</html>
