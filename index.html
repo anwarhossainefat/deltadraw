@@ -380,7 +380,9 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 .home{max-width:1080px;margin:0 auto;padding-block:44px 24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;gap:52px}
 .hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:36px;align-items:center}
 .eyebrow{margin:0 0 12px;font:600 12px var(--font-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--accent)}
-.hero h1{margin:0 0 16px;font:500 46px/1.06 var(--font-math);letter-spacing:-.01em;text-wrap:balance}
+.hero h1{margin:0;font:500 52px/1.04 var(--font-math);letter-spacing:-.01em;text-wrap:balance}
+.hero .kicker{margin:0 0 6px;font:italic 400 22px/1.3 var(--font-math);color:var(--accent)}
+.hero .tagline-sub{margin:8px 0 18px;font:600 13px/1 var(--font-ui);letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
 .hero .lead{margin:0 0 22px;font-size:17px;line-height:1.55;color:var(--muted);max-width:56ch}
 .hero-actions{display:flex;gap:8px;flex-wrap:wrap}
 .book{display:flex;gap:10px;align-items:flex-start;margin:0 0 22px;padding:10px 14px;border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;background:var(--surface);font-size:14px;line-height:1.5;max-width:56ch}
@@ -418,7 +420,8 @@ a.tile:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 .about{max-width:1080px;padding-top:28px}
 @media (max-width: 780px){
   .hero{grid-template-columns:1fr;gap:24px}
-  .hero h1{font-size:34px}
+  .hero h1{font-size:38px}
+  .hero .kicker{font-size:19px}
   .chapter{grid-template-columns:1fr;gap:10px}
   .ch-label{grid-template-columns:auto 1fr;align-items:baseline;gap:12px}
   .ch-num{font-size:36px}
@@ -431,8 +434,9 @@ a.tile:hover{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
 <main class="home">
   <section class="hero">
     <div>
-      <p class="eyebrow">Theory of Computation, step by step</p>
-      <h1>Draw it, run it, prove it.</h1>
+      <p class="kicker">Draw it, run it, prove it.</p>
+      <h1>Theory of Computation</h1>
+      <p class="tagline-sub">step by step</p>
       <p class="lead">DeltaDraw is a free companion for a Theory of Computation course. Pick your chapter, draw the machine, and watch it compute one step at a time: finite automata, regular expressions, grammars, pushdown automata and Turing machines, through decidability and NP-completeness.</p>
       <p class="book"><span class="book-icon" aria-hidden="true">📘</span><span>Follows <b>Michael Sipser, <i>Introduction to the Theory of Computation</i></b>, 3rd edition (Cengage Learning, 2013). Section, example and theorem numbers on this site match the book.</span></p>
       <div class="hero-actions">
