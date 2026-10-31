@@ -1,8 +1,21 @@
-# DeltaDraw: free DFA & NFA drawer
+# DeltaDraw: free Theory of Computation toolkit
 
-**Live app:** https://anwarhossainefat.github.io/deltadraw/
+**Live site:** https://anwarhossainefat.github.io/deltadraw/
 
-DeltaDraw is a free, browser-based tool for drawing finite automata (DFA, NFA and ε-NFA) state diagrams. Draw states and transitions with the mouse, test strings step by step, convert an NFA to a DFA, minimize a DFA, and export a clean diagram as **PNG, SVG, LaTeX (TikZ) or JFLAP (.jff)**. There's nothing to install and no sign-up.
+DeltaDraw is a free, browser-based companion for a Theory of Computation course. The home page lists the chapters (following Sipser, *Introduction to the Theory of Computation*), and each chapter links to its tools.
+
+## Pages
+
+| Page | What it is | Status |
+|---|---|---|
+| `index.html` | Home: chapter menu | Live |
+| `fa.html` | Ch 1: finite automata (DFA, NFA, ε-NFA) | Live |
+| `exam.html` | Exam mode (drawing only, for proctored exams) | Live |
+| `regex.html`, `cfg.html`, `pda.html`, `tm.html`, `decide.html`, `complexity.html`, `practice.html` | Later chapters | Planned |
+
+## Finite automata tool (`fa.html`)
+
+The finite automata tool lets you draw DFA, NFA and ε-NFA state diagrams. Draw states and transitions with the mouse, test strings step by step, convert an NFA to a DFA, minimize a DFA, and export a clean diagram as **PNG, SVG, LaTeX (TikZ) or JFLAP (.jff)**. There's nothing to install and no sign-up.
 
 ## Features
 
