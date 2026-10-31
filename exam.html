@@ -148,7 +148,7 @@ a.nav-item:hover{color:var(--ink)}
 
 /* ---------- Inspector panel ---------- */
 .panel{background:var(--surface);border-left:1px solid var(--line);overflow:auto;display:flex;flex-direction:column;min-height:0}
-.sec{padding:14px 16px;border-bottom:1px solid var(--line);display:grid;gap:10px}
+.sec{padding:14px 16px;border-bottom:1px solid var(--line);display:grid;gap:10px;grid-template-columns:minmax(0,1fr)}
 .sec-title{margin:0;font:600 11px/1 var(--font-ui);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
 .muted{color:var(--muted)}
 .small-text{font-size:12.5px;margin:0}
@@ -218,6 +218,25 @@ details.batch[open] summary{margin-bottom:8px}
 .re-out .chip{font:14px var(--font-mono);background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:1px 7px}
 .regex-result{font:italic 17px var(--font-math);word-break:break-word;background:var(--surface-2);border-radius:6px;padding:6px 9px}
 .app[data-page="regex"] #tab-regex{order:-1}
+/* practice page: no solving tools, just drawing, Test and Table */
+.app[data-page="practice"] #tab-convert,.app[data-page="practice"] #tab-combine,.app[data-page="practice"] #tab-regex,
+.app[data-page="practice"] #examples,.app[data-page="practice"] #btn-exam,.app[data-page="practice"] #welcome-example,
+.app[data-page="practice"] #btn-open{display:none}
+.ex-sec{background:var(--surface)}
+.ex-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.ex-nav{display:flex;gap:4px}
+.ex-nav .select{flex:1;min-width:0;width:0;height:32px}
+.ex-nav .btn{height:32px;width:32px}
+.ex-card{display:grid;gap:9px;border:1px solid var(--line);border-radius:10px;padding:12px;background:var(--bg)}
+.ex-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ex-card h3{margin:0;font:600 15.5px/1.3 var(--font-ui)}
+.ex-text{margin:0;font-size:14px;line-height:1.55}
+.ex-text .lbl{font:italic 16px var(--font-math)}
+.ex-rules{margin:0}
+.ex-figure{border:1px solid var(--line);border-radius:8px;background:var(--stage);padding:6px;color:var(--ink)}
+.ex-figure svg{display:block;width:100%;height:auto;max-height:200px}
+.ex-hints{margin:0;padding-left:18px;display:grid;gap:5px;font-size:13px}
+.ex-hints:empty{display:none}
 .slots{display:grid;gap:8px}
 .slot{border:1px solid var(--line);border-radius:9px;padding:9px 10px;display:grid;gap:8px}
 .slot-head{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
@@ -485,7 +504,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       <p><button class="btn danger" id="btn-clear-all">Clear all questions</button></p>
     </div>
   </div>
-  <footer class="foot"><span>DeltaDraw exam mode v1.5</span></footer>
+  <footer class="foot"><span>DeltaDraw exam mode v1.6</span></footer>
 </section>
 
 <div class="modal" id="export-modal" hidden>
@@ -543,7 +562,7 @@ const PAGE = 'exam';
 // each tool page keeps its own drawing; the theme is shared by all pages
 const STORE_KEY = PAGE === 'regex' ? 'deltadraw:regex:v1' : 'deltadraw:v2';
 const THEME_KEY = 'deltadraw:theme';
-const VERSION = '1.5';
+const VERSION = '1.6';
 const NODE_MIN_R = 26;
 const GRID = 20;
 let sim = null; // active string simulation (full version only)
@@ -1792,6 +1811,7 @@ function examInit(saved) {
   updateQuestionList();
   showGate();
 }
+
 
 /* ---------------- Startup ---------------- */
 function init() {

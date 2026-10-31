@@ -11,8 +11,19 @@ DeltaDraw is a free, browser-based companion for a Theory of Computation course.
 | `index.html` | Home: chapter menu | Live |
 | `fa.html` | Ch 1: finite automata (DFA, NFA, ε-NFA) | Live |
 | `regex.html` | Ch 1.3: regular expressions (regex ⇄ NFA, step by step) | Live |
+| `practice.html` | Chapter 1 practice exercises with exact checking | Live |
 | `exam.html` | Exam mode (drawing only, for proctored exams) | Live |
-| `cfg.html`, `pda.html`, `tm.html`, `decide.html`, `complexity.html`, `practice.html` | Later chapters | Planned |
+| `cfg.html`, `pda.html`, `tm.html`, `decide.html`, `complexity.html` | Later chapters | Planned |
+
+## Practice (`practice.html`)
+
+22 Chapter 1 exercises: DFAs (1.1), NFAs, conversion and minimization (1.2), and regular expressions (1.3).
+
+- **Check answer** compares the answer with the target language exactly. A wrong answer gets the shortest counterexample string, with a button to step through it in the Test tab.
+- Rules are checked too: “must be a DFA”, “at most k states”, “as few states as possible”, and only symbols from Σ.
+- Hints one at a time, and a solution on request (it doesn't count as solved after the solution is shown).
+- Each exercise keeps its own drawing; progress is saved in the browser.
+- The practice page hides the Convert, Combine and Regex tools so the answer isn't one click away.
 
 ## Regular expressions (`regex.html`)
 
