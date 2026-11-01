@@ -580,7 +580,7 @@ const isSquare = (n) => { const r = Math.round(Math.sqrt(n)); return r * r === n
 const LANGS = {
   zeroone: {
     name: '{0<sup>n</sup>1<sup>n</sup> | n ≥ 0}', test: (w) => /^0*1*$/.test(w) && count(w, '0') === count(w, '1'),
-    regular: false, cfl: true, ref: { reg: 'Example 1.73', cfl: 'Example 2.3 (a grammar for it)' },
+    regular: false, cfl: true, ref: { reg: 'Example 1.73', cfl: '' },
     hint: { reg: 'Try s = 0^p1^p. Because |xy| ≤ p, y can only contain 0s. Pump up with i = 2.', cfl: '' },
     why: { cfl: 'This language is context-free (S → 0S1 | ε), so the context-free pumping lemma can never be violated: for every long string, splitting around the middle 01 pumps both halves together.' },
   },
@@ -593,7 +593,7 @@ const LANGS = {
   ww: {
     name: '{ww | w ∈ {0,1}*}', test: (w) => /^[01]*$/.test(w) && w.length % 2 === 0 && w.slice(0, w.length / 2) === w.slice(w.length / 2),
     regular: false, cfl: false, ref: { reg: 'Example 1.75', cfl: 'Example 2.38' },
-    hint: { reg: 'Try s = 0^p10^p1 (0^p1 twice). y is in the first block of 0s; pump it up.', cfl: 'Try s = 0^p1^p0^p1^p. Sipser pumps down: i = 0 works in every case.' },
+    hint: { reg: 'Try s = 0^p10^p1 (0^p1 twice). y is in the first block of 0s; pump it up.', cfl: 'Try s = 0^p1^p0^p1^p. Sipser pumps up when vxy lies in one half and pumps down (i = 0) when it straddles the middle. In fact i = 0 works in every case.' },
   },
   squares: {
     name: '{1<sup>n²</sup> | n ≥ 0}', test: (w) => /^1*$/.test(w) && isSquare(w.length),
