@@ -472,7 +472,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       </div>
     </section>
     <style>
-/* History dock (PDA stack history): a wide panel under the drawing; the inspector spans both rows */
+/* History dock (PDA stack history, TM tape history): a wide panel under the drawing; the inspector spans both rows */
 .workspace.has-dock{grid-template-rows:minmax(0,1fr) auto}
 .workspace.has-dock .stage{grid-column:1;grid-row:1}
 .workspace.has-dock .panel{grid-column:2;grid-row:1 / span 2}
@@ -488,11 +488,13 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 .hist-scroll{overflow-x:auto;overflow-y:hidden;position:relative;outline:none}
 .hist-scroll:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
 .hist-spacer{position:relative}
-#hist-canvas{position:sticky;left:0;display:block;cursor:pointer}
+#hist-canvas{position:sticky;left:0;top:0;display:block;cursor:pointer}
+.hist-scroll.both{overflow:auto}
 .hist-legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0;padding:4px 14px 8px;font-size:11.5px;color:var(--muted)}
 .hist-legend i{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:5px;border:1.5px solid var(--ok);background:var(--ok-soft)}
 .hist-legend i.cur{border-color:var(--hl);background:transparent;box-shadow:inset 0 0 0 1px var(--hl)}
 .hist-legend i.pop{border:1.5px dashed var(--bad);background:transparent}
+.hist-legend i.head{border:2px solid var(--hl);background:var(--hl-soft)}
 @media (max-width: 860px){
   .workspace.has-dock{grid-template-rows:64vh auto auto}
   .workspace.has-dock .panel{grid-column:1;grid-row:3}
@@ -501,11 +503,11 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
     </style>
     <section class="hist-dock" id="hist-dock" aria-labelledby="hist-title" hidden>
       <div class="hist-head">
-        <button class="hist-toggle" id="hist-toggle" aria-expanded="true" aria-controls="hist-body" title="Show or hide the stack history"><span aria-hidden="true">▼</span></button>
+        <button class="hist-toggle" id="hist-toggle" aria-expanded="true" aria-controls="hist-body" title="Show or hide the history"><span aria-hidden="true">▼</span></button>
         <h2 id="hist-title">Stack history</h2>
         <span class="hist-sub" id="hist-sub"></span>
         <span class="grow"></span>
-        <button class="btn small" id="hist-png" title="Download the stack history as a PNG image">Download PNG</button>
+        <button class="btn small" id="hist-png" title="Download the history as a PNG image">Download PNG</button>
       </div>
       <div id="hist-body">
         <div class="hist-scroll" id="hist-scroll" tabindex="0" aria-label="Stack history. Use the left and right arrow keys to move between steps."><div class="hist-spacer" id="hist-spacer"><canvas id="hist-canvas" aria-hidden="true"></canvas></div></div>
@@ -1979,6 +1981,52 @@ function isDocShape(d) {
 
 
 
+/* ---------- Shared by the history panels (PDA stack history, TM tape history) ---------- */
+const HIST_FONT = {
+  sym: 'italic 18px "STIX Two Text","Times New Roman",Times,serif', symSub: 'italic 12.5px "STIX Two Text","Times New Roman",Times,serif',
+  lab: 'italic 15px "STIX Two Text","Times New Roman",Times,serif', labSub: 'italic 11px "STIX Two Text","Times New Roman",Times,serif',
+  ui: '12px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif', uiB: '600 12.5px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif',
+  title: '600 15px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif', sub: '13px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif',
+};
+const HIST_LIGHT = { bg: '#ffffff', ink: '#151922', muted: '#5a6375', line: '#d7dce5', ok: '#1a7a45', okSoft: '#dff2e6', bad: '#b8321f', hl: '#c27400', hlSoft: '#ffefcc', cell: '#ffffff' };
+const histMeasure = document.createElement('canvas').getContext('2d');
+// A text made of segments { t, math?, bold?, color? }: math segments are labels (with subscripts), the rest is plain UI text.
+function segsWidth(x, segs, big) {
+  let w = 0;
+  for (const s of segs) {
+    if (!s.math) { x.font = s.bold ? HIST_FONT.uiB : HIST_FONT.ui; w += x.measureText(s.t).width; continue; }
+    for (const r of parseLabel(s.t)) { x.font = r.k ? (big ? HIST_FONT.symSub : HIST_FONT.labSub) : (big ? HIST_FONT.sym : HIST_FONT.lab); w += x.measureText(r.t).width; }
+  }
+  return w;
+}
+function drawSegs(x, segs, cx, y, pal, big) {
+  let px = cx - segsWidth(x, segs, big) / 2;
+  x.textBaseline = 'alphabetic'; x.textAlign = 'left';
+  for (const s of segs) {
+    x.fillStyle = pal[s.color || 'ink'];
+    if (!s.math) { x.font = s.bold ? HIST_FONT.uiB : HIST_FONT.ui; x.fillText(s.t, px, y); px += x.measureText(s.t).width; continue; }
+    for (const r of parseLabel(s.t)) {
+      x.font = r.k ? (big ? HIST_FONT.symSub : HIST_FONT.labSub) : (big ? HIST_FONT.sym : HIST_FONT.lab);
+      x.fillText(r.t, px, y + (r.k === 1 ? 4 : r.k === 2 ? -7 : 0));
+      px += x.measureText(r.t).width;
+    }
+  }
+}
+function roundRect(x, l, t, w, h, r) {
+  x.beginPath(); x.moveTo(l + r, t); x.arcTo(l + w, t, l + w, t + h, r); x.arcTo(l + w, t + h, l, t + h, r); x.arcTo(l, t + h, l, t, r); x.arcTo(l, t, l + w, t, r); x.closePath();
+}
+function histPalette() {
+  const cs = getComputedStyle(document.documentElement);
+  const g = (n) => cs.getPropertyValue(n).trim();
+  return { bg: g('--surface'), ink: g('--ink'), muted: g('--muted'), line: g('--line'), ok: g('--ok'), okSoft: g('--ok-soft'), bad: g('--bad'), hl: g('--hl'), hlSoft: g('--hl-soft'), cell: g('--surface') };
+}
+// Wrap text into lines that fit maxW (for the image's caption)
+function wrapText(x, text, maxW) {
+  const out = []; let line = '';
+  for (const w of text.split(' ')) { const t = line ? line + ' ' + w : w; if (line && x.measureText(t).width > maxW) { out.push(line); line = w; } else line = t; }
+  if (line) out.push(line);
+  return out;
+}
 /* =====================================================================
    Pushdown automata (Sipser 2.2)
    An arrow carries one or more rules "a,b→c" separated by ";": read a, pop b, push c (each may be ε).
@@ -2411,37 +2459,7 @@ function showSim() {
 /* ---------- Stack history: one column per step, in a wide panel under the drawing ----------
    The same layout is drawn on screen (only the visible part, so long runs stay fast) and into the PNG download. */
 const HIST = { CW: 40, CH: 27, GAP: 12, PAD: 14, MAXC: 8, LINE: 16 };
-const HIST_FONT = {
-  sym: 'italic 18px "STIX Two Text","Times New Roman",Times,serif', symSub: 'italic 12.5px "STIX Two Text","Times New Roman",Times,serif',
-  lab: 'italic 15px "STIX Two Text","Times New Roman",Times,serif', labSub: 'italic 11px "STIX Two Text","Times New Roman",Times,serif',
-  ui: '12px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif', uiB: '600 12.5px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif',
-  title: '600 15px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif', sub: '13px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif',
-};
-const HIST_LIGHT = { bg: '#ffffff', ink: '#151922', muted: '#5a6375', line: '#d7dce5', ok: '#1a7a45', okSoft: '#dff2e6', bad: '#b8321f', hl: '#c27400', hlSoft: '#ffefcc', cell: '#ffffff' };
 let histLay = null, histFor = null, histRaf = 0, histIdx = -1;
-const histMeasure = document.createElement('canvas').getContext('2d');
-// A text made of segments { t, math?, bold?, color? }: math segments are labels (with subscripts), the rest is plain UI text.
-function segsWidth(x, segs, big) {
-  let w = 0;
-  for (const s of segs) {
-    if (!s.math) { x.font = s.bold ? HIST_FONT.uiB : HIST_FONT.ui; w += x.measureText(s.t).width; continue; }
-    for (const r of parseLabel(s.t)) { x.font = r.k ? (big ? HIST_FONT.symSub : HIST_FONT.labSub) : (big ? HIST_FONT.sym : HIST_FONT.lab); w += x.measureText(r.t).width; }
-  }
-  return w;
-}
-function drawSegs(x, segs, cx, y, pal, big) {
-  let px = cx - segsWidth(x, segs, big) / 2;
-  x.textBaseline = 'alphabetic'; x.textAlign = 'left';
-  for (const s of segs) {
-    x.fillStyle = pal[s.color || 'ink'];
-    if (!s.math) { x.font = s.bold ? HIST_FONT.uiB : HIST_FONT.ui; x.fillText(s.t, px, y); px += x.measureText(s.t).width; continue; }
-    for (const r of parseLabel(s.t)) {
-      x.font = r.k ? (big ? HIST_FONT.symSub : HIST_FONT.labSub) : (big ? HIST_FONT.sym : HIST_FONT.lab);
-      x.fillText(r.t, px, y + (r.k === 1 ? 4 : r.k === 2 ? -7 : 0));
-      px += x.measureText(r.t).width;
-    }
-  }
-}
 function historyLayout(s) {
   const { P, steps } = s;
   const last = steps.length - 1;
@@ -2472,9 +2490,6 @@ function historyLayout(s) {
   const baseY = HIST.PAD + 8 + tall * HIST.CH;
   const H = baseY + 10 + 5 * HIST.LINE + HIST.PAD - 4;
   return { cols, W: x - HIST.GAP + HIST.PAD, H, baseY };
-}
-function roundRect(x, l, t, w, h, r) {
-  x.beginPath(); x.moveTo(l + r, t); x.arcTo(l + w, t, l + w, t + h, r); x.arcTo(l + w, t + h, l, t + h, r); x.arcTo(l, t + h, l, t, r); x.arcTo(l, t, l + w, t, r); x.closePath();
 }
 // Draw the columns that overlap [from, to) of the layout, shifted left by `from`, with the top of the strip at y0.
 function drawHistory(x, lay, { from, to, y0 = 0, pal, cur }) {
@@ -2519,11 +2534,6 @@ function drawHistory(x, lay, { from, to, y0 = 0, pal, cur }) {
     for (const line of col.lines) { drawSegs(x, line.map((sg) => (col.k === cur && sg.bold && !sg.color ? { ...sg, color: 'hl' } : sg)), cx, ly, pal); ly += HIST.LINE; }
   }
   x.restore();
-}
-function histPalette() {
-  const cs = getComputedStyle(document.documentElement);
-  const g = (n) => cs.getPropertyValue(n).trim();
-  return { bg: g('--surface'), ink: g('--ink'), muted: g('--muted'), line: g('--line'), ok: g('--ok'), okSoft: g('--ok-soft'), bad: g('--bad'), hl: g('--hl'), hlSoft: g('--hl-soft'), cell: g('--surface') };
 }
 const histShown = () => !!(sim && sim.bad == null && sim.res && ((sim.res.accepted && !sim.res.noPath) || sim.stuck));
 function historySummary(s, plain) {
@@ -2583,13 +2593,6 @@ function paintHistory() {
     x.fillStyle = pal.bg; x.fillRect(0, 0, vw, H);
     drawHistory(x, histLay, { from: sc.scrollLeft, to: sc.scrollLeft + vw, pal, cur: sim ? sim.idx : null });
   });
-}
-// Wrap text into lines that fit maxW (for the image's caption)
-function wrapText(x, text, maxW) {
-  const out = []; let line = '';
-  for (const w of text.split(' ')) { const t = line ? line + ' ' + w : w; if (line && x.measureText(t).width > maxW) { out.push(line); line = w; } else line = t; }
-  if (line) out.push(line);
-  return out;
 }
 // The image: a caption, then the columns wrapped into rows about 1100 px wide (fits a slide or a page)
 function makeHistoryPNG(scale = 2) {

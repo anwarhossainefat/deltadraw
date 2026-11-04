@@ -470,6 +470,49 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <button class="btn" id="zoom-fit" title="Fit drawing to screen">Fit</button>
       </div>
     </section>
+    <style>
+/* History dock (PDA stack history, TM tape history): a wide panel under the drawing; the inspector spans both rows */
+.workspace.has-dock{grid-template-rows:minmax(0,1fr) auto}
+.workspace.has-dock .stage{grid-column:1;grid-row:1}
+.workspace.has-dock .panel{grid-column:2;grid-row:1 / span 2}
+.hist-dock{grid-column:1;grid-row:2;min-width:0;background:var(--surface);border-top:1px solid var(--line)}
+.hist-head{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;padding:6px 12px 6px 6px}
+.hist-head h2{margin:0;font:600 11px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hist-sub{font-size:12.5px;color:var(--muted);min-width:0}
+.hist-sub b{color:var(--ink);font-weight:600}
+.hist-toggle{width:28px;height:28px;border:0;background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-size:12px;display:grid;place-items:center}
+.hist-toggle:hover{background:var(--surface-2);color:var(--ink)}
+.hist-toggle[aria-expanded="false"] span{transform:rotate(-90deg)}
+.hist-toggle span{display:inline-block;transition:transform .12s}
+.hist-scroll{overflow-x:auto;overflow-y:hidden;position:relative;outline:none}
+.hist-scroll:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.hist-spacer{position:relative}
+#hist-canvas{position:sticky;left:0;top:0;display:block;cursor:pointer}
+.hist-scroll.both{overflow:auto}
+.hist-legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0;padding:4px 14px 8px;font-size:11.5px;color:var(--muted)}
+.hist-legend i{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:5px;border:1.5px solid var(--ok);background:var(--ok-soft)}
+.hist-legend i.cur{border-color:var(--hl);background:transparent;box-shadow:inset 0 0 0 1px var(--hl)}
+.hist-legend i.pop{border:1.5px dashed var(--bad);background:transparent}
+.hist-legend i.head{border:2px solid var(--hl);background:var(--hl-soft)}
+@media (max-width: 860px){
+  .workspace.has-dock{grid-template-rows:64vh auto auto}
+  .workspace.has-dock .panel{grid-column:1;grid-row:3}
+  .hist-dock{grid-row:2}
+}
+    </style>
+    <section class="hist-dock" id="hist-dock" aria-labelledby="hist-title" hidden>
+      <div class="hist-head">
+        <button class="hist-toggle" id="hist-toggle" aria-expanded="true" aria-controls="hist-body" title="Show or hide the history"><span aria-hidden="true">▼</span></button>
+        <h2 id="hist-title">Tape history</h2>
+        <span class="hist-sub" id="hist-sub"></span>
+        <span class="grow"></span>
+        <button class="btn small" id="hist-png" title="Download the history as a PNG image">Download PNG</button>
+      </div>
+      <div id="hist-body">
+        <div class="hist-scroll both" id="hist-scroll" tabindex="0" aria-label="Tape history. Use the up and down arrow keys to move between steps."><div class="hist-spacer" id="hist-spacer"><canvas id="hist-canvas" aria-hidden="true"></canvas></div></div>
+        <p class="hist-legend"><span><i class="head"></i>head position</span><span><i></i>cell changed in this step</span><span><i class="cur"></i>current step</span><span>Click a row to jump to that step.</span></p>
+      </div>
+    </section>
 
     <aside class="panel" aria-label="Inspector">
       <section class="sec" id="machine-sec" aria-live="polite">
@@ -1829,6 +1872,7 @@ function applyTheme() {
   $('#btn-theme').title = 'Theme: ' + (settings.theme === 'system' ? 'follows your system' : settings.theme);
   readPalette();
   render();
+  if (typeof paintHistory === 'function') paintHistory();
 }
 $('#btn-theme').addEventListener('click', () => {
   settings.theme = THEMES[(THEMES.indexOf(settings.theme) + 1) % THEMES.length];
@@ -1838,6 +1882,7 @@ $('#btn-theme').addEventListener('click', () => {
   toast('Theme: ' + (settings.theme === 'system' ? 'same as your system' : settings.theme));
 });
 try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readPalette(); render(); }); } catch (e) { /* old browsers */ }
+try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => paintHistory()); } catch (e) { /* old browsers */ }
 new MutationObserver(() => { readPalette(); render(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 /* ---------------- Toast & clipboard ---------------- */
@@ -1929,6 +1974,52 @@ function isDocShape(d) {
 
 
 
+/* ---------- Shared by the history panels (PDA stack history, TM tape history) ---------- */
+const HIST_FONT = {
+  sym: 'italic 18px "STIX Two Text","Times New Roman",Times,serif', symSub: 'italic 12.5px "STIX Two Text","Times New Roman",Times,serif',
+  lab: 'italic 15px "STIX Two Text","Times New Roman",Times,serif', labSub: 'italic 11px "STIX Two Text","Times New Roman",Times,serif',
+  ui: '12px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif', uiB: '600 12.5px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif',
+  title: '600 15px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif', sub: '13px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif',
+};
+const HIST_LIGHT = { bg: '#ffffff', ink: '#151922', muted: '#5a6375', line: '#d7dce5', ok: '#1a7a45', okSoft: '#dff2e6', bad: '#b8321f', hl: '#c27400', hlSoft: '#ffefcc', cell: '#ffffff' };
+const histMeasure = document.createElement('canvas').getContext('2d');
+// A text made of segments { t, math?, bold?, color? }: math segments are labels (with subscripts), the rest is plain UI text.
+function segsWidth(x, segs, big) {
+  let w = 0;
+  for (const s of segs) {
+    if (!s.math) { x.font = s.bold ? HIST_FONT.uiB : HIST_FONT.ui; w += x.measureText(s.t).width; continue; }
+    for (const r of parseLabel(s.t)) { x.font = r.k ? (big ? HIST_FONT.symSub : HIST_FONT.labSub) : (big ? HIST_FONT.sym : HIST_FONT.lab); w += x.measureText(r.t).width; }
+  }
+  return w;
+}
+function drawSegs(x, segs, cx, y, pal, big) {
+  let px = cx - segsWidth(x, segs, big) / 2;
+  x.textBaseline = 'alphabetic'; x.textAlign = 'left';
+  for (const s of segs) {
+    x.fillStyle = pal[s.color || 'ink'];
+    if (!s.math) { x.font = s.bold ? HIST_FONT.uiB : HIST_FONT.ui; x.fillText(s.t, px, y); px += x.measureText(s.t).width; continue; }
+    for (const r of parseLabel(s.t)) {
+      x.font = r.k ? (big ? HIST_FONT.symSub : HIST_FONT.labSub) : (big ? HIST_FONT.sym : HIST_FONT.lab);
+      x.fillText(r.t, px, y + (r.k === 1 ? 4 : r.k === 2 ? -7 : 0));
+      px += x.measureText(r.t).width;
+    }
+  }
+}
+function roundRect(x, l, t, w, h, r) {
+  x.beginPath(); x.moveTo(l + r, t); x.arcTo(l + w, t, l + w, t + h, r); x.arcTo(l + w, t + h, l, t + h, r); x.arcTo(l, t + h, l, t, r); x.arcTo(l, t, l + w, t, r); x.closePath();
+}
+function histPalette() {
+  const cs = getComputedStyle(document.documentElement);
+  const g = (n) => cs.getPropertyValue(n).trim();
+  return { bg: g('--surface'), ink: g('--ink'), muted: g('--muted'), line: g('--line'), ok: g('--ok'), okSoft: g('--ok-soft'), bad: g('--bad'), hl: g('--hl'), hlSoft: g('--hl-soft'), cell: g('--surface') };
+}
+// Wrap text into lines that fit maxW (for the image's caption)
+function wrapText(x, text, maxW) {
+  const out = []; let line = '';
+  for (const w of text.split(' ')) { const t = line ? line + ' ' + w : w; if (line && x.measureText(t).width > maxW) { out.push(line); line = w; } else line = t; }
+  if (line) out.push(line);
+  return out;
+}
 
 /* =====================================================================
    Turing machines (Sipser 3.1)
@@ -2170,6 +2261,7 @@ function resetSim(fromEdit) {
   sim = null;
   if (fromEdit) { $('#sim-out').innerHTML = ''; $('#trace-box').hidden = true; }
   for (const id of ['#sim-back', '#sim-step', '#sim-play']) { const b = $(id); if (b) b.disabled = false; }
+  updateHistory();
   render();
 }
 const stepLimit = () => { const v = Math.round(Number($('#tm-limit').value)); return isFinite(v) && v >= 10 ? Math.min(v, 1000000) : 10000; };
@@ -2195,7 +2287,7 @@ function tapeHTML(c) {
 }
 function showSim() {
   const out = $('#sim-out');
-  if (!sim) { out.innerHTML = ''; $('#trace-box').hidden = true; render(); return; }
+  if (!sim) { out.innerHTML = ''; $('#trace-box').hidden = true; updateHistory(); render(); return; }
   const { M, steps, idx, res } = sim;
   const c = steps[idx].c, done = idx === steps.length - 1;
   const showable = res.path.length > 0;
@@ -2242,8 +2334,214 @@ function showSim() {
   $('#sim-back').disabled = idx === 0;
   $('#sim-step').disabled = done;
   $('#sim-play').disabled = done && !playTimer;
+  updateHistory();
   render();
 }
+
+/* ---------- Tape history: one row per step, in a wide panel under the drawing ----------
+   Like Sipser's tableau (Section 7.4): each row is the tape after that step. The step, state and rule stay pinned on the left
+   and the cell numbers on top; only the visible part is drawn, so long runs and wide tapes stay fast. */
+const TAPE = { CW: 30, RH: 26, HEAD: 24, PAD: 10, MAXROWS: 9, PNG_ROWS: 150 };
+let histLay = null, histFor = null, histRaf = 0, histIdx = -1;
+const tapeAt = (c, i) => (i < c.tape.length ? c.tape[i] : BLANK);
+function tapeRuleSegs(t) { return t ? [{ t: t.read, math: true }, { t: '→', color: 'muted' }, { t: t.write, math: true }, { t: ',' + t.move, color: 'muted' }] : [{ t: 'start', color: 'muted' }]; }
+// What to show beside the last row (and the row a loop goes back to)
+function tapeMarks(s) {
+  const { res, steps } = s, last = steps.length - 1, marks = new Map();
+  if (res.truncated) return marks;
+  if (res.verdict === 'accept') marks.set(last, { t: '✓', color: 'ok' });
+  else if (res.verdict === 'reject') marks.set(last, { t: '✕', color: 'bad' });
+  else if (res.verdict === 'loop') { marks.set(last, { t: '↺', color: 'hl' }); if (res.first != null) marks.set(res.first, { t: '↺', color: 'hl' }); }
+  else if (res.verdict === 'limit') marks.set(last, { t: '…', color: 'muted' });
+  return marks;
+}
+function tapeLayout(s, maxRows = Infinity) {
+  const { M } = s;
+  const steps = s.steps.slice(0, maxRows);
+  let ncell = 1;
+  for (const st of steps) ncell = Math.max(ncell, st.c.tape.length, st.c.head + 1);
+  ncell += 1; // one blank cell after the furthest one used
+  const syms = new Set([...M.gamma, ...s.input]);
+  let cw = TAPE.CW;
+  for (const a of syms) cw = Math.max(cw, Math.ceil(segsWidth(histMeasure, [{ t: a, math: true }], true)) + 12);
+  const stepW = Math.max(46, Math.ceil(segsWidth(histMeasure, [{ t: String(s.steps.length - 1) + ' ✓', bold: true }])) + 16);
+  let stateW = 44, ruleW = 54;
+  for (const id of M.ids) stateW = Math.max(stateW, Math.ceil(segsWidth(histMeasure, [{ t: M.names.get(id), math: true }])) + 16);
+  for (const r of M.rules) ruleW = Math.max(ruleW, Math.ceil(segsWidth(histMeasure, tapeRuleSegs(r))) + 16);
+  const G = stepW + stateW + ruleW + 6;
+  return { steps, ncell, cw, stepW, stateW, ruleW, G, W: G + ncell * cw + TAPE.PAD, H: TAPE.HEAD + steps.length * TAPE.RH + 6, marks: tapeMarks(s) };
+}
+// Draw the visible part: cells scrolled by (sx, sy) inside a vw × vh window; the left columns and the header stay put.
+function drawTape(x, lay, { sx, sy, vw, vh, pal, cur, y0 = 0 }) {
+  const { steps, cw, G, ncell, stepW, stateW, ruleW, marks } = lay, RH = TAPE.RH, H0 = TAPE.HEAD;
+  x.save();
+  x.translate(0, y0);
+  x.fillStyle = pal.bg; x.fillRect(0, 0, vw, vh);
+  const k0 = Math.max(0, Math.floor(sy / RH)), k1 = Math.min(steps.length - 1, Math.floor((sy + vh - H0) / RH));
+  const i0 = Math.max(0, Math.floor(sx / cw)), i1 = Math.min(ncell - 1, Math.floor((sx + vw - G) / cw));
+  const rowY = (k) => H0 + k * RH - sy, cellX = (i) => G + i * cw - sx;
+  // the current row: a band across everything
+  if (cur != null && cur >= k0 && cur <= k1) { x.fillStyle = pal.hlSoft; x.globalAlpha = 0.45; x.fillRect(0, rowY(cur), vw, RH); x.globalAlpha = 1; }
+  // cells (clipped to the area right of the pinned columns and below the header)
+  x.save();
+  x.beginPath(); x.rect(G, H0, vw - G, vh - H0); x.clip();
+  x.lineWidth = 1;
+  for (let k = k0; k <= k1; k++) {
+    const c = steps[k].c, prev = k ? steps[k - 1].c : null, y = rowY(k);
+    for (let i = i0; i <= i1; i++) {
+      const a = tapeAt(c, i), cx = cellX(i);
+      const changed = prev && tapeAt(prev, i) !== a, head = i === c.head;
+      x.fillStyle = head ? pal.hlSoft : changed ? pal.okSoft : pal.cell; x.fillRect(cx, y, cw, RH);
+      x.strokeStyle = pal.line; x.strokeRect(cx + 0.5, y + 0.5, cw - 1, RH - 1);
+      if (changed && !head) { x.strokeStyle = pal.ok; x.lineWidth = 1.5; x.strokeRect(cx + 1.25, y + 1.25, cw - 2.5, RH - 2.5); x.lineWidth = 1; }
+      if (a === BLANK) drawSegs(x, [{ t: '␣', color: 'muted' }], cx + cw / 2, y + 17, pal);
+      else drawSegs(x, [{ t: a, math: true }], cx + cw / 2, y + 18, pal, true);
+    }
+    // the head on top, so its outline is not covered by a neighbour's
+    if (c.head >= i0 && c.head <= i1) { x.strokeStyle = pal.hl; x.lineWidth = 2; x.strokeRect(cellX(c.head) + 1.5, y + 1.5, cw - 3, RH - 3); x.lineWidth = 1; }
+  }
+  x.restore();
+  // pinned left columns: step, state, rule
+  x.save();
+  x.beginPath(); x.rect(0, H0, G, vh - H0); x.clip();
+  x.fillStyle = pal.bg; x.fillRect(0, H0, G, vh - H0);
+  if (cur != null && cur >= k0 && cur <= k1) { x.fillStyle = pal.hlSoft; x.globalAlpha = 0.45; x.fillRect(0, rowY(cur), G, RH); x.globalAlpha = 1; }
+  for (let k = k0; k <= k1; k++) {
+    const c = steps[k].c, y = rowY(k) + 17, m = marks.get(k);
+    const num = [{ t: String(k), bold: true, color: k === cur ? 'hl' : undefined }];
+    if (m) num.push({ t: ' ' + m.t, bold: true, color: m.color });
+    drawSegs(x, num, 6 + stepW / 2, y, pal);
+    drawSegs(x, [{ t: lay.names.get(c.q), math: true }], stepW + stateW / 2, y, pal);
+    drawSegs(x, tapeRuleSegs(c.t), stepW + stateW + ruleW / 2, y, pal);
+  }
+  x.restore();
+  // pinned header: column titles and cell numbers (the current head's cell number highlighted)
+  x.fillStyle = pal.bg; x.fillRect(0, 0, vw, H0);
+  x.strokeStyle = pal.line; x.beginPath(); x.moveTo(0, H0 - 0.5); x.lineTo(vw, H0 - 0.5); x.moveTo(G - 3.5, 0); x.lineTo(G - 3.5, vh); x.stroke();
+  const hy = 16;
+  drawSegs(x, [{ t: 'step', color: 'muted' }], 6 + stepW / 2, hy, pal);
+  drawSegs(x, [{ t: 'state', color: 'muted' }], stepW + stateW / 2, hy, pal);
+  drawSegs(x, [{ t: 'rule', color: 'muted' }], stepW + stateW + ruleW / 2, hy, pal);
+  const headNow = cur != null && steps[cur] ? steps[cur].c.head : -1;
+  x.save(); x.beginPath(); x.rect(G, 0, vw - G, H0); x.clip();
+  for (let i = i0; i <= i1; i++) drawSegs(x, [{ t: String(i), color: i === headNow ? 'hl' : 'muted', bold: i === headNow }], cellX(i) + cw / 2, hy, pal);
+  x.restore();
+  // the current row's outline
+  if (cur != null && cur >= k0 && cur <= k1) { x.save(); x.beginPath(); x.rect(0, H0, vw, vh - H0); x.clip(); x.strokeStyle = pal.hl; x.lineWidth = 2; roundRect(x, 1, rowY(cur) + 1, vw - 2, RH - 2, 5); x.stroke(); x.restore(); }
+  x.restore();
+}
+const histShown = () => !!(sim && sim.res && sim.res.path.length > 0);
+function historySummary(s, plain) {
+  const { res, M } = s;
+  const n = res.steps, N = n.toLocaleString(), steps = `${N} step${n === 1 ? '' : 's'}`;
+  const nm = (q) => (plain ? plainLabel(M.names.get(q)) : `<span class="math">${labelHTML(M.names.get(q))}</span>`);
+  const sy = (a) => (plain ? plainLabel(a) : `<span class="math">${labelHTML(a)}</span>`);
+  const qrej = plain ? 'q_reject' : '<span class="math">q<sub>reject</sub></span>';
+  let head, rest;
+  if (res.verdict === 'accept') { head = 'Accepted'; rest = `after ${steps}${res.nondet ? ' (one accepting branch of a nondeterministic machine)' : ''}`; }
+  else if (res.verdict === 'reject') { head = 'Rejected'; rest = `after ${steps}${res.reason === 'norule' ? `: no rule for ${nm(res.at.q)} reading ${sy(res.sym)}, so the machine goes to ${qrej}` : ''}`; }
+  else if (res.verdict === 'loop') { head = 'Loops forever'; rest = `the configuration after step ${N} is the same as after step ${res.first.toLocaleString()}`; }
+  else { head = 'Still running'; rest = `after ${steps} (the step limit)`; }
+  if (res.truncated) rest += `; only the first ${s.steps.length.toLocaleString()} steps are kept`;
+  if (!plain) return `<b>${head}</b> · ${rest}`;
+  const word = s.input.length ? s.input.map(plainLabel).join('') : 'ε';
+  return `Turing machine on input ${word}: ${head.toLowerCase()}, ${rest}.`;
+}
+function updateHistory() {
+  const dock = $('#hist-dock');
+  if (!histShown()) { dock.hidden = true; histLay = null; histFor = null; histIdx = -1; return; }
+  if (dock.hidden) {
+    dock.hidden = false;
+    // the drawing area just got shorter: refit the drawing if part of it is now out of view
+    requestAnimationFrame(() => {
+      resize();
+      const bb = diagramBBox();
+      if (!bb) return;
+      const l = bb.x * view.s + view.tx, t = bb.y * view.s + view.ty, r = (bb.x + bb.w) * view.s + view.tx, b = (bb.y + bb.h) * view.s + view.ty;
+      if (l < 0 || t < 0 || r > W || b > H - 30) fitView();
+    });
+  }
+  if (histFor !== sim) { histFor = sim; histLay = tapeLayout(sim); histLay.names = sim.M.names; histIdx = -1; $('#hist-sub').innerHTML = historySummary(sim); }
+  $('#hist-body').hidden = !!settings.histCollapsed;
+  $('#hist-toggle').setAttribute('aria-expanded', String(!settings.histCollapsed));
+  if (settings.histCollapsed) return;
+  const sc = $('#hist-scroll'), sp = $('#hist-spacer');
+  sp.style.width = histLay.W + 'px'; sp.style.height = histLay.H + 'px';
+  sc.style.height = Math.min(histLay.H, TAPE.HEAD + TAPE.MAXROWS * TAPE.RH + 6) + 'px';
+  // keep the current row, and the head's cell in it, in view
+  if (histIdx !== sim.idx) {
+    histIdx = sim.idx;
+    const c = sim.steps[sim.idx].c, vh = sc.clientHeight, vw = sc.clientWidth;
+    const top = sim.idx * TAPE.RH, viewRows = vh - TAPE.HEAD;
+    if (top < sc.scrollTop) sc.scrollTop = Math.max(0, top - TAPE.RH);
+    else if (top + TAPE.RH > sc.scrollTop + viewRows) sc.scrollTop = top + 2 * TAPE.RH - viewRows;
+    const hx = c.head * histLay.cw, viewCols = vw - histLay.G;
+    if (hx < sc.scrollLeft) sc.scrollLeft = Math.max(0, hx - 2 * histLay.cw);
+    else if (hx + histLay.cw > sc.scrollLeft + viewCols) sc.scrollLeft = hx + 3 * histLay.cw - viewCols;
+  }
+  paintHistory();
+}
+function paintHistory() {
+  if (histRaf) return;
+  histRaf = requestAnimationFrame(() => {
+    histRaf = 0;
+    if (!histLay || $('#hist-dock').hidden || settings.histCollapsed) return;
+    const sc = $('#hist-scroll'), cv = $('#hist-canvas');
+    const vw = Math.max(1, sc.clientWidth), vh = Math.max(1, sc.clientHeight), r = window.devicePixelRatio || 1;
+    cv.style.width = vw + 'px'; cv.style.height = vh + 'px';
+    if (cv.width !== Math.round(vw * r) || cv.height !== Math.round(vh * r)) { cv.width = Math.round(vw * r); cv.height = Math.round(vh * r); }
+    const x = cv.getContext('2d');
+    x.setTransform(r, 0, 0, r, 0, 0);
+    drawTape(x, histLay, { sx: sc.scrollLeft, sy: sc.scrollTop, vw, vh, pal: histPalette(), cur: sim ? sim.idx : null });
+  });
+}
+// The image: a caption, then the whole table (at most PNG_ROWS rows)
+function makeTapePNG(scale = 2) {
+  const lay = tapeLayout(sim, TAPE.PNG_ROWS);
+  lay.names = sim.M.names;
+  const W = Math.max(lay.W, 520);
+  histMeasure.font = HIST_FONT.sub;
+  let cap = historySummary(sim, true);
+  if (sim.steps.length > TAPE.PNG_ROWS) cap += ` The image shows the first ${TAPE.PNG_ROWS} of ${sim.steps.length.toLocaleString()} rows.`;
+  const caption = wrapText(histMeasure, cap, W - 2 * 16);
+  const headH = 16 + 22 + caption.length * 18;
+  const c = document.createElement('canvas');
+  c.width = Math.round(W * scale); c.height = Math.round((headH + lay.H) * scale);
+  const x = c.getContext('2d');
+  x.scale(scale, scale);
+  x.fillStyle = HIST_LIGHT.bg; x.fillRect(0, 0, W, headH + lay.H);
+  x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+  x.fillStyle = HIST_LIGHT.ink; x.font = HIST_FONT.title; x.fillText('Tape history', 16, 16 + 12);
+  x.fillStyle = HIST_LIGHT.muted; x.font = HIST_FONT.sub;
+  caption.forEach((l, i) => x.fillText(l, 16, 16 + 34 + i * 18));
+  drawTape(x, lay, { sx: 0, sy: 0, vw: W, vh: lay.H, pal: HIST_LIGHT, cur: null, y0: headH });
+  return c;
+}
+$('#hist-scroll').addEventListener('scroll', paintHistory, { passive: true });
+if ('ResizeObserver' in window) new ResizeObserver(() => paintHistory()).observe($('#hist-scroll'));
+$('#hist-canvas').addEventListener('click', (e) => {
+  if (!sim || !histLay) return;
+  const r = $('#hist-canvas').getBoundingClientRect();
+  const y = e.clientY - r.top;
+  if (y < TAPE.HEAD) return;
+  const k = Math.floor((y - TAPE.HEAD + $('#hist-scroll').scrollTop) / TAPE.RH);
+  if (k >= 0 && k < sim.steps.length && k !== sim.idx) { stopPlay(); sim.idx = k; showSim(); }
+});
+$('#hist-scroll').addEventListener('keydown', (e) => {
+  if (!sim || !['ArrowUp', 'ArrowDown', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) return;
+  e.preventDefault();
+  stopPlay();
+  const last = sim.steps.length - 1;
+  const k = { ArrowUp: sim.idx - 1, ArrowDown: sim.idx + 1, Home: 0, End: last, PageUp: sim.idx - 10, PageDown: sim.idx + 10 }[e.key];
+  const kk = Math.max(0, Math.min(last, k));
+  if (kk !== sim.idx) { sim.idx = kk; showSim(); }
+});
+$('#hist-toggle').addEventListener('click', () => { settings.histCollapsed = !settings.histCollapsed; persist(); histIdx = -1; updateHistory(); });
+$('#hist-png').addEventListener('click', () => {
+  if (!histShown()) return;
+  makeTapePNG(2).toBlob((b) => { if (b) downloadBlob('deltadraw-tm-tape-history.png', b); }, 'image/png');
+});
+$('.workspace').classList.add('has-dock');
 $('#sim-run').addEventListener('click', () => { stopPlay(); if (startSim()) { sim.idx = sim.steps.length - 1; showSim(); } });
 $('#sim-step').addEventListener('click', () => {
   stopPlay();
@@ -2488,7 +2786,7 @@ function init() {
       })
       .catch(() => {});
   }
-  window.DeltaDraw = { get doc() { return doc; }, get pr() { return pr; }, PR_EXERCISES, prCheck, buildTM, runTM, parseTMRule, tmInput, configPlain, TM_EXAMPLES, loadDoc, linkGeom, withDoc, R, makeSVG, makeTikZ, makeJFF, makePNG, parseJFF, measureLabel };
+  window.DeltaDraw = { get doc() { return doc; }, get pr() { return pr; }, get sim() { return sim; }, tapeLayout, makeTapePNG, historySummary, PR_EXERCISES, prCheck, buildTM, runTM, parseTMRule, tmInput, configPlain, TM_EXAMPLES, loadDoc, linkGeom, withDoc, R, makeSVG, makeTikZ, makeJFF, makePNG, parseJFF, measureLabel };
 }
 init();
 })();
