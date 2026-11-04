@@ -471,6 +471,47 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <button class="btn" id="zoom-fit" title="Fit drawing to screen">Fit</button>
       </div>
     </section>
+    <style>
+/* History dock (PDA stack history): a wide panel under the drawing; the inspector spans both rows */
+.workspace.has-dock{grid-template-rows:minmax(0,1fr) auto}
+.workspace.has-dock .stage{grid-column:1;grid-row:1}
+.workspace.has-dock .panel{grid-column:2;grid-row:1 / span 2}
+.hist-dock{grid-column:1;grid-row:2;min-width:0;background:var(--surface);border-top:1px solid var(--line)}
+.hist-head{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;padding:6px 12px 6px 6px}
+.hist-head h2{margin:0;font:600 11px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.hist-sub{font-size:12.5px;color:var(--muted);min-width:0}
+.hist-sub b{color:var(--ink);font-weight:600}
+.hist-toggle{width:28px;height:28px;border:0;background:none;border-radius:6px;cursor:pointer;color:var(--muted);font-size:12px;display:grid;place-items:center}
+.hist-toggle:hover{background:var(--surface-2);color:var(--ink)}
+.hist-toggle[aria-expanded="false"] span{transform:rotate(-90deg)}
+.hist-toggle span{display:inline-block;transition:transform .12s}
+.hist-scroll{overflow-x:auto;overflow-y:hidden;position:relative;outline:none}
+.hist-scroll:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
+.hist-spacer{position:relative}
+#hist-canvas{position:sticky;left:0;display:block;cursor:pointer}
+.hist-legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0;padding:4px 14px 8px;font-size:11.5px;color:var(--muted)}
+.hist-legend i{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:5px;border:1.5px solid var(--ok);background:var(--ok-soft)}
+.hist-legend i.cur{border-color:var(--hl);background:transparent;box-shadow:inset 0 0 0 1px var(--hl)}
+.hist-legend i.pop{border:1.5px dashed var(--bad);background:transparent}
+@media (max-width: 860px){
+  .workspace.has-dock{grid-template-rows:64vh auto auto}
+  .workspace.has-dock .panel{grid-column:1;grid-row:3}
+  .hist-dock{grid-row:2}
+}
+    </style>
+    <section class="hist-dock" id="hist-dock" aria-labelledby="hist-title" hidden>
+      <div class="hist-head">
+        <button class="hist-toggle" id="hist-toggle" aria-expanded="true" aria-controls="hist-body" title="Show or hide the stack history"><span aria-hidden="true">▼</span></button>
+        <h2 id="hist-title">Stack history</h2>
+        <span class="hist-sub" id="hist-sub"></span>
+        <span class="grow"></span>
+        <button class="btn small" id="hist-png" title="Download the stack history as a PNG image">Download PNG</button>
+      </div>
+      <div id="hist-body">
+        <div class="hist-scroll" id="hist-scroll" tabindex="0" aria-label="Stack history. Use the left and right arrow keys to move between steps."><div class="hist-spacer" id="hist-spacer"><canvas id="hist-canvas" aria-hidden="true"></canvas></div></div>
+        <p class="hist-legend"><span><i></i>pushed in this step</span><span><i class="pop"></i>popped in this step</span><span><i class="cur"></i>current step</span><span>Click a column to jump to that step.</span></p>
+      </div>
+    </section>
 
     <aside class="panel" aria-label="Inspector">
       <section class="sec" id="machine-sec" aria-live="polite">
@@ -1836,6 +1877,7 @@ function applyTheme() {
   $('#btn-theme').title = 'Theme: ' + (settings.theme === 'system' ? 'follows your system' : settings.theme);
   readPalette();
   render();
+  if (typeof paintHistory === 'function') paintHistory();
 }
 $('#btn-theme').addEventListener('click', () => {
   settings.theme = THEMES[(THEMES.indexOf(settings.theme) + 1) % THEMES.length];
@@ -1845,6 +1887,7 @@ $('#btn-theme').addEventListener('click', () => {
   toast('Theme: ' + (settings.theme === 'system' ? 'same as your system' : settings.theme));
 });
 try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readPalette(); render(); }); } catch (e) { /* old browsers */ }
+try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => paintHistory()); } catch (e) { /* old browsers */ }
 new MutationObserver(() => { readPalette(); render(); }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
 /* ---------------- Toast & clipboard ---------------- */
@@ -2156,6 +2199,66 @@ function decidePDA(P, input) {
   // the breadth-first search would take too long: show the computation the exact test found instead
   return { accepted: true, complete: true, path: d.witness(), notShortest: true };
 }
+/* ---------- One rejecting branch to show (for the stack history) ----------
+   Breadth-first like runPDA. Among the configurations reached, pick one that read the most input; prefer one where no rule
+   applies at all (the branch is stuck), then the shortest. Only used after the exact test has said "reject". */
+function pdaMoves(P, input, c) {
+  const out = [];
+  for (const t of P.out.get(c.q) || []) {
+    if (t.read !== null && (c.i >= input.length || input[c.i] !== t.read)) continue;
+    const k = t.pop.length;
+    if (k > c.st.length) continue;
+    let ok = true;
+    for (let j = 0; j < k; j++) if (c.st[c.st.length - 1 - j] !== t.pop[j]) { ok = false; break; }
+    if (!ok) continue;
+    const st = c.st.slice(0, c.st.length - k);
+    for (let j = t.push.length - 1; j >= 0; j--) st.push(t.push[j]);
+    out.push({ q: t.to, i: c.i + (t.read !== null ? 1 : 0), st, t });
+  }
+  return out;
+}
+function pdaStuckBranch(P, input, opts = {}) {
+  const n = input.length;
+  const maxStack = opts.maxStack || Math.max(32, 4 * n + 16);
+  const cap = opts.cap || 30000;
+  if (P.start == null) return null;
+  const key = (q, i, st) => q + '|' + i + '|' + st.join('\u0001');
+  const first = { q: P.start, i: 0, st: [], prev: null, t: null };
+  const seen = new Set([key(P.start, 0, [])]);
+  const queue = [first];
+  let head = 0, best = null, bestDead = false;
+  while (head < queue.length && seen.size <= cap) {
+    const c = queue[head++];
+    const moves = pdaMoves(P, input, c);
+    const dead = moves.length === 0;
+    if (!best || c.i > best.i || (c.i === best.i && dead && !bestDead)) { best = c; bestDead = dead; }
+    for (const m of moves) {
+      if (m.st.length > maxStack) continue;
+      const kk = key(m.q, m.i, m.st);
+      if (seen.has(kk)) continue;
+      seen.add(kk);
+      queue.push({ ...m, prev: c });
+    }
+  }
+  const path = [];
+  for (let c = best; c; c = c.prev) path.unshift(c);
+  return { path, stuck: bestDead, read: best.i };
+}
+// Why the branch shown for a rejected string ends where it does (HTML, and plain text for the image)
+function pdaStuckReason(s, plain) {
+  const { P, input, steps, stuck, res } = s;
+  const c = steps[steps.length - 1].c, n = input.length;
+  const L = plain ? plainLabel : labelHTML;
+  const M = (h) => (plain ? h : `<span class="math">${h}</span>`);
+  const q = M(L(P.names.get(c.q)));
+  const stackPart = c.st.length ? `${M(L(c.st[c.st.length - 1]))} on top of the stack` : 'an empty stack';
+  if (stuck.stuck && c.i < n) return `Stuck: no rule applies in state ${q} with next input ${M(L(input[c.i]))} and ${stackPart}, so this branch can never read the rest of the input.`;
+  if (stuck.stuck) return `Stuck: the whole input is read, but ${q} is not an accepting state and no rule applies.`;
+  const limits = res.complete && !res.pruned ? '' : ' (within the search limits)';
+  return c.i < n
+    ? `The PDA can still make moves from here, but no branch reads further than ${c.i} of ${n} symbol${n === 1 ? '' : 's'}${limits}.`
+    : `The whole input is read and the PDA can still make ε-moves, but none of them reaches an accepting state.`;
+}
 function pdaInput(P, text) {
   const raw = (text || '').replace(/\s+/g, '');
   if (raw === '' || raw === 'ε' || raw === 'λ') return { input: [] };
@@ -2227,6 +2330,7 @@ function resetSim(fromEdit) {
   sim = null;
   if (fromEdit) { $('#sim-out').innerHTML = ''; $('#trace-box').hidden = true; }
   for (const id of ['#sim-back', '#sim-step', '#sim-play']) { const b = $(id); if (b) b.disabled = false; }
+  updateHistory();
   render();
 }
 function startSim() {
@@ -2235,8 +2339,11 @@ function startSim() {
   const { input, bad } = pdaInput(P, $('#sim-input').value);
   if (bad != null) { sim = { P, input, bad, steps: [{ set: new Set([P.start]) }], idx: 0, res: { accepted: false } }; return sim; }
   const res = decidePDA(P, input);
-  const steps = res.accepted && !res.noPath ? res.path.map((c) => ({ set: new Set([c.q]), used: c.t ? new Set([c.t.link]) : null, rule: c.t ? new Map([[c.t.link, c.t.line]]) : null, c })) : [{ set: new Set([P.start]), c: { q: P.start, i: 0, st: [] } }];
-  sim = { P, input, res, steps, idx: 0 };
+  const toStep = (c) => ({ set: new Set([c.q]), used: c.t ? new Set([c.t.link]) : null, rule: c.t ? new Map([[c.t.link, c.t.line]]) : null, c });
+  // a rejected string: show one branch, the one that read furthest (and got stuck, if possible)
+  const stuck = !res.accepted ? pdaStuckBranch(P, input) : null;
+  const steps = res.accepted && !res.noPath ? res.path.map(toStep) : stuck ? stuck.path.map(toStep) : [{ set: new Set([P.start]), c: { q: P.start, i: 0, st: [] } }];
+  sim = { P, input, res, steps, idx: 0, stuck };
   return sim;
 }
 function stackFigure(st) {
@@ -2249,7 +2356,7 @@ function stackFigure(st) {
 }
 function showSim() {
   const out = $('#sim-out');
-  if (!sim) { out.innerHTML = ''; $('#trace-box').hidden = true; render(); return; }
+  if (!sim) { out.innerHTML = ''; $('#trace-box').hidden = true; updateHistory(); render(); return; }
   const { P, input, steps, idx, res } = sim;
   const st = steps[idx], c = st.c || { q: P.start, i: 0, st: [] };
   const done = idx === steps.length - 1;
@@ -2261,8 +2368,16 @@ function showSim() {
     verdict = '<span class="pill bad">✕ Rejected</span>';
     lines = `<div class="sim-line">Symbol “${escHTML(sim.bad)}” is not in Σ, so no rule can read it.</div>`;
   } else if (!res.accepted) {
-    verdict = res.complete ? '<span class="pill bad">✕ Rejected</span>' : '<span class="pill run">No accepting branch found</span>';
+    const endVerdict = res.complete ? '<span class="pill bad">✕ Rejected</span>' : '<span class="pill run">No accepting branch found</span>';
+    verdict = done ? endVerdict : `<span class="pill run">Step ${idx} of ${steps.length - 1}</span>`;
     lines = `<div class="sim-line">${res.complete ? 'No branch of the computation accepts.' : 'No accepting branch was found within the search limits.'} The furthest any branch read was ${res.maxRead} of ${input.length} symbol${input.length === 1 ? '' : 's'}.</div>`;
+    if (sim.stuck) {
+      const t = c.t;
+      const move = t ? `Move: read <span class="math">${t.read === null ? 'ε' : labelHTML(t.read)}</span>, pop <span class="math">${t.pop.length ? t.pop.map(labelHTML).join('') : 'ε'}</span>, push <span class="math">${t.push.length ? t.push.map(labelHTML).join('') : 'ε'}</span> <span class="muted">(rule ${ruleHTML(t)})</span>` : 'Start: the stack is empty.';
+      lines += `<div class="sim-line muted small-text">Below is one branch that gets furthest through the input${steps.length > 1 ? '. Step through it, or click a column in the stack history.' : '.'}</div>`;
+      lines += `<div class="sim-line">State <span class="math">${labelHTML(P.names.get(c.q))}</span>${P.accept.has(c.q) ? ' <span class="muted">(accepting)</span>' : ''}</div><div class="sim-line move">${move}</div>`;
+      if (done) lines += `<div class="sim-line">${pdaStuckReason(sim)}</div>`;
+    }
     if (res.pruned) lines += `<div class="sim-line muted small-text">Branches whose stack grew past ${res.maxStack} symbols were not followed.</div>`;
     if (res.capped) lines += `<div class="sim-line muted small-text">The search stopped after ${res.explored.toLocaleString()} configurations.</div>`;
   } else if (res.noPath) {
@@ -2280,16 +2395,252 @@ function showSim() {
     <div class="pda-run"><div class="sim-lines">${lines}</div>${stackFigure(c.st)}</div>`;
   // the whole computation, as a table of configurations
   const box = $('#trace-box');
-  if (res && res.accepted && !res.noPath) {
+  if (res && ((res.accepted && !res.noPath) || sim.stuck)) {
     box.hidden = false;
+    $('#trace-box summary').textContent = res.accepted ? 'The whole computation' : 'This branch, step by step';
     const rest = (i) => (i < input.length ? input.slice(i).map(labelHTML).join('') : 'ε');
     $('#pda-trace').innerHTML = `<p class="small-text muted">Input = what is left to read. The stack is written top first.</p><table class="ttable trace"><thead><tr><th>#</th><th>State</th><th>Input</th><th>Stack</th><th>Rule</th></tr></thead><tbody>${steps.map((s, k) =>
       `<tr><td class="${k === idx ? 'cur' : ''}">${k}</td><td class="lbl ${k === idx ? 'cur' : ''}">${labelHTML(P.names.get(s.c.q))}</td><td class="lbl ${k === idx ? 'cur' : ''}">${rest(s.c.i)}</td><td class="lbl ${k === idx ? 'cur' : ''}">${stackHTML(s.c.st)}</td><td class="lbl ${k === idx ? 'cur' : ''}">${s.c.t ? ruleHTML(s.c.t) : '—'}</td></tr>`).join('')}</tbody></table>`;
   } else box.hidden = true;
   $('#sim-back').disabled = idx === 0;
   $('#sim-step').disabled = done;
+  updateHistory();
   render();
 }
+
+/* ---------- Stack history: one column per step, in a wide panel under the drawing ----------
+   The same layout is drawn on screen (only the visible part, so long runs stay fast) and into the PNG download. */
+const HIST = { CW: 40, CH: 27, GAP: 12, PAD: 14, MAXC: 8, LINE: 16 };
+const HIST_FONT = {
+  sym: 'italic 18px "STIX Two Text","Times New Roman",Times,serif', symSub: 'italic 12.5px "STIX Two Text","Times New Roman",Times,serif',
+  lab: 'italic 15px "STIX Two Text","Times New Roman",Times,serif', labSub: 'italic 11px "STIX Two Text","Times New Roman",Times,serif',
+  ui: '12px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif', uiB: '600 12.5px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif',
+  title: '600 15px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif', sub: '13px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif',
+};
+const HIST_LIGHT = { bg: '#ffffff', ink: '#151922', muted: '#5a6375', line: '#d7dce5', ok: '#1a7a45', okSoft: '#dff2e6', bad: '#b8321f', hl: '#c27400', hlSoft: '#ffefcc', cell: '#ffffff' };
+let histLay = null, histFor = null, histRaf = 0, histIdx = -1;
+const histMeasure = document.createElement('canvas').getContext('2d');
+// A text made of segments { t, math?, bold?, color? }: math segments are labels (with subscripts), the rest is plain UI text.
+function segsWidth(x, segs, big) {
+  let w = 0;
+  for (const s of segs) {
+    if (!s.math) { x.font = s.bold ? HIST_FONT.uiB : HIST_FONT.ui; w += x.measureText(s.t).width; continue; }
+    for (const r of parseLabel(s.t)) { x.font = r.k ? (big ? HIST_FONT.symSub : HIST_FONT.labSub) : (big ? HIST_FONT.sym : HIST_FONT.lab); w += x.measureText(r.t).width; }
+  }
+  return w;
+}
+function drawSegs(x, segs, cx, y, pal, big) {
+  let px = cx - segsWidth(x, segs, big) / 2;
+  x.textBaseline = 'alphabetic'; x.textAlign = 'left';
+  for (const s of segs) {
+    x.fillStyle = pal[s.color || 'ink'];
+    if (!s.math) { x.font = s.bold ? HIST_FONT.uiB : HIST_FONT.ui; x.fillText(s.t, px, y); px += x.measureText(s.t).width; continue; }
+    for (const r of parseLabel(s.t)) {
+      x.font = r.k ? (big ? HIST_FONT.symSub : HIST_FONT.labSub) : (big ? HIST_FONT.sym : HIST_FONT.lab);
+      x.fillText(r.t, px, y + (r.k === 1 ? 4 : r.k === 2 ? -7 : 0));
+      px += x.measureText(r.t).width;
+    }
+  }
+}
+function historyLayout(s) {
+  const { P, steps } = s;
+  const last = steps.length - 1;
+  const cols = steps.map((stp, k) => {
+    const c = stp.c, t = c.t;
+    const top = [...c.st].reverse();
+    let cells = top.map((sym, j) => ({ sym, pushed: !!t && j < t.push.length }));
+    if (cells.length > HIST.MAXC) cells = [...cells.slice(0, HIST.MAXC - 1), { more: cells.length - (HIST.MAXC - 1) }];
+    const ghosts = t ? [...t.pop] : []; // pop[0] was the top
+    const ops = [];
+    if (t && t.pop.length) ops.push({ t: '−', color: 'bad' }, { t: t.pop.join(''), math: true, color: 'bad' });
+    if (t && t.pop.length && t.push.length) ops.push({ t: '  ' });
+    if (t && t.push.length) ops.push({ t: '+', color: 'ok' }, { t: t.push.join(''), math: true, color: 'ok' });
+    if (t && !ops.length) ops.push({ t: 'no change', color: 'muted' });
+    const lines = [
+      [{ t: String(k), bold: true }],
+      [{ t: P.names.get(c.q), math: true }],
+      k === 0 ? [{ t: 'start', color: 'muted' }] : [{ t: 'read ', color: 'muted' }, { t: t.read === null ? 'ε' : t.read, math: true }],
+      ops,
+    ];
+    if (k === last) lines.push(s.res.accepted ? [{ t: '✓ accept', color: 'ok', bold: true }] : s.stuck && s.stuck.stuck ? [{ t: '✕ stuck', color: 'bad', bold: true }] : [{ t: '✕ no accept', color: 'bad', bold: true }]);
+    const w = Math.max(HIST.CW, cells.length ? 0 : segsWidth(histMeasure, [{ t: 'empty' }]) + 12, ...lines.map((l) => segsWidth(histMeasure, l)), ...cells.concat(ghosts.map((g) => ({ sym: g }))).map((cl) => (cl.more ? segsWidth(histMeasure, [{ t: `+${cl.more} more` }]) + 10 : segsWidth(histMeasure, [{ t: cl.sym, math: true }], true) + 14)));
+    return { k, cells, ghosts, lines, w: Math.ceil(w), h: ghosts.length + Math.max(1, cells.length) };
+  });
+  let x = HIST.PAD;
+  for (const col of cols) { col.x = x; x += col.w + HIST.GAP; }
+  const tall = Math.max(1, ...cols.map((c) => c.h));
+  const baseY = HIST.PAD + 8 + tall * HIST.CH;
+  const H = baseY + 10 + 5 * HIST.LINE + HIST.PAD - 4;
+  return { cols, W: x - HIST.GAP + HIST.PAD, H, baseY };
+}
+function roundRect(x, l, t, w, h, r) {
+  x.beginPath(); x.moveTo(l + r, t); x.arcTo(l + w, t, l + w, t + h, r); x.arcTo(l + w, t + h, l, t + h, r); x.arcTo(l, t + h, l, t, r); x.arcTo(l, t, l + w, t, r); x.closePath();
+}
+// Draw the columns that overlap [from, to) of the layout, shifted left by `from`, with the top of the strip at y0.
+function drawHistory(x, lay, { from, to, y0 = 0, pal, cur }) {
+  const { baseY } = lay, CH = HIST.CH;
+  const vis = lay.cols.filter((c) => c.x + c.w + HIST.GAP > from && c.x - HIST.GAP < to);
+  if (!vis.length) return;
+  x.save();
+  x.translate(-from, y0);
+  const curCol = cur != null ? lay.cols[cur] : null;
+  if (curCol && vis.includes(curCol)) {
+    const top = baseY - curCol.h * CH - 7, bottom = baseY + 10 + curCol.lines.length * HIST.LINE + 6;
+    x.fillStyle = pal.hlSoft; roundRect(x, curCol.x - 5, top, curCol.w + 10, bottom - top, 7); x.fill();
+    x.strokeStyle = pal.hl; x.lineWidth = 2; x.stroke();
+  }
+  // the floor the stacks stand on
+  x.strokeStyle = pal.ink; x.lineWidth = 2;
+  x.beginPath(); x.moveTo(vis[0].x - 6, baseY + 1); x.lineTo(vis[vis.length - 1].x + vis[vis.length - 1].w + 6, baseY + 1); x.stroke();
+  for (const col of vis) {
+    const cx = col.x + col.w / 2, left = col.x;
+    let y = baseY;
+    x.lineWidth = 1.5;
+    if (!col.cells.length) {
+      x.setLineDash([4, 3]); x.strokeStyle = pal.muted; x.strokeRect(left + 0.75, y - CH + 0.75, col.w - 1.5, CH - 1.5); x.setLineDash([]);
+      drawSegs(x, [{ t: 'empty', color: 'muted' }], cx, y - 10, pal);
+      y -= CH;
+    }
+    for (let j = col.cells.length - 1; j >= 0; j--) {
+      const cl = col.cells[j];
+      x.fillStyle = cl.pushed ? pal.okSoft : pal.cell; x.fillRect(left, y - CH, col.w, CH);
+      x.strokeStyle = cl.pushed ? pal.ok : pal.ink; x.strokeRect(left + 0.75, y - CH + 0.75, col.w - 1.5, CH - 1.5);
+      if (cl.more) drawSegs(x, [{ t: `+${cl.more} more`, color: 'muted' }], cx, y - 10, pal);
+      else drawSegs(x, [{ t: cl.sym, math: true }], cx, y - 8, pal, true);
+      y -= CH;
+    }
+    // popped symbols, drawn where they were (pop[0] was on top)
+    for (let j = col.ghosts.length - 1; j >= 0; j--) {
+      x.setLineDash([4, 3]); x.strokeStyle = pal.bad; x.strokeRect(left + 0.75, y - CH + 0.75, col.w - 1.5, CH - 1.5); x.setLineDash([]);
+      drawSegs(x, [{ t: col.ghosts[j], math: true, color: 'bad' }], cx, y - 8, pal, true);
+      y -= CH;
+    }
+    let ly = baseY + 10 + 13;
+    for (const line of col.lines) { drawSegs(x, line.map((sg) => (col.k === cur && sg.bold && !sg.color ? { ...sg, color: 'hl' } : sg)), cx, ly, pal); ly += HIST.LINE; }
+  }
+  x.restore();
+}
+function histPalette() {
+  const cs = getComputedStyle(document.documentElement);
+  const g = (n) => cs.getPropertyValue(n).trim();
+  return { bg: g('--surface'), ink: g('--ink'), muted: g('--muted'), line: g('--line'), ok: g('--ok'), okSoft: g('--ok-soft'), bad: g('--bad'), hl: g('--hl'), hlSoft: g('--hl-soft'), cell: g('--surface') };
+}
+const histShown = () => !!(sim && sim.bad == null && sim.res && ((sim.res.accepted && !sim.res.noPath) || sim.stuck));
+function historySummary(s, plain) {
+  const n = s.input.length, moves = s.steps.length - 1;
+  const word = n ? s.input.map(plainLabel).join('') : 'ε';
+  if (s.res.accepted) return plain
+    ? `PDA on input ${word}: accepted. ${s.res.notShortest ? 'An' : 'The shortest'} accepting computation, ${moves} move${moves === 1 ? '' : 's'}.`
+    : `<b>Accepted</b> · ${s.res.notShortest ? 'an' : 'the shortest'} accepting computation, ${moves} move${moves === 1 ? '' : 's'}`;
+  const read = s.steps[moves].c.i;
+  return plain
+    ? `PDA on input ${word}: rejected. No branch accepts; this is one branch that gets furthest (${read} of ${n} symbol${n === 1 ? '' : 's'} read). ${pdaStuckReason(s, true)}`
+    : `<b>Rejected</b> · no branch accepts; this is one branch that gets furthest (${read} of ${n} symbol${n === 1 ? '' : 's'} read, ${moves} move${moves === 1 ? '' : 's'})`;
+}
+function updateHistory() {
+  const dock = $('#hist-dock');
+  if (!histShown()) { dock.hidden = true; histLay = null; histFor = null; histIdx = -1; return; }
+  if (dock.hidden) {
+    dock.hidden = false;
+    // the drawing area just got shorter: refit the drawing if part of it is now out of view
+    requestAnimationFrame(() => {
+      resize();
+      const bb = diagramBBox();
+      if (!bb) return;
+      const l = bb.x * view.s + view.tx, t = bb.y * view.s + view.ty, r = (bb.x + bb.w) * view.s + view.tx, b = (bb.y + bb.h) * view.s + view.ty;
+      if (l < 0 || t < 0 || r > W || b > H - 30) fitView();
+    });
+  }
+  if (histFor !== sim) { histFor = sim; histLay = historyLayout(sim); histIdx = -1; $('#hist-sub').innerHTML = historySummary(sim); }
+  $('#hist-body').hidden = !!settings.histCollapsed;
+  $('#hist-toggle').setAttribute('aria-expanded', String(!settings.histCollapsed));
+  if (settings.histCollapsed) return;
+  const sc = $('#hist-scroll'), sp = $('#hist-spacer');
+  sp.style.width = histLay.W + 'px'; sp.style.height = histLay.H + 'px';
+  // keep the current step in view
+  if (histIdx !== sim.idx) {
+    histIdx = sim.idx;
+    const col = histLay.cols[sim.idx], vw = sc.clientWidth;
+    if (col && vw) {
+      if (col.x - 24 < sc.scrollLeft) sc.scrollLeft = Math.max(0, col.x - 48);
+      else if (col.x + col.w + 24 > sc.scrollLeft + vw) sc.scrollLeft = col.x + col.w + 48 - vw;
+    }
+  }
+  paintHistory();
+}
+function paintHistory() {
+  if (histRaf) return;
+  histRaf = requestAnimationFrame(() => {
+    histRaf = 0;
+    if (!histLay || $('#hist-dock').hidden || settings.histCollapsed) return;
+    const sc = $('#hist-scroll'), cv = $('#hist-canvas');
+    const vw = Math.max(1, sc.clientWidth), H = histLay.H, r = window.devicePixelRatio || 1;
+    cv.style.width = vw + 'px'; cv.style.height = H + 'px';
+    if (cv.width !== Math.round(vw * r) || cv.height !== Math.round(H * r)) { cv.width = Math.round(vw * r); cv.height = Math.round(H * r); }
+    const x = cv.getContext('2d');
+    const pal = histPalette();
+    x.setTransform(r, 0, 0, r, 0, 0);
+    x.fillStyle = pal.bg; x.fillRect(0, 0, vw, H);
+    drawHistory(x, histLay, { from: sc.scrollLeft, to: sc.scrollLeft + vw, pal, cur: sim ? sim.idx : null });
+  });
+}
+// Wrap text into lines that fit maxW (for the image's caption)
+function wrapText(x, text, maxW) {
+  const out = []; let line = '';
+  for (const w of text.split(' ')) { const t = line ? line + ' ' + w : w; if (line && x.measureText(t).width > maxW) { out.push(line); line = w; } else line = t; }
+  if (line) out.push(line);
+  return out;
+}
+// The image: a caption, then the columns wrapped into rows about 1100 px wide (fits a slide or a page)
+function makeHistoryPNG(scale = 2) {
+  const lay = historyLayout(sim);
+  const MAXW = 1100, rows = [];
+  let row = [];
+  for (const col of lay.cols) { if (row.length && col.x + col.w - row[0].x > MAXW - 2 * HIST.PAD) { rows.push(row); row = []; } row.push(col); }
+  if (row.length) rows.push(row);
+  const W = Math.max(...rows.map((r) => r[r.length - 1].x + r[r.length - 1].w - r[0].x)) + 2 * HIST.PAD;
+  const textW = Math.max(W, 520);
+  histMeasure.font = HIST_FONT.sub;
+  const caption = wrapText(histMeasure, historySummary(sim, true), textW - 2 * HIST.PAD);
+  const headH = HIST.PAD + 22 + caption.length * 18;
+  const totalW = textW, totalH = headH + rows.length * lay.H;
+  const c = document.createElement('canvas');
+  c.width = Math.round(totalW * scale); c.height = Math.round(totalH * scale);
+  const x = c.getContext('2d');
+  x.scale(scale, scale);
+  x.fillStyle = HIST_LIGHT.bg; x.fillRect(0, 0, totalW, totalH);
+  x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+  x.fillStyle = HIST_LIGHT.ink; x.font = HIST_FONT.title; x.fillText('Stack history', HIST.PAD, HIST.PAD + 12);
+  x.fillStyle = HIST_LIGHT.muted; x.font = HIST_FONT.sub;
+  caption.forEach((l, i) => x.fillText(l, HIST.PAD, HIST.PAD + 34 + i * 18));
+  rows.forEach((r, i) => {
+    const from = r[0].x - HIST.PAD;
+    drawHistory(x, { ...lay, cols: r }, { from, to: from + totalW, y0: headH + i * lay.H, pal: HIST_LIGHT, cur: null });
+  });
+  return c;
+}
+$('#hist-scroll').addEventListener('scroll', paintHistory, { passive: true });
+if ('ResizeObserver' in window) new ResizeObserver(() => paintHistory()).observe($('#hist-scroll'));
+$('#hist-canvas').addEventListener('click', (e) => {
+  if (!sim || !histLay) return;
+  const r = $('#hist-canvas').getBoundingClientRect();
+  const px = e.clientX - r.left + $('#hist-scroll').scrollLeft;
+  const col = histLay.cols.find((c) => px >= c.x - HIST.GAP / 2 && px < c.x + c.w + HIST.GAP / 2);
+  if (col && col.k !== sim.idx) { sim.idx = col.k; showSim(); }
+});
+$('#hist-scroll').addEventListener('keydown', (e) => {
+  if (!sim || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  e.preventDefault();
+  const last = sim.steps.length - 1;
+  const k = e.key === 'ArrowLeft' ? sim.idx - 1 : e.key === 'ArrowRight' ? sim.idx + 1 : e.key === 'Home' ? 0 : last;
+  if (k >= 0 && k <= last && k !== sim.idx) { sim.idx = k; showSim(); }
+});
+$('#hist-toggle').addEventListener('click', () => { settings.histCollapsed = !settings.histCollapsed; persist(); histIdx = -1; updateHistory(); });
+$('#hist-png').addEventListener('click', () => {
+  if (!histShown()) return;
+  makeHistoryPNG(2).toBlob((b) => { if (b) downloadBlob('deltadraw-pda-stack-history.png', b); }, 'image/png');
+});
+$('.workspace').classList.add('has-dock');
 $('#sim-run').addEventListener('click', () => { if (startSim()) { sim.idx = sim.steps.length - 1; showSim(); } });
 $('#sim-step').addEventListener('click', () => {
   if (!sim) { if (!startSim()) return; } else if (sim.idx < sim.steps.length - 1) sim.idx++;
@@ -2590,7 +2941,7 @@ function init() {
       })
       .catch(() => {});
   }
-  window.DeltaDraw = { get doc() { return doc; }, get pr() { return pr; }, PR_EXERCISES, prCheck, buildPDA, runPDA, pdaDecide, decidePDA, pdaSyms, parseRule, parseCFG, cfgToPDA, PDA_EXAMPLES, loadDoc, linkGeom, withDoc, R, makeSVG, makeTikZ, makeJFF, makePNG, parseJFF, measureLabel };
+  window.DeltaDraw = { get doc() { return doc; }, get pr() { return pr; }, get sim() { return sim; }, pdaStuckBranch, pdaMoves, historyLayout, makeHistoryPNG, PR_EXERCISES, prCheck, buildPDA, runPDA, pdaDecide, decidePDA, pdaSyms, parseRule, parseCFG, cfgToPDA, PDA_EXAMPLES, loadDoc, linkGeom, withDoc, R, makeSVG, makeTikZ, makeJFF, makePNG, parseJFF, measureLabel };
 }
 init();
 })();
