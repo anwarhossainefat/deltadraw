@@ -449,6 +449,17 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <button class="btn" id="zoom-fit" title="Fit drawing to screen">Fit</button>
       </div>
     </section>
+    <style>
+/* Every drawing page: the side panel's width is dragged with the handle on its left edge (kept per page) */
+.workspace{position:relative;grid-template-columns:minmax(0,1fr) var(--rp-w,340px)}
+.rp-handle{position:absolute;z-index:6;touch-action:none;outline:none;top:0;bottom:0;right:calc(var(--rp-w,340px) - 4px);width:8px;cursor:col-resize}
+.rp-handle::after{content:'';position:absolute;top:0;bottom:0;left:3px;width:2px;background:transparent;transition:background .12s}
+.rp-handle:hover::after,.rp-handle.dragging::after,.rp-handle:focus-visible::after{background:var(--accent)}
+body.resizing{user-select:none;-webkit-user-select:none}
+body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
+@media (max-width: 860px){ .workspace{grid-template-columns:1fr} .rp-handle{display:none} }
+    </style>
+    <div class="rp-handle" id="rp-handle" role="separator" aria-orientation="vertical" aria-label="Resize the side panel (drag, or use the arrow keys; double-click to reset)" tabindex="0"></div>
 
     <aside class="panel" aria-label="Inspector">
       <section class="sec" id="exam-sec">
@@ -1868,6 +1879,93 @@ function examInit(saved) {
   showGate();
 }
 
+
+/* =====================================================================
+   Resizable layout (every drawing page): the side panel's width; on the PDA and TM pages also the history's height
+   (below) or width (beside). Kept per page under its own key, so it is saved on the Practice tab too and is ready
+   before the rest of the settings.
+   ===================================================================== */
+const LAYOUT_KEY = 'deltadraw:layout:' + PAGE;
+const layoutState = (() => { try { const v = JSON.parse(store.get(LAYOUT_KEY)); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();
+const saveLayout = () => store.set(LAYOUT_KEY, JSON.stringify(layoutState));
+const LAY = { rpDef: 340, rpMin: 260, rpMax: 720, dockWDef: 440, dockWMin: 260, dockHMin: 110, stageMin: 300, stageMinH: 140 };
+const phoneLayout = () => !!(window.matchMedia && window.matchMedia('(max-width: 860px)').matches);
+// The history sits beside the drawing unless the user chose Below (computers only; phones always show it below)
+const besideNow = () => !!$('#hist-dock') && (layoutState.mode || 'beside') === 'beside' && !phoneLayout();
+const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+// The sizes to use now: the saved ones, kept inside what the window allows (the drawing always keeps some room)
+function layoutSizes() {
+  const ws = $('.workspace'), W = ws.clientWidth || window.innerWidth, H = ws.clientHeight || window.innerHeight;
+  const dock = $('#hist-dock'), besideOpen = besideNow() && !dock.hidden && !settings.histCollapsed;
+  const rpW = clampN(layoutState.rpW || LAY.rpDef, LAY.rpMin, Math.max(LAY.rpMin, Math.min(LAY.rpMax, W - LAY.stageMin - (besideOpen ? LAY.dockWMin : 0))));
+  const dockW = clampN(layoutState.dockW || LAY.dockWDef, LAY.dockWMin, Math.max(LAY.dockWMin, W - rpW - LAY.stageMin));
+  const dockH = layoutState.dockH && !phoneLayout() ? clampN(layoutState.dockH, LAY.dockHMin, Math.max(LAY.dockHMin, H - LAY.stageMinH)) : 0;
+  return { rpW, dockW, dockH, W, H };
+}
+function applyLayout() {
+  const ws = $('.workspace'), dock = $('#hist-dock'), z = layoutSizes();
+  ws.style.setProperty('--rp-w', z.rpW + 'px');
+  const rh = $('#rp-handle');
+  rh.setAttribute('aria-valuenow', String(z.rpW)); rh.setAttribute('aria-valuemin', String(LAY.rpMin)); rh.setAttribute('aria-valuemax', String(LAY.rpMax));
+  if (!dock) return;
+  // PDA and TM: where the history goes, and its size
+  const open = !dock.hidden;
+  ws.classList.toggle('beside', besideNow()); // never on a phone
+  ws.classList.toggle('dock-open', open);
+  ws.classList.toggle('dock-collapsed', open && !!settings.histCollapsed);
+  ws.style.setProperty('--dock-w', z.dockW + 'px');
+  if (z.dockH) ws.style.setProperty('--dock-h', z.dockH + 'px'); else ws.style.removeProperty('--dock-h');
+  ws.classList.toggle('dock-sized', !!z.dockH);
+  $('#hist-below').setAttribute('aria-pressed', String(!besideNow()));
+  $('#hist-beside').setAttribute('aria-pressed', String(besideNow()));
+  $('#dock-handle').setAttribute('aria-orientation', besideNow() ? 'vertical' : 'horizontal');
+}
+// Is the whole drawing in view (above the hint bar)?
+function diagramFits() {
+  const bb = diagramBBox();
+  if (!bb) return true;
+  const l = bb.x * view.s + view.tx, t = bb.y * view.s + view.ty, r = (bb.x + bb.w) * view.s + view.tx, b = (bb.y + bb.h) * view.s + view.ty;
+  return l >= 0 && t >= 0 && r <= W && b <= H - 30;
+}
+// After the drawing area changes size: refit the drawing if part of it is now out of view
+function refitIfCut() { requestAnimationFrame(() => { resize(); if (!diagramFits()) fitView(); }); }
+// After a drag: refit only if the drawing was fully in view before (so a zoom the user chose is kept)
+function refitIfWasFitting(was) { requestAnimationFrame(() => { resize(); if (was && !diagramFits()) fitView(); }); }
+// A drag handle: pointer (mouse, pen, touch), arrow keys (Shift = bigger steps), double-click to reset
+function resizeHandle(el, { axis, fromPointer, current, set, reset, grow }) {
+  el.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    const fitted = diagramFits();
+    el.classList.add('dragging'); document.body.classList.add('resizing', axis());
+    const move = (ev) => { set(fromPointer(ev, $('.workspace').getBoundingClientRect())); applyLayout(); };
+    const up = () => {
+      el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
+      el.classList.remove('dragging'); document.body.classList.remove('resizing', 'col', 'row');
+      saveLayout(); refitIfWasFitting(fitted);
+    };
+    el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  });
+  el.addEventListener('dblclick', () => { reset(); applyLayout(); saveLayout(); refitIfCut(); });
+  el.addEventListener('keydown', (e) => {
+    const d = grow(e.key);
+    if (!d) return;
+    e.preventDefault();
+    const fitted = diagramFits();
+    set(current() + d * (e.shiftKey ? 64 : 16)); applyLayout(); saveLayout(); refitIfWasFitting(fitted);
+  });
+}
+resizeHandle($('#rp-handle'), {
+  axis: () => 'col',
+  fromPointer: (ev, r) => r.right - ev.clientX,
+  current: () => layoutSizes().rpW,
+  set: (v) => { layoutState.rpW = Math.round(clampN(v, LAY.rpMin, LAY.rpMax)); },
+  reset: () => { delete layoutState.rpW; },
+  grow: (k) => (k === 'ArrowLeft' ? 1 : k === 'ArrowRight' ? -1 : 0),
+});
+if ('ResizeObserver' in window) new ResizeObserver(() => applyLayout()).observe($('.workspace'));
+applyLayout();
 
 
 

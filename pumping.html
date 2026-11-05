@@ -991,6 +991,80 @@ if (MODES[hash]) { mode = hash; if (!MODES[mode].list.includes(langId)) langId =
 renderSetup();
 window.DeltaDrawPump = { LANGS, MODES, parsePattern, evalPattern, splitsOf, pump, analyze, get state() { return { mode, langId, p, defI, rules, last }; } };
 })();
+
+/* ---------- Two-column pages (grammars, pumping lemma): drag the line between the columns ----------
+   Kept per page in localStorage; double-click resets; arrow keys move it (Shift: bigger steps); hidden on narrow screens
+   where the page is one column. Added to cfg.html and pumping.html by build.py. */
+;(function colSplit() { // the leading ; keeps it separate from the page script before it
+  const main = document.querySelector('.cfg-main, .pl-main');
+  if (!main || !main.children.length) return;
+  const page = main.classList.contains('cfg-main') ? 'cfg' : 'pumping';
+  const KEY = 'deltadraw:layout:' + page;
+  const get = () => { try { return JSON.parse(window.localStorage.getItem(KEY) || '{}') || {}; } catch (e) { return {}; } };
+  const put = (v) => { try { window.localStorage.setItem(KEY, JSON.stringify(v)); } catch (e) { /* ignore */ } };
+  const MIN_LEFT = 280, MIN_RIGHT = 320;
+  let state = get();
+  const css = document.createElement('style');
+  css.textContent = `
+.cfg-main,.pl-main{position:relative}
+.col-handle{position:absolute;top:16px;bottom:24px;width:8px;cursor:col-resize;touch-action:none;outline:none;z-index:5}
+.col-handle::after{content:'';position:absolute;top:0;bottom:0;left:3px;width:2px;border-radius:1px;background:transparent;transition:background .12s}
+.col-handle:hover::after,.col-handle.dragging::after,.col-handle:focus-visible::after{background:var(--accent)}
+body.col-resizing{user-select:none;-webkit-user-select:none;cursor:col-resize}
+@media (max-width: 900px){ .col-handle{display:none} }`;
+  document.head.appendChild(css);
+  const h = document.createElement('div');
+  h.className = 'col-handle';
+  h.setAttribute('role', 'separator'); h.setAttribute('aria-orientation', 'vertical'); h.tabIndex = 0;
+  h.setAttribute('aria-label', 'Resize the columns (drag, or use the arrow keys; double-click to reset)');
+  main.appendChild(h);
+  const narrow = () => window.matchMedia && window.matchMedia('(max-width: 900px)').matches;
+  const gap = () => parseFloat(getComputedStyle(main).columnGap) || 16;
+  // the widest the left column may be: the right column keeps MIN_RIGHT
+  const maxLeft = () => {
+    const cs = getComputedStyle(main);
+    const inner = main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    return Math.max(MIN_LEFT, inner - gap() - MIN_RIGHT);
+  };
+  function apply() {
+    if (state.left && !narrow()) main.style.gridTemplateColumns = `${Math.round(Math.min(state.left, maxLeft()))}px minmax(0,1fr)`;
+    else main.style.gridTemplateColumns = '';
+    place();
+  }
+  function place() {
+    const left = main.children[0];
+    if (!left || narrow()) return;
+    const m = main.getBoundingClientRect(), l = left.getBoundingClientRect();
+    h.style.left = (l.right - m.left + gap() / 2 - 4) + 'px';
+    h.setAttribute('aria-valuenow', String(Math.round(l.width)));
+  }
+  const leftWidth = () => main.children[0].getBoundingClientRect().width;
+  const set = (w) => { state.left = Math.round(Math.max(MIN_LEFT, Math.min(maxLeft(), w))); apply(); };
+  h.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    h.setPointerCapture(e.pointerId);
+    h.classList.add('dragging'); document.body.classList.add('col-resizing');
+    const x0 = main.children[0].getBoundingClientRect().left;
+    const move = (ev) => set(ev.clientX - x0 - gap() / 2);
+    const up = () => {
+      h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
+      h.classList.remove('dragging'); document.body.classList.remove('col-resizing');
+      put(state);
+    };
+    h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+  });
+  h.addEventListener('dblclick', () => { delete state.left; put(state); apply(); });
+  h.addEventListener('keydown', (e) => {
+    const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+    if (!d) return;
+    e.preventDefault();
+    set(leftWidth() + d * (e.shiftKey ? 64 : 16)); put(state);
+  });
+  if ('ResizeObserver' in window) { const ro = new ResizeObserver(() => apply()); ro.observe(main); ro.observe(main.children[0]); }
+  window.addEventListener('resize', apply);
+  apply();
+})();
 </script>
 </body>
 </html>
