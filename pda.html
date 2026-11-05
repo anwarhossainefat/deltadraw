@@ -472,11 +472,41 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
       </div>
     </section>
     <style>
-/* History dock (PDA stack history, TM tape history): a wide panel under the drawing; the inspector spans both rows */
-.workspace.has-dock{grid-template-rows:minmax(0,1fr) auto}
+/* History dock (PDA stack history, TM tape history).
+   Below: a panel under the drawing (the side panel spans both rows). Beside: a column between the drawing and the side panel.
+   The side panel's width, the dock's height (below) and width (beside) are dragged with the handles and kept per page. */
+.workspace.has-dock{position:relative;grid-template-columns:minmax(0,1fr) var(--rp-w,340px);grid-template-rows:minmax(0,1fr) auto}
 .workspace.has-dock .stage{grid-column:1;grid-row:1}
 .workspace.has-dock .panel{grid-column:2;grid-row:1 / span 2}
-.hist-dock{grid-column:1;grid-row:2;min-width:0;background:var(--surface);border-top:1px solid var(--line)}
+.hist-dock{grid-column:1;grid-row:2;min-width:0;min-height:0;background:var(--surface);border-top:1px solid var(--line);position:relative;display:flex;flex-direction:column}
+.workspace.has-dock.dock-sized:not(.beside):not(.dock-collapsed) .hist-dock{height:var(--dock-h)}
+#hist-body{display:flex;flex-direction:column;min-height:0;flex:1 1 auto}
+#hist-body[hidden]{display:none}
+.workspace:not(.dock-sized):not(.beside) #hist-scroll.tape-auto{height:var(--tape-h)}
+.workspace.has-dock.beside.dock-open{grid-template-columns:minmax(0,1fr) var(--dock-w,440px) var(--rp-w,340px);grid-template-rows:minmax(0,1fr)}
+.workspace.has-dock.beside.dock-open .panel{grid-column:3;grid-row:1}
+.workspace.has-dock.beside .hist-dock{grid-column:2;grid-row:1;border-top:0;border-left:1px solid var(--line)}
+/* beside and collapsed: a slim strip with the button and the title written sideways */
+.workspace.has-dock.beside.dock-open.dock-collapsed{grid-template-columns:minmax(0,1fr) 40px var(--rp-w,340px)}
+.workspace.beside.dock-collapsed .hist-head{flex-direction:column;align-items:center;padding:6px 0;gap:10px}
+.workspace.beside.dock-collapsed .hist-head > :not(.hist-toggle):not(h2){display:none}
+.workspace.beside.dock-collapsed .hist-head h2{writing-mode:vertical-rl;transform:rotate(180deg)}
+/* drag handles: invisible until hovered or focused; a 2px accent line while dragging */
+.rp-handle,.dock-handle{position:absolute;z-index:6;touch-action:none;outline:none}
+.rp-handle{top:0;bottom:0;right:calc(var(--rp-w,340px) - 4px);width:8px;cursor:col-resize}
+.dock-handle{left:0;right:0;top:-4px;height:8px;cursor:row-resize}
+.workspace.beside .dock-handle{top:0;bottom:0;left:-4px;right:auto;width:8px;height:auto;cursor:col-resize}
+.rp-handle::after,.dock-handle::after{content:'';position:absolute;background:transparent;transition:background .12s}
+.rp-handle::after,.workspace.beside .dock-handle::after{top:0;bottom:0;left:3px;width:2px;height:auto;right:auto}
+.dock-handle::after{left:0;right:0;top:3px;height:2px}
+.rp-handle:hover::after,.dock-handle:hover::after,.rp-handle.dragging::after,.dock-handle.dragging::after{background:var(--accent)}
+.rp-handle:focus-visible::after,.dock-handle:focus-visible::after{background:var(--accent)}
+body.resizing{user-select:none;-webkit-user-select:none}
+body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
+.hist-place{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.hist-place button{font:12.5px var(--font-ui);color:var(--muted);background:var(--surface);border:0;padding:4px 9px;cursor:pointer}
+.hist-place button + button{border-left:1px solid var(--line)}
+.hist-place button[aria-pressed="true"]{background:var(--accent-soft,var(--surface-2));color:var(--ink);font-weight:600}
 .hist-head{display:flex;align-items:center;gap:6px 10px;flex-wrap:wrap;padding:6px 12px 6px 6px}
 .hist-head h2{margin:0;font:600 11px var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
 .hist-sub{font-size:12.5px;color:var(--muted);min-width:0}
@@ -485,11 +515,10 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 .hist-toggle:hover{background:var(--surface-2);color:var(--ink)}
 .hist-toggle[aria-expanded="false"] span{transform:rotate(-90deg)}
 .hist-toggle span{display:inline-block;transition:transform .12s}
-.hist-scroll{overflow-x:auto;overflow-y:hidden;position:relative;outline:none}
+.hist-scroll{overflow:auto;position:relative;outline:none;flex:1 1 auto;min-height:0}
 .hist-scroll:focus-visible{box-shadow:inset 0 0 0 2px var(--accent)}
 .hist-spacer{position:relative}
 #hist-canvas{position:sticky;left:0;top:0;display:block;cursor:pointer}
-.hist-scroll.both{overflow:auto}
 .hist-legend{display:flex;flex-wrap:wrap;gap:4px 16px;margin:0;padding:4px 14px 8px;font-size:11.5px;color:var(--muted)}
 .hist-legend i{display:inline-block;width:11px;height:11px;border-radius:2px;vertical-align:-1px;margin-right:5px;border:1.5px solid var(--ok);background:var(--ok-soft)}
 .hist-legend i.cur{border-color:var(--hl);background:transparent;box-shadow:inset 0 0 0 1px var(--hl)}
@@ -499,24 +528,32 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 .hist-opt input{accent-color:var(--accent);margin:0}
 .hist-sel{font:12.5px var(--font-ui);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:4px 6px;cursor:pointer}
 @media (max-width: 860px){
-  .workspace.has-dock{grid-template-rows:64vh auto auto}
-  .workspace.has-dock .panel{grid-column:1;grid-row:3}
-  .hist-dock{grid-row:2}
+  /* phones: always below, no handles, the default sizes */
+  .workspace.has-dock,.workspace.has-dock.beside.dock-open,.workspace.has-dock.beside.dock-open.dock-collapsed{grid-template-columns:1fr;grid-template-rows:64vh auto auto}
+  .workspace.has-dock .panel,.workspace.has-dock.beside.dock-open .panel{grid-column:1;grid-row:3}
+  .workspace.has-dock .hist-dock,.workspace.has-dock.beside .hist-dock{grid-column:1;grid-row:2;height:auto;border-left:0;border-top:1px solid var(--line)}
+  .workspace.beside.dock-collapsed .hist-head{flex-direction:row;padding:6px 12px 6px 6px}
+  .workspace.beside.dock-collapsed .hist-head > :not(.hist-toggle):not(h2){display:revert}
+  .workspace.beside.dock-collapsed .hist-head h2{writing-mode:horizontal-tb;transform:none}
+  .rp-handle,.dock-handle,.hist-place{display:none}
 }
     </style>
+    <div class="rp-handle" id="rp-handle" role="separator" aria-orientation="vertical" aria-label="Resize the side panel (drag, or use the arrow keys; double-click to reset)" tabindex="0"></div>
     <section class="hist-dock" id="hist-dock" aria-labelledby="hist-title" hidden>
+      <div class="dock-handle" id="dock-handle" role="separator" aria-label="Resize the history panel (drag, or use the arrow keys; double-click to reset)" tabindex="0"></div>
       <div class="hist-head">
         <button class="hist-toggle" id="hist-toggle" aria-expanded="true" aria-controls="hist-body" title="Show or hide the history"><span aria-hidden="true">▼</span></button>
         <h2 id="hist-title">Stack history</h2>
         <span class="hist-sub" id="hist-sub"></span>
         <span class="grow"></span>
+        <span class="hist-place" role="group" aria-label="Where to show the history"><button type="button" id="hist-below" aria-pressed="true" title="Show the history below the drawing">Below</button><button type="button" id="hist-beside" aria-pressed="false" title="Show the history beside the drawing">Beside</button></span>
         <label class="hist-opt" title="Put the drawing of the machine above the history in the image"><input type="checkbox" id="hist-png-draw" checked> Include the drawing</label>
         <select class="hist-sel" id="hist-png-color" aria-label="Colors in the image" title="Colors in the image"><option value="color">Color</option><option value="bw">Black &amp; white</option></select>
         <button class="btn small" id="hist-png" title="Download the history as a PNG image">Download PNG</button>
       </div>
       <div id="hist-body">
-        <div class="hist-scroll" id="hist-scroll" tabindex="0" aria-label="Stack history. Use the left and right arrow keys to move between steps."><div class="hist-spacer" id="hist-spacer"><canvas id="hist-canvas" aria-hidden="true"></canvas></div></div>
-        <p class="hist-legend"><span><i></i>pushed in this step</span><span><i class="pop"></i>popped in this step</span><span><i class="cur"></i>current step</span><span>Click a column to jump to that step.</span></p>
+        <div class="hist-scroll" id="hist-scroll" tabindex="0" aria-label="Stack history. Use the arrow keys to move between steps."><div class="hist-spacer" id="hist-spacer"><canvas id="hist-canvas" aria-hidden="true"></canvas></div></div>
+        <p class="hist-legend"><span><i></i>pushed in this step</span><span><i class="pop"></i>popped in this step</span><span><i class="cur"></i>current step</span><span>Click a step to jump to it.</span></p>
       </div>
     </section>
 
@@ -2097,6 +2134,103 @@ function composeHistoryPNG({ title, caption, legend, bodyW, bodyH, drawBody }, {
   drawBody(x, bodyTop, pal, W);
   return c;
 }
+
+/* ---------- Resizable layout: the side panel's width, the history's height (below) or width (beside) ----------
+   Kept per page under its own key (so it is saved on the Practice tab too, and is ready before the rest of the settings). */
+const LAYOUT_KEY = 'deltadraw:layout:' + PAGE;
+const layoutState = (() => { try { const v = JSON.parse(store.get(LAYOUT_KEY)); return v && typeof v === 'object' ? v : {}; } catch (e) { return {}; } })();
+const saveLayout = () => store.set(LAYOUT_KEY, JSON.stringify(layoutState));
+const LAY = { rpDef: 340, rpMin: 260, rpMax: 720, dockWDef: 440, dockWMin: 260, dockHMin: 110, stageMin: 300, stageMinH: 140 };
+const phoneLayout = () => !!(window.matchMedia && window.matchMedia('(max-width: 860px)').matches);
+const besideNow = () => layoutState.mode === 'beside' && !phoneLayout();
+const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+// The sizes to use now: the saved ones, kept inside what the window allows (the drawing always keeps some room)
+function layoutSizes() {
+  const ws = $('.workspace'), W = ws.clientWidth || window.innerWidth, H = ws.clientHeight || window.innerHeight;
+  const besideOpen = besideNow() && !$('#hist-dock').hidden && !settings.histCollapsed;
+  const rpW = clampN(layoutState.rpW || LAY.rpDef, LAY.rpMin, Math.max(LAY.rpMin, Math.min(LAY.rpMax, W - LAY.stageMin - (besideOpen ? LAY.dockWMin : 0))));
+  const dockW = clampN(layoutState.dockW || LAY.dockWDef, LAY.dockWMin, Math.max(LAY.dockWMin, W - rpW - LAY.stageMin));
+  const dockH = layoutState.dockH && !phoneLayout() ? clampN(layoutState.dockH, LAY.dockHMin, Math.max(LAY.dockHMin, H - LAY.stageMinH)) : 0;
+  return { rpW, dockW, dockH, W, H };
+}
+function applyLayout() {
+  const ws = $('.workspace'), open = !$('#hist-dock').hidden;
+  ws.classList.toggle('beside', besideNow()); // never on a phone
+  ws.classList.toggle('dock-open', open);
+  ws.classList.toggle('dock-collapsed', open && !!settings.histCollapsed);
+  const z = layoutSizes();
+  ws.style.setProperty('--rp-w', z.rpW + 'px');
+  ws.style.setProperty('--dock-w', z.dockW + 'px');
+  if (z.dockH) ws.style.setProperty('--dock-h', z.dockH + 'px'); else ws.style.removeProperty('--dock-h');
+  ws.classList.toggle('dock-sized', !!z.dockH);
+  $('#hist-below').setAttribute('aria-pressed', String(layoutState.mode !== 'beside'));
+  $('#hist-beside').setAttribute('aria-pressed', String(layoutState.mode === 'beside'));
+  const rh = $('#rp-handle'), dh = $('#dock-handle');
+  rh.setAttribute('aria-valuenow', String(z.rpW)); rh.setAttribute('aria-valuemin', String(LAY.rpMin)); rh.setAttribute('aria-valuemax', String(LAY.rpMax));
+  dh.setAttribute('aria-orientation', besideNow() ? 'vertical' : 'horizontal');
+}
+// Is the whole drawing in view (above the hint bar)?
+function diagramFits() {
+  const bb = diagramBBox();
+  if (!bb) return true;
+  const l = bb.x * view.s + view.tx, t = bb.y * view.s + view.ty, r = (bb.x + bb.w) * view.s + view.tx, b = (bb.y + bb.h) * view.s + view.ty;
+  return l >= 0 && t >= 0 && r <= W && b <= H - 30;
+}
+// After the drawing area changes size: refit the drawing if part of it is now out of view
+function refitIfCut() { requestAnimationFrame(() => { resize(); if (!diagramFits()) fitView(); }); }
+// After a drag: refit only if the drawing was fully in view before (so a zoom the user chose is kept)
+function refitIfWasFitting(was) { requestAnimationFrame(() => { resize(); if (was && !diagramFits()) fitView(); }); }
+// A drag handle: pointer (mouse, pen, touch), arrow keys (Shift = bigger steps), double-click to reset
+function resizeHandle(el, { axis, fromPointer, current, set, reset, grow }) {
+  el.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    el.setPointerCapture(e.pointerId);
+    const fitted = diagramFits();
+    el.classList.add('dragging'); document.body.classList.add('resizing', axis());
+    const move = (ev) => { set(fromPointer(ev, $('.workspace').getBoundingClientRect())); applyLayout(); };
+    const up = () => {
+      el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
+      el.classList.remove('dragging'); document.body.classList.remove('resizing', 'col', 'row');
+      saveLayout(); refitIfWasFitting(fitted);
+    };
+    el.addEventListener('pointermove', move); el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up);
+  });
+  el.addEventListener('dblclick', () => { reset(); applyLayout(); saveLayout(); refitIfCut(); });
+  el.addEventListener('keydown', (e) => {
+    const d = grow(e.key);
+    if (!d) return;
+    e.preventDefault();
+    const fitted = diagramFits();
+    set(current() + d * (e.shiftKey ? 64 : 16)); applyLayout(); saveLayout(); refitIfWasFitting(fitted);
+  });
+}
+resizeHandle($('#rp-handle'), {
+  axis: () => 'col',
+  fromPointer: (ev, r) => r.right - ev.clientX,
+  current: () => layoutSizes().rpW,
+  set: (v) => { layoutState.rpW = Math.round(clampN(v, LAY.rpMin, LAY.rpMax)); },
+  reset: () => { delete layoutState.rpW; },
+  grow: (k) => (k === 'ArrowLeft' ? 1 : k === 'ArrowRight' ? -1 : 0),
+});
+resizeHandle($('#dock-handle'), {
+  axis: () => (besideNow() ? 'col' : 'row'),
+  fromPointer: (ev, r) => (besideNow() ? r.right - layoutSizes().rpW - ev.clientX : r.bottom - ev.clientY),
+  current: () => (besideNow() ? layoutSizes().dockW : $('#hist-dock').getBoundingClientRect().height),
+  set: (v) => { if (besideNow()) layoutState.dockW = Math.round(Math.max(LAY.dockWMin, v)); else layoutState.dockH = Math.round(Math.max(LAY.dockHMin, v)); },
+  reset: () => { if (besideNow()) delete layoutState.dockW; else delete layoutState.dockH; },
+  grow: (k) => (besideNow() ? (k === 'ArrowLeft' ? 1 : k === 'ArrowRight' ? -1 : 0) : (k === 'ArrowUp' ? 1 : k === 'ArrowDown' ? -1 : 0)),
+});
+function setHistMode(m) {
+  if ((layoutState.mode || 'below') === m) return;
+  layoutState.mode = m; saveLayout();
+  histFor = null; histIdx = -1;
+  applyLayout(); updateHistory(); refitIfCut();
+}
+$('#hist-below').addEventListener('click', () => setHistMode('below'));
+$('#hist-beside').addEventListener('click', () => setHistMode('beside'));
+if ('ResizeObserver' in window) new ResizeObserver(() => applyLayout()).observe($('.workspace'));
+try { window.matchMedia('(max-width: 860px)').addEventListener('change', () => { histFor = null; histIdx = -1; applyLayout(); updateHistory(); }); } catch (e) { /* old browsers */ }
 /* =====================================================================
    Pushdown automata (Sipser 2.2)
    An arrow carries one or more rules "a,b→c" separated by ";": read a, pop b, push c (each may be ε).
@@ -2617,22 +2751,90 @@ function historySummary(s, plain) {
     ? `PDA on input ${word}: rejected. No branch accepts; this is one branch that gets furthest (${read} of ${n} symbol${n === 1 ? '' : 's'} read). ${pdaStuckReason(s, true)}`
     : `<b>Rejected</b> · no branch accepts; this is one branch that gets furthest (${read} of ${n} symbol${n === 1 ? '' : 's'} read, ${moves} move${moves === 1 ? '' : 's'})`;
 }
+/* Beside the drawing the panel is tall and narrow, so the stack history turns sideways: one row per step,
+   the stack lying on its side (bottom on the left, top on the right), like the tape rows on the TM page. */
+const SROW = { RH: 28, HEAD: 24, CW: 30, PAD: 10 };
+function pdaRuleSegs(t) {
+  if (!t) return [{ t: 'start', color: 'muted' }];
+  return [{ t: t.read === null ? 'ε' : t.read, math: true }, { t: ',', color: 'muted' }, { t: t.pop.length ? t.pop.join('') : 'ε', math: true }, { t: '→', color: 'muted' }, { t: t.push.length ? t.push.join('') : 'ε', math: true }];
+}
+function stackRowsLayout(s) {
+  const { P, steps } = s, last = steps.length - 1;
+  let maxCells = 1, cw = SROW.CW;
+  const syms = new Set();
+  for (const st of steps) { const c = st.c; maxCells = Math.max(maxCells, c.st.length + (c.t ? c.t.pop.length : 0)); c.st.forEach((a) => syms.add(a)); if (c.t) c.t.pop.forEach((a) => syms.add(a)); }
+  for (const a of syms) cw = Math.max(cw, Math.ceil(segsWidth(histMeasure, [{ t: a, math: true }], true)) + 12);
+  const stepW = Math.max(46, Math.ceil(segsWidth(histMeasure, [{ t: String(last) + ' ✓', bold: true }])) + 16);
+  let stateW = 44, ruleW = 64;
+  for (const st of steps) {
+    stateW = Math.max(stateW, Math.ceil(segsWidth(histMeasure, [{ t: P.names.get(st.c.q), math: true }])) + 16);
+    ruleW = Math.max(ruleW, Math.ceil(segsWidth(histMeasure, pdaRuleSegs(st.c.t))) + 16);
+  }
+  const G = stepW + stateW + ruleW + 6;
+  const marks = new Map([[last, s.res.accepted ? { t: '✓', color: 'ok' } : { t: '✕', color: 'bad' }]]);
+  return { kind: 'rows', steps, names: P.names, cw, G, stepW, stateW, ruleW, ncell: maxCells + 1, marks, W: G + (maxCells + 1) * cw + SROW.PAD, H: SROW.HEAD + steps.length * SROW.RH + 6 };
+}
+function drawStackRows(x, lay, { sx, sy, vw, vh, pal, cur }) {
+  const { steps, cw, G, ncell, stepW, stateW, ruleW, marks } = lay, RH = SROW.RH, H0 = SROW.HEAD;
+  x.fillStyle = pal.bg; x.fillRect(0, 0, vw, vh);
+  const k0 = Math.max(0, Math.floor(sy / RH)), k1 = Math.min(steps.length - 1, Math.floor((sy + vh - H0) / RH));
+  const i0 = Math.max(0, Math.floor(sx / cw)), i1 = Math.min(ncell - 1, Math.floor((sx + vw - G) / cw));
+  const rowY = (k) => H0 + k * RH - sy, cellX = (i) => G + i * cw - sx;
+  if (cur != null && cur >= k0 && cur <= k1) { x.fillStyle = pal.hlSoft; x.globalAlpha = 0.45; x.fillRect(0, rowY(cur), vw, RH); x.globalAlpha = 1; }
+  // the stacks: bottom on the left, pushed cells green, popped ones dashed red just past the top (where they were)
+  x.save();
+  x.beginPath(); x.rect(G, H0, vw - G, vh - H0); x.clip();
+  for (let k = k0; k <= k1; k++) {
+    const c = steps[k].c, t = c.t, y = rowY(k) + 2, h = RH - 4, n = c.st.length;
+    const pushed = t ? t.push.length : 0;
+    if (!n && !(t && t.pop.length)) { drawSegs(x, [{ t: 'empty', color: 'muted' }], cellX(0) + 22, y + 17, pal); continue; }
+    for (let i = Math.max(0, i0); i <= Math.min(n - 1, i1); i++) {
+      const cx = cellX(i), isPush = i >= n - pushed;
+      x.fillStyle = isPush ? pal.okSoft : pal.cell; x.fillRect(cx, y, cw, h);
+      x.strokeStyle = isPush ? pal.ok : pal.ink; x.lineWidth = 1.5; x.strokeRect(cx + 0.75, y + 0.75, cw - 1.5, h - 1.5);
+      drawSegs(x, [{ t: c.st[i], math: true }], cx + cw / 2, y + 17, pal, true);
+    }
+    if (t) for (let j = 0; j < t.pop.length; j++) {
+      const i = n + (t.pop.length - 1 - j); // pop[0] was the top, so it sits furthest right
+      if (i < i0 || i > i1) continue;
+      const cx = cellX(i);
+      x.setLineDash([4, 3]); x.strokeStyle = pal.bad; x.lineWidth = 1.5; x.strokeRect(cx + 0.75, y + 0.75, cw - 1.5, h - 1.5); x.setLineDash([]);
+      drawSegs(x, [{ t: t.pop[j], math: true, color: 'bad' }], cx + cw / 2, y + 17, pal, true);
+    }
+  }
+  x.restore();
+  // pinned left columns: step, state, rule
+  x.save();
+  x.beginPath(); x.rect(0, H0, G, vh - H0); x.clip();
+  x.fillStyle = pal.bg; x.fillRect(0, H0, G, vh - H0);
+  if (cur != null && cur >= k0 && cur <= k1) { x.fillStyle = pal.hlSoft; x.globalAlpha = 0.45; x.fillRect(0, rowY(cur), G, RH); x.globalAlpha = 1; }
+  for (let k = k0; k <= k1; k++) {
+    const c = steps[k].c, y = rowY(k) + 18, m = marks.get(k);
+    const num = [{ t: String(k), bold: true, color: k === cur ? 'hl' : undefined }];
+    if (m) num.push({ t: ' ' + m.t, bold: true, color: m.color });
+    drawSegs(x, num, 6 + stepW / 2, y, pal);
+    drawSegs(x, [{ t: lay.names.get(c.q), math: true }], stepW + stateW / 2, y, pal);
+    drawSegs(x, pdaRuleSegs(c.t), stepW + stateW + ruleW / 2, y, pal);
+  }
+  x.restore();
+  // pinned header
+  x.fillStyle = pal.bg; x.fillRect(0, 0, vw, H0);
+  x.strokeStyle = pal.line; x.lineWidth = 1; x.beginPath(); x.moveTo(0, H0 - 0.5); x.lineTo(vw, H0 - 0.5); x.moveTo(G - 3.5, 0); x.lineTo(G - 3.5, vh); x.stroke();
+  drawSegs(x, [{ t: 'step', color: 'muted' }], 6 + stepW / 2, 16, pal);
+  drawSegs(x, [{ t: 'state', color: 'muted' }], stepW + stateW / 2, 16, pal);
+  drawSegs(x, [{ t: 'rule', color: 'muted' }], stepW + stateW + ruleW / 2, 16, pal);
+  x.save(); x.beginPath(); x.rect(G, 0, vw - G, H0); x.clip();
+  x.font = HIST_FONT.ui; x.fillStyle = pal.muted; x.textAlign = 'left'; x.fillText('stack: bottom → top', G + 6 - Math.min(sx, 0), 16);
+  x.restore();
+  if (cur != null && cur >= k0 && cur <= k1) { x.save(); x.beginPath(); x.rect(0, H0, vw, vh - H0); x.clip(); x.strokeStyle = pal.hl; x.lineWidth = 2; roundRect(x, 1, rowY(cur) + 1, vw - 2, RH - 2, 5); x.stroke(); x.restore(); }
+}
+let histRows = false; // which layout histLay has: columns (below) or rows (beside)
 function updateHistory() {
   const dock = $('#hist-dock');
-  if (!histShown()) { dock.hidden = true; histLay = null; histFor = null; histIdx = -1; return; }
-  if (dock.hidden) {
-    syncHistPngOptions();
-    dock.hidden = false;
-    // the drawing area just got shorter: refit the drawing if part of it is now out of view
-    requestAnimationFrame(() => {
-      resize();
-      const bb = diagramBBox();
-      if (!bb) return;
-      const l = bb.x * view.s + view.tx, t = bb.y * view.s + view.ty, r = (bb.x + bb.w) * view.s + view.tx, b = (bb.y + bb.h) * view.s + view.ty;
-      if (l < 0 || t < 0 || r > W || b > H - 30) fitView();
-    });
-  }
-  if (histFor !== sim) { histFor = sim; histLay = historyLayout(sim); histIdx = -1; $('#hist-sub').innerHTML = historySummary(sim); }
+  if (!histShown()) { if (!dock.hidden) { dock.hidden = true; applyLayout(); } histLay = null; histFor = null; histIdx = -1; return; }
+  if (dock.hidden) { syncHistPngOptions(); dock.hidden = false; applyLayout(); refitIfCut(); }
+  const rows = besideNow();
+  if (histFor !== sim || histRows !== rows) { histFor = sim; histRows = rows; histLay = rows ? stackRowsLayout(sim) : historyLayout(sim); histIdx = -1; $('#hist-sub').innerHTML = historySummary(sim); }
   $('#hist-body').hidden = !!settings.histCollapsed;
   $('#hist-toggle').setAttribute('aria-expanded', String(!settings.histCollapsed));
   if (settings.histCollapsed) return;
@@ -2641,10 +2843,20 @@ function updateHistory() {
   // keep the current step in view
   if (histIdx !== sim.idx) {
     histIdx = sim.idx;
-    const col = histLay.cols[sim.idx], vw = sc.clientWidth;
-    if (col && vw) {
-      if (col.x - 24 < sc.scrollLeft) sc.scrollLeft = Math.max(0, col.x - 48);
-      else if (col.x + col.w + 24 > sc.scrollLeft + vw) sc.scrollLeft = col.x + col.w + 48 - vw;
+    const vw = sc.clientWidth, vh = sc.clientHeight;
+    if (rows) {
+      const top = sim.idx * SROW.RH, view = vh - SROW.HEAD;
+      if (top < sc.scrollTop) sc.scrollTop = Math.max(0, top - SROW.RH);
+      else if (top + SROW.RH > sc.scrollTop + view) sc.scrollTop = top + 2 * SROW.RH - view;
+      const c = sim.steps[sim.idx].c, end = (c.st.length + (c.t ? c.t.pop.length : 0)) * histLay.cw, viewCols = vw - histLay.G;
+      if (end > sc.scrollLeft + viewCols) sc.scrollLeft = end + histLay.cw - viewCols;
+      else if (end < sc.scrollLeft) sc.scrollLeft = Math.max(0, end - viewCols / 2);
+    } else {
+      const col = histLay.cols[sim.idx];
+      if (col && vw) {
+        if (col.x - 24 < sc.scrollLeft) sc.scrollLeft = Math.max(0, col.x - 48);
+        else if (col.x + col.w + 24 > sc.scrollLeft + vw) sc.scrollLeft = col.x + col.w + 48 - vw;
+      }
     }
   }
   paintHistory();
@@ -2655,14 +2867,17 @@ function paintHistory() {
     histRaf = 0;
     if (!histLay || $('#hist-dock').hidden || settings.histCollapsed) return;
     const sc = $('#hist-scroll'), cv = $('#hist-canvas');
-    const vw = Math.max(1, sc.clientWidth), H = histLay.H, r = window.devicePixelRatio || 1;
-    cv.style.width = vw + 'px'; cv.style.height = H + 'px';
-    if (cv.width !== Math.round(vw * r) || cv.height !== Math.round(H * r)) { cv.width = Math.round(vw * r); cv.height = Math.round(H * r); }
+    const vw = Math.max(1, sc.clientWidth), vh = Math.max(1, Math.min(sc.clientHeight || histLay.H, histLay.H)), r = window.devicePixelRatio || 1;
+    cv.style.width = vw + 'px'; cv.style.height = vh + 'px';
+    if (cv.width !== Math.round(vw * r) || cv.height !== Math.round(vh * r)) { cv.width = Math.round(vw * r); cv.height = Math.round(vh * r); }
     const x = cv.getContext('2d');
     const pal = histPalette();
     x.setTransform(r, 0, 0, r, 0, 0);
-    x.fillStyle = pal.bg; x.fillRect(0, 0, vw, H);
+    if (histLay.kind === 'rows') { drawStackRows(x, histLay, { sx: sc.scrollLeft, sy: sc.scrollTop, vw, vh, pal, cur: sim ? sim.idx : null }); return; }
+    x.fillStyle = pal.bg; x.fillRect(0, 0, vw, vh);
+    x.save(); x.translate(0, -sc.scrollTop);
     drawHistory(x, histLay, { from: sc.scrollLeft, to: sc.scrollLeft + vw, pal, cur: sim ? sim.idx : null });
+    x.restore();
   });
 }
 // The image: title, result, legend, the drawing (optional), then the columns wrapped into rows about 1100 px wide
@@ -2686,19 +2901,26 @@ $('#hist-scroll').addEventListener('scroll', paintHistory, { passive: true });
 if ('ResizeObserver' in window) new ResizeObserver(() => paintHistory()).observe($('#hist-scroll'));
 $('#hist-canvas').addEventListener('click', (e) => {
   if (!sim || !histLay) return;
-  const r = $('#hist-canvas').getBoundingClientRect();
-  const px = e.clientX - r.left + $('#hist-scroll').scrollLeft;
-  const col = histLay.cols.find((c) => px >= c.x - HIST.GAP / 2 && px < c.x + c.w + HIST.GAP / 2);
-  if (col && col.k !== sim.idx) { sim.idx = col.k; showSim(); }
+  const r = $('#hist-canvas').getBoundingClientRect(), sc = $('#hist-scroll');
+  let k = -1;
+  if (histLay.kind === 'rows') {
+    const y = e.clientY - r.top;
+    if (y >= SROW.HEAD) k = Math.floor((y - SROW.HEAD + sc.scrollTop) / SROW.RH);
+  } else {
+    const px = e.clientX - r.left + sc.scrollLeft;
+    const col = histLay.cols.find((c) => px >= c.x - HIST.GAP / 2 && px < c.x + c.w + HIST.GAP / 2);
+    if (col) k = col.k;
+  }
+  if (k >= 0 && k < sim.steps.length && k !== sim.idx) { sim.idx = k; showSim(); }
 });
 $('#hist-scroll').addEventListener('keydown', (e) => {
-  if (!sim || !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+  if (!sim || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
   e.preventDefault();
   const last = sim.steps.length - 1;
-  const k = e.key === 'ArrowLeft' ? sim.idx - 1 : e.key === 'ArrowRight' ? sim.idx + 1 : e.key === 'Home' ? 0 : last;
+  const k = e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? sim.idx - 1 : e.key === 'ArrowRight' || e.key === 'ArrowDown' ? sim.idx + 1 : e.key === 'Home' ? 0 : last;
   if (k >= 0 && k <= last && k !== sim.idx) { sim.idx = k; showSim(); }
 });
-$('#hist-toggle').addEventListener('click', () => { settings.histCollapsed = !settings.histCollapsed; persist(); histIdx = -1; updateHistory(); });
+$('#hist-toggle').addEventListener('click', () => { settings.histCollapsed = !settings.histCollapsed; persist(); histIdx = -1; applyLayout(); updateHistory(); refitIfCut(); });
 $('#hist-png').addEventListener('click', () => {
   if (!histShown()) return;
   const o = histPngOptions();
@@ -3006,7 +3228,7 @@ function init() {
       })
       .catch(() => {});
   }
-  window.DeltaDraw = { get doc() { return doc; }, get pr() { return pr; }, get sim() { return sim; }, pdaStuckBranch, pdaMoves, historyLayout, makeHistoryPNG, PR_EXERCISES, prCheck, buildPDA, runPDA, pdaDecide, decidePDA, pdaSyms, parseRule, parseCFG, cfgToPDA, PDA_EXAMPLES, loadDoc, linkGeom, withDoc, R, makeSVG, makeTikZ, makeJFF, makePNG, parseJFF, measureLabel };
+  window.DeltaDraw = { get doc() { return doc; }, get pr() { return pr; }, get sim() { return sim; }, pdaStuckBranch, pdaMoves, historyLayout, stackRowsLayout, makeHistoryPNG, PR_EXERCISES, prCheck, buildPDA, runPDA, pdaDecide, decidePDA, pdaSyms, parseRule, parseCFG, cfgToPDA, PDA_EXAMPLES, loadDoc, linkGeom, withDoc, R, makeSVG, makeTikZ, makeJFF, makePNG, parseJFF, measureLabel };
 }
 init();
 })();
