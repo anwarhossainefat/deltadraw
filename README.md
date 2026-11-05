@@ -19,8 +19,8 @@ DeltaDraw is an independent study tool and is not affiliated with the author or 
 | `regex.html` | Ch 1.3: regular expressions (regex ⇄ NFA, step by step) | Live |
 | `pumping.html` | Ch 1.4 and 2.3: the pumping lemma as a proof game (regular and context-free) | Live |
 | `cfg.html` | Ch 2.1: context-free grammars (parse trees, CNF, CYK) | Live |
-| `pda.html` | Ch 2.2: pushdown automata (draw, run with the stack, grammar → PDA) | Live |
-| `tm.html` | Ch 3.1: Turing machines (run on the tape, configurations, formal definition) | Live |
+| `pda.html` | Ch 2.2: pushdown automata (draw, run with the stack and its history, grammar → PDA) | Live |
+| `tm.html` | Ch 3.1: Turing machines (run on the tape, tape history, configurations, formal definition) | Live |
 | `complexity.html` | Ch 7: growth rates, measured running times, SAT and the 3SAT → CLIQUE reduction | Live |
 | `decide.html` | Ch 4.1, 4.2, 5.2: deciders, diagonalization, the A_TM proof, PCP puzzle | Live |
 | `practice.html` | Chapter 1 practice exercises with exact checking | Live |
@@ -50,6 +50,7 @@ A proof game for the pumping lemma for regular languages (Sipser, Theorem 1.70) 
 - Draw a PDA with Sipser's labels: `a,b→c` reads a, pops b and pushes c (type `->` for the arrow, `ε` or nothing for "none"). Put several rules on one arrow with `;`; they are drawn one per line.
 - The stack starts empty, and pushing a string puts its first symbol on top (Sipser's shorthand, e.g. `ε,ε→S$`).
 - **Test:** accepted or rejected, decided exactly (also for PDAs whose stack can grow forever). Step through an accepting computation with the input tape, the stack drawn beside it, and the rule in use highlighted on the arrow. The whole computation is listed as a table of configurations.
+- **Stack history:** a panel shows the stack after every step at once: pushed symbols in green, popped symbols dashed in red where they were, the state, the symbol read and the rule used. Click a step to jump to it. For a rejected string it shows one branch that reads the furthest, and says why it gets stuck.
 - **Definition:** the 6-tuple (Q, Σ, Γ, δ, q₀, F) with δ as a table; copy it as Markdown or LaTeX.
 - **From grammar:** Sipser's construction (Lemma 2.21) builds a 3-state PDA from any context-free grammar.
 - Examples from Sipser (2.14, 2.16, 2.18) and balanced parentheses. Export PNG, SVG, LaTeX (TikZ) or JFLAP; JFLAP `.jff` PDAs can be opened too (JFLAP starts with Z on the stack, DeltaDraw with an empty stack).
@@ -60,8 +61,21 @@ A proof game for the pumping lemma for regular languages (Sipser, Theorem 1.70) 
 - States named `q_accept` / `q_reject` (or drawn as accepting) halt. As in Sipser's diagrams, a missing rule means the machine rejects. The tape is infinite to the right; moving left from the first cell leaves the head in place.
 - **Run:** step, play or run to the end, with the tape and head, the rule in use highlighted on the arrow, and Sipser's configurations `u q v` for every step (the trace for Example 3.7 on 0000 matches the book). A machine that repeats a configuration is reported as looping forever; otherwise the run stops at a step limit you choose.
 - Nondeterministic machines are explored branch by branch, and an accepting branch is shown.
+- **Tape history:** one row per step, like Sipser's tableau: the head's cell outlined, cells that just changed in green, the state and rule on the left, and ✓ / ✕ / ↺ marking accept, reject or a loop. Click a row to jump to that step; long runs and wide tapes scroll.
 - **Definition:** the 7-tuple with δ as a table (copy as Markdown or LaTeX).
 - Examples: Sipser 3.7 (0 repeated 2ⁿ times), 3.9 (w#w) and a 0ⁿ1ⁿ decider. Export PNG, SVG, LaTeX (TikZ) or JFLAP.
+
+## Stack and tape history: placement and images
+
+- On a computer the history sits **beside** the drawing; a **Below / Beside** switch moves it under the drawing instead. On a phone it is always below.
+- **Download PNG** saves the history as an image, optionally with the **drawing of the machine above it**, in **color** or **black & white** (for printing: gray cells, thick outlines and dashed lines instead of colors). Long PDA runs wrap into rows; TM images hold up to 150 steps.
+- The history panel can be collapsed.
+
+## Resizable layout
+
+- On every drawing page (finite automata, regular expressions, practice, pushdown automata, Turing machines, exam mode) the **side panel's left edge can be dragged** to make it wider or narrower; on the PDA and TM pages the **history panel's edge** can be dragged too.
+- On the grammar and pumping lemma pages the **line between the two columns** can be dragged.
+- Double-click a handle to reset it; arrow keys move it too. Each page remembers its sizes. On a phone the handles are hidden and every page uses one column.
 
 ## Time complexity (`complexity.html`)
 

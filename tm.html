@@ -423,7 +423,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <button class="btn" id="btn-new" title="Start a new empty drawing">New</button>
         <button class="btn" id="btn-open" title="Open a saved DeltaDraw (.json) or JFLAP (.jff) file">Open</button>
         <button class="btn" id="btn-save" title="Save the drawing as a file (Ctrl+S)">Save</button>
-        <input type="file" id="file-input" accept=".json,.jff,.xml,.png,application/json,image/png" hidden>
+        <input type="file" id="file-input" accept=".json,.jff,.xml,.png,application/json,image/png" aria-label="Choose a drawing to open" hidden>
       </div>
 
       <span class="spacer"></span>
@@ -507,6 +507,7 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
 .dock-handle::after{content:'';position:absolute;background:transparent;transition:background .12s;left:0;right:0;top:3px;height:2px}
 .workspace.beside .dock-handle::after{top:0;bottom:0;left:3px;width:2px;height:auto;right:auto}
 .dock-handle:hover::after,.dock-handle.dragging::after,.dock-handle:focus-visible::after{background:var(--accent)}
+.workspace.dock-collapsed .dock-handle{display:none} /* nothing to resize while the history is collapsed */
 .hist-place{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
 .hist-place button{font:12.5px var(--font-ui);color:var(--muted);background:var(--surface);border:0;padding:4px 9px;cursor:pointer}
 .hist-place button + button{border-left:1px solid var(--line)}
@@ -706,7 +707,7 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
     </div>
   </div>
   <footer class="foot">
-    <span>DeltaDraw v1.8 · Turing machines</span>
+    <span>DeltaDraw v1.9 · Turing machines</span>
     <span>Follows Sipser, <em>Introduction to the Theory of Computation</em>, 3rd ed.</span>
     <a href="index.html">All chapters</a>
     <a href="pda.html">Pushdown automata</a>
@@ -739,7 +740,7 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
         <label class="check"><input type="checkbox" id="export-colors"> Include state colors <span class="muted small-text">(off is best for printing and assignments)</span></label>
       </div>
       <div class="preview" id="export-preview"><img id="export-img" alt="Preview of the exported diagram"></div>
-      <textarea class="code" id="export-code" readonly spellcheck="false" hidden></textarea>
+      <textarea class="code" id="export-code" readonly spellcheck="false" aria-label="Exported code" hidden></textarea>
       <div class="row">
         <button class="btn primary" id="export-download">Download</button>
         <button class="btn" id="export-copy" hidden>Copy code</button>
@@ -749,7 +750,7 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
   </div>
 </div>
 
-<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden></button></div>
+<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden>Undo</button></div>
 
 <script>
 (() => {
@@ -1938,7 +1939,7 @@ function toast(msg, actionLabel, action) {
   $('#toast-msg').textContent = msg;
   const b = $('#toast-action');
   b.hidden = !actionLabel;
-  b.textContent = actionLabel || '';
+  b.textContent = actionLabel || 'Undo'; // hidden when there is no action; never left without a name
   b.onclick = () => { t.hidden = true; if (action) action(); };
   t.hidden = false;
   clearTimeout(toastTimer);

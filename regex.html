@@ -424,7 +424,7 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <button class="btn" id="btn-new" title="Start a new empty drawing">New</button>
         <button class="btn" id="btn-open" title="Open a saved DeltaDraw (.json) or JFLAP (.jff) file">Open</button>
         <button class="btn" id="btn-save" title="Save the drawing as a file (Ctrl+S)">Save</button>
-        <input type="file" id="file-input" accept=".json,.jff,.xml,.png,application/json,image/png" hidden>
+        <input type="file" id="file-input" accept=".json,.jff,.xml,.png,application/json,image/png" aria-label="Choose a drawing to open" hidden>
       </div>
 
       <span class="spacer"></span>
@@ -733,7 +733,7 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
     </div>
   </div>
   <footer class="foot">
-    <span>DeltaDraw v1.8 · regular expressions</span>
+    <span>DeltaDraw v1.9 · regular expressions</span>
     <span>Follows Sipser, <em>Introduction to the Theory of Computation</em>, 3rd ed.</span>
     <a href="index.html">All chapters</a>
     <a href="fa.html">Finite automata</a>
@@ -765,7 +765,7 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
         <label class="check"><input type="checkbox" id="export-colors"> Include state colors <span class="muted small-text">(off is best for printing and assignments)</span></label>
       </div>
       <div class="preview" id="export-preview"><img id="export-img" alt="Preview of the exported diagram"></div>
-      <textarea class="code" id="export-code" readonly spellcheck="false" hidden></textarea>
+      <textarea class="code" id="export-code" readonly spellcheck="false" aria-label="Exported code" hidden></textarea>
       <div class="row">
         <button class="btn primary" id="export-download">Download</button>
         <button class="btn" id="export-copy" hidden>Copy code</button>
@@ -775,7 +775,7 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
   </div>
 </div>
 
-<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden></button></div>
+<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden>Undo</button></div>
 
 <script>
 (() => {
@@ -3302,7 +3302,7 @@ function toast(msg, actionLabel, action) {
   $('#toast-msg').textContent = msg;
   const b = $('#toast-action');
   b.hidden = !actionLabel;
-  b.textContent = actionLabel || '';
+  b.textContent = actionLabel || 'Undo'; // hidden when there is no action; never left without a name
   b.onclick = () => { t.hidden = true; if (action) action(); };
   t.hidden = false;
   clearTimeout(toastTimer);

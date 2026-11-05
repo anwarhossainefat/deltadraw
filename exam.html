@@ -549,7 +549,7 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
       <p><button class="btn danger" id="btn-clear-all">Clear all questions</button></p>
     </div>
   </div>
-  <footer class="foot"><span>DeltaDraw exam mode v1.8</span></footer>
+  <footer class="foot"><span>DeltaDraw exam mode v1.9</span></footer>
 </section>
 
 <div class="modal" id="export-modal" hidden>
@@ -590,7 +590,7 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
     </div>
   </form>
 </div>
-<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden></button></div>
+<div class="toast" id="toast" role="status" hidden><span id="toast-msg"></span><button id="toast-action" hidden>Undo</button></div>
 
 <script>
 (() => {
@@ -1585,7 +1585,7 @@ function toast(msg, actionLabel, action) {
   $('#toast-msg').textContent = msg;
   const b = $('#toast-action');
   b.hidden = !actionLabel;
-  b.textContent = actionLabel || '';
+  b.textContent = actionLabel || 'Undo'; // hidden when there is no action; never left without a name
   b.onclick = () => { t.hidden = true; if (action) action(); };
   t.hidden = false;
   clearTimeout(toastTimer);
