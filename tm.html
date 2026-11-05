@@ -494,6 +494,9 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
 .hist-legend i.cur{border-color:var(--hl);background:transparent;box-shadow:inset 0 0 0 1px var(--hl)}
 .hist-legend i.pop{border:1.5px dashed var(--bad);background:transparent}
 .hist-legend i.head{border:2px solid var(--hl);background:var(--hl-soft)}
+.hist-opt{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.hist-opt input{accent-color:var(--accent);margin:0}
+.hist-sel{font:12.5px var(--font-ui);color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:7px;padding:4px 6px;cursor:pointer}
 @media (max-width: 860px){
   .workspace.has-dock{grid-template-rows:64vh auto auto}
   .workspace.has-dock .panel{grid-column:1;grid-row:3}
@@ -506,6 +509,8 @@ kbd{font:500 12px var(--font-mono);border:1px solid var(--line);border-bottom-wi
         <h2 id="hist-title">Tape history</h2>
         <span class="hist-sub" id="hist-sub"></span>
         <span class="grow"></span>
+        <label class="hist-opt" title="Put the drawing of the machine above the history in the image"><input type="checkbox" id="hist-png-draw" checked> Include the drawing</label>
+        <select class="hist-sel" id="hist-png-color" aria-label="Colors in the image" title="Colors in the image"><option value="color">Color</option><option value="bw">Black &amp; white</option></select>
         <button class="btn small" id="hist-png" title="Download the history as a PNG image">Download PNG</button>
       </div>
       <div id="hist-body">
@@ -1982,6 +1987,9 @@ const HIST_FONT = {
   title: '600 15px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif', sub: '13px "IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif',
 };
 const HIST_LIGHT = { bg: '#ffffff', ink: '#151922', muted: '#5a6375', line: '#d7dce5', ok: '#1a7a45', okSoft: '#dff2e6', bad: '#b8321f', hl: '#c27400', hlSoft: '#ffefcc', cell: '#ffffff' };
+// Black & white images: nothing depends on color. Pushed / changed cells are gray, the TM head is a thick black outline,
+// popped cells stay dashed.
+const HIST_BW = { bg: '#ffffff', ink: '#111111', muted: '#474747', line: '#b5b5b5', ok: '#111111', okSoft: '#dcdcdc', okEdge: '#8a8a8a', bad: '#111111', hl: '#111111', hlSoft: '#ffffff', cell: '#ffffff' };
 const histMeasure = document.createElement('canvas').getContext('2d');
 // A text made of segments { t, math?, bold?, color? }: math segments are labels (with subscripts), the rest is plain UI text.
 function segsWidth(x, segs, big) {
@@ -2019,6 +2027,68 @@ function wrapText(x, text, maxW) {
   for (const w of text.split(' ')) { const t = line ? line + ' ' + w : w; if (line && x.measureText(t).width > maxW) { out.push(line); line = w; } else line = t; }
   if (line) out.push(line);
   return out;
+}
+// The download options (beside the Download PNG button), remembered per page
+const histPngOptions = () => ({ drawing: settings.histPngDraw !== false, bw: !!settings.histPngBW });
+// saved settings are applied late in start-up, so the controls are synced again whenever the panel is shown
+function syncHistPngOptions() {
+  $('#hist-png-draw').checked = settings.histPngDraw !== false;
+  $('#hist-png-color').value = settings.histPngBW ? 'bw' : 'color';
+}
+function initHistPngOptions() {
+  const cb = $('#hist-png-draw'), sel = $('#hist-png-color');
+  syncHistPngOptions();
+  cb.addEventListener('change', () => { settings.histPngDraw = cb.checked; persist(); });
+  sel.addEventListener('change', () => { settings.histPngBW = sel.value === 'bw'; persist(); });
+}
+// A small legend line inside the image: [{ kind: 'fill' | 'dash' | 'head', label }]
+function drawHistLegend(x, items, left, base, pal) {
+  let px = left;
+  x.font = HIST_FONT.ui; x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+  for (const it of items) {
+    const t = base - 10;
+    if (it.kind === 'fill') { x.fillStyle = pal.okSoft; x.fillRect(px, t, 12, 12); x.strokeStyle = pal.okEdge || pal.ok; x.lineWidth = 1.5; x.strokeRect(px + 0.75, t + 0.75, 10.5, 10.5); }
+    else if (it.kind === 'dash') { x.setLineDash([3, 2]); x.strokeStyle = pal.bad; x.lineWidth = 1.5; x.strokeRect(px + 0.75, t + 0.75, 10.5, 10.5); x.setLineDash([]); }
+    else { x.fillStyle = pal.hlSoft; x.fillRect(px, t, 12, 12); x.strokeStyle = pal.hl; x.lineWidth = 2; x.strokeRect(px + 1, t + 1, 10, 10); }
+    x.fillStyle = pal.muted; x.fillText(it.label, px + 18, base);
+    px += 18 + x.measureText(it.label).width + 18;
+  }
+}
+/* The downloaded image, top to bottom: title, result, legend, the drawing (the same picture as Export → PNG, never enlarged),
+   then the history, which the page draws with drawBody(x, top, palette). */
+function composeHistoryPNG({ title, caption, legend, bodyW, bodyH, drawBody }, { drawing, bw }, scale = 2) {
+  const PAD = 16, pal = bw ? HIST_BW : HIST_LIGHT;
+  const b = drawing ? exportBox(16) : null;
+  const W = Math.ceil(Math.max(bodyW, 520, b ? Math.min(b.w, 1100) : 0));
+  histMeasure.font = HIST_FONT.sub;
+  const lines = wrapText(histMeasure, caption, W - 2 * PAD);
+  const legendBase = PAD + 34 + lines.length * 18 + 6;
+  let y = legendBase + 16;
+  let dia = null;
+  if (b) { const s = Math.min(1, W / b.w); dia = { s, x: (W - b.w * s) / 2, y, h: b.h * s }; y += dia.h + 12; }
+  const bodyTop = y, H = Math.ceil(bodyTop + bodyH);
+  const c = document.createElement('canvas');
+  c.width = Math.round(W * scale); c.height = Math.round(H * scale);
+  const x = c.getContext('2d');
+  x.scale(scale, scale);
+  x.fillStyle = pal.bg; x.fillRect(0, 0, W, H);
+  x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+  x.fillStyle = pal.ink; x.font = HIST_FONT.title; x.fillText(title, PAD, PAD + 12);
+  x.fillStyle = pal.muted; x.font = HIST_FONT.sub;
+  lines.forEach((l, i) => x.fillText(l, PAD, PAD + 34 + i * 18));
+  drawHistLegend(x, legend, PAD, legendBase, pal);
+  if (dia) {
+    x.save();
+    x.setTransform(scale * dia.s, 0, 0, scale * dia.s, (dia.x - b.x * dia.s) * scale, (dia.y - b.y * dia.s) * scale);
+    x.lineCap = 'round'; x.lineJoin = 'round';
+    drawDiagram(new CanvasPen(x), { P: exportPalette(), nodeFill: '#ffffff', colors: !bw });
+    x.restore();
+    // a thin rule between the drawing and the history
+    x.strokeStyle = pal.line; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(PAD, bodyTop - 6.5); x.lineTo(W - PAD, bodyTop - 6.5); x.stroke();
+  }
+  drawBody(x, bodyTop, pal, W);
+  return c;
 }
 
 /* =====================================================================
@@ -2393,7 +2463,7 @@ function drawTape(x, lay, { sx, sy, vw, vh, pal, cur, y0 = 0 }) {
       const changed = prev && tapeAt(prev, i) !== a, head = i === c.head;
       x.fillStyle = head ? pal.hlSoft : changed ? pal.okSoft : pal.cell; x.fillRect(cx, y, cw, RH);
       x.strokeStyle = pal.line; x.strokeRect(cx + 0.5, y + 0.5, cw - 1, RH - 1);
-      if (changed && !head) { x.strokeStyle = pal.ok; x.lineWidth = 1.5; x.strokeRect(cx + 1.25, y + 1.25, cw - 2.5, RH - 2.5); x.lineWidth = 1; }
+      if (changed && !head) { x.strokeStyle = pal.okEdge || pal.ok; x.lineWidth = 1.5; x.strokeRect(cx + 1.25, y + 1.25, cw - 2.5, RH - 2.5); x.lineWidth = 1; }
       if (a === BLANK) drawSegs(x, [{ t: '␣', color: 'muted' }], cx + cw / 2, y + 17, pal);
       else drawSegs(x, [{ t: a, math: true }], cx + cw / 2, y + 18, pal, true);
     }
@@ -2451,6 +2521,7 @@ function updateHistory() {
   const dock = $('#hist-dock');
   if (!histShown()) { dock.hidden = true; histLay = null; histFor = null; histIdx = -1; return; }
   if (dock.hidden) {
+    syncHistPngOptions();
     dock.hidden = false;
     // the drawing area just got shorter: refit the drawing if part of it is now out of view
     requestAnimationFrame(() => {
@@ -2495,27 +2566,17 @@ function paintHistory() {
     drawTape(x, histLay, { sx: sc.scrollLeft, sy: sc.scrollTop, vw, vh, pal: histPalette(), cur: sim ? sim.idx : null });
   });
 }
-// The image: a caption, then the whole table (at most PNG_ROWS rows)
-function makeTapePNG(scale = 2) {
+// The image: title, result, legend, the drawing (optional), then the whole table (at most PNG_ROWS rows)
+function makeTapePNG(opts = histPngOptions(), scale = 2) {
   const lay = tapeLayout(sim, TAPE.PNG_ROWS);
   lay.names = sim.M.names;
-  const W = Math.max(lay.W, 520);
-  histMeasure.font = HIST_FONT.sub;
   let cap = historySummary(sim, true);
   if (sim.steps.length > TAPE.PNG_ROWS) cap += ` The image shows the first ${TAPE.PNG_ROWS} of ${sim.steps.length.toLocaleString()} rows.`;
-  const caption = wrapText(histMeasure, cap, W - 2 * 16);
-  const headH = 16 + 22 + caption.length * 18;
-  const c = document.createElement('canvas');
-  c.width = Math.round(W * scale); c.height = Math.round((headH + lay.H) * scale);
-  const x = c.getContext('2d');
-  x.scale(scale, scale);
-  x.fillStyle = HIST_LIGHT.bg; x.fillRect(0, 0, W, headH + lay.H);
-  x.textAlign = 'left'; x.textBaseline = 'alphabetic';
-  x.fillStyle = HIST_LIGHT.ink; x.font = HIST_FONT.title; x.fillText('Tape history', 16, 16 + 12);
-  x.fillStyle = HIST_LIGHT.muted; x.font = HIST_FONT.sub;
-  caption.forEach((l, i) => x.fillText(l, 16, 16 + 34 + i * 18));
-  drawTape(x, lay, { sx: 0, sy: 0, vw: W, vh: lay.H, pal: HIST_LIGHT, cur: null, y0: headH });
-  return c;
+  return composeHistoryPNG({
+    title: 'Tape history', caption: cap, bodyW: lay.W, bodyH: lay.H,
+    legend: [{ kind: 'head', label: 'head position' }, { kind: 'fill', label: 'cell changed in this step' }],
+    drawBody: (x, top, pal, W) => drawTape(x, lay, { sx: 0, sy: 0, vw: W, vh: lay.H, pal, cur: null, y0: top }),
+  }, opts, scale);
 }
 $('#hist-scroll').addEventListener('scroll', paintHistory, { passive: true });
 if ('ResizeObserver' in window) new ResizeObserver(() => paintHistory()).observe($('#hist-scroll'));
@@ -2539,8 +2600,10 @@ $('#hist-scroll').addEventListener('keydown', (e) => {
 $('#hist-toggle').addEventListener('click', () => { settings.histCollapsed = !settings.histCollapsed; persist(); histIdx = -1; updateHistory(); });
 $('#hist-png').addEventListener('click', () => {
   if (!histShown()) return;
-  makeTapePNG(2).toBlob((b) => { if (b) downloadBlob('deltadraw-tm-tape-history.png', b); }, 'image/png');
+  const o = histPngOptions();
+  makeTapePNG(o, 2).toBlob((b) => { if (b) downloadBlob(`deltadraw-tm-tape-history${o.bw ? '-bw' : ''}.png`, b); }, 'image/png');
 });
+initHistPngOptions();
 $('.workspace').classList.add('has-dock');
 $('#sim-run').addEventListener('click', () => { stopPlay(); if (startSim()) { sim.idx = sim.steps.length - 1; showSim(); } });
 $('#sim-step').addEventListener('click', () => {
