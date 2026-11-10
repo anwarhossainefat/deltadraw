@@ -3319,8 +3319,9 @@ function asgOpen(id) {
   app.dataset.asgRun = run ? 'yes' : 'no';
   app.dataset.asgLocked = locked ? 'yes' : 'no';
   app.dataset.asgPassed = asg.passed[q.id] ? 'yes' : 'no';
-  // the string tester starts empty for every question (Part D: the input of the question)
+  // the string tester starts empty for every question (Part D: the input of the question), with Step and Back usable again
   sim = null;
+  for (const id of ['#sim-back', '#sim-step']) $(id).disabled = false;
   $('#sim-input').value = q.type === 'predict' ? q.input || '' : '';
   $('#sim-input').placeholder = `e.g. ${q.sample || q.input || 'ab'} (empty = ε)`;
   $('#batch-input').value = ''; $('#batch-out').innerHTML = ''; $('#batch-sum').textContent = '';
@@ -3641,7 +3642,7 @@ $('#hist-png').addEventListener('click', () => asgLog('hist', { a: 'png', draw: 
 $('#btn-help').addEventListener('click', () => asgLog('help'));
 window.addEventListener('focus', () => { asgLog('focus'); asgReadVisits(); });
 window.addEventListener('blur', () => asgLog('blur'));
-document.addEventListener('visibilitychange', () => asgLog(document.hidden ? 'hidden' : 'visible'));
+document.addEventListener('visibilitychange', () => { asgLog(document.hidden ? 'hidden' : 'visible'); if (!document.hidden) asgReadVisits(); });
 window.addEventListener('pagehide', () => { asgLog('leave'); asgPersist(); if (LOG.unsaved.size) store.set(ASG_PENDING, JSON.stringify([...LOG.unsaved.values()])); });
 // pastes: only that one happened, where, and how long it was (never the text)
 document.addEventListener('paste', (e) => {
@@ -3666,6 +3667,7 @@ function asgReadVisits() {
 /* ---------- Download my work: the state and the whole log in one file ---------- */
 const asgFileName = () => `DeltaDraw_Assignment_${(asg.name || 'student').trim().replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'student'}.json`;
 function asgExport() {
+  asgReadVisits(); // visits noted by other tabs that were not collected yet
   asgPersist();
   asgLog('download');
   const { name, settings: st, log, ...state } = asg; // no name in the file (it is only in the file name)
