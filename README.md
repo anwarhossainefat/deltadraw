@@ -26,6 +26,7 @@ DeltaDraw is an independent study tool and is not affiliated with the author or 
 | `practice.html` | Chapter 1 practice exercises with exact checking | Live |
 | Practice tabs | Chapters 2–3 practice inside `cfg.html` (13), `pda.html` (8) and `tm.html` (7) | Live |
 | `exam.html` | Exam mode (drawing only, for proctored exams) | Live |
+| `assignment.html` | CS 3305 course assignment (DFAs, NFAs, PDAs; not in the menu; v2.0) | Live |
 
 ## Pumping lemma (`pumping.html`)
 

@@ -606,7 +606,6 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
         <button class="tab" role="tab" id="tab-grammar" aria-controls="panel-grammar" aria-selected="false">Grammar</button>
         <button class="tab" role="tab" id="tab-practice" aria-controls="panel-practice" aria-selected="false">Practice</button>
       </div>
-
       <div class="tabpanel" role="tabpanel" id="panel-test" aria-labelledby="tab-test">
         <label class="field" for="sim-input">Input string
           <input class="input" id="sim-input" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. 0011 (empty = ε)">
@@ -631,14 +630,12 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
           </div>
         </details>
       </div>
-
       <div class="tabpanel" role="tabpanel" id="panel-table" aria-labelledby="tab-table" hidden>
         <p class="small-text muted">The formal definition (Sipser, Definition 2.13): the PDA is the 6-tuple (Q, Σ, Γ, δ, q₀, F).</p>
         <div class="pda-def" id="pda-def"></div>
         <div class="table-wrap" id="table-wrap"></div>
         <div class="row"><button class="btn small" id="table-copy">Copy as Markdown</button><button class="btn small" id="table-copy-tex">Copy as LaTeX</button></div>
       </div>
-
       <div class="tabpanel" role="tabpanel" id="panel-grammar" aria-labelledby="tab-grammar" hidden>
         <div class="conv-card">
           <h3>Grammar → PDA</h3>
@@ -714,7 +711,7 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
     </div>
   </div>
   <footer class="foot">
-    <span>DeltaDraw v1.9 · pushdown automata</span>
+    <span>DeltaDraw v2.0 · pushdown automata</span>
     <span>Follows Sipser, <em>Introduction to the Theory of Computation</em>, 3rd ed.</span>
     <a href="index.html">All chapters</a>
     <a href="cfg.html">Context-free grammars</a>
@@ -779,6 +776,9 @@ const NODE_MIN_R = 26;
 const GRID = 20;
 let sim = null; // active string simulation (full version only)
 let walk = null; // active step-by-step walkthrough (full version only)
+let viewOnly = false; // assignment page: the canvas shows a given machine that may be looked at but not changed
+let viewOnlyMsg = ''; // assignment page: the hint shown while viewOnly (empty = the default one)
+let editHook = null; // assignment page: told about every committed edit, undo and redo (for the log)
 
 /* ---------------- Storage (wrapped: may be unavailable) ---------------- */
 const store = {
@@ -1289,6 +1289,7 @@ function selectedObj() {
   return doc.links.find((l) => l.id === selection.id) || null;
 }
 function select(kind, id) {
+  if (viewOnly) kind = null;
   selection = kind ? { kind, id } : null;
   replaceOnType = kind === 'node';
   updateSelectionPanel();
@@ -1308,6 +1309,7 @@ function commit() {
   if (history.stack.length > 300) history.stack.shift();
   history.idx = history.stack.length - 1;
   docChanged();
+  if (editHook) editHook('edit', s);
 }
 function scheduleCommit() { clearTimeout(commitTimer); commitTimer = setTimeout(commit, 450); }
 function restore(s) {
@@ -1318,8 +1320,8 @@ function restore(s) {
   docChanged();
   updateSelectionPanel();
 }
-function undo() { if (commitTimer) commit(); if (history.idx > 0) { history.idx--; restore(history.stack[history.idx]); } }
-function redo() { if (history.idx < history.stack.length - 1) { history.idx++; restore(history.stack[history.idx]); } }
+function undo() { if (commitTimer) commit(); if (history.idx > 0) { history.idx--; restore(history.stack[history.idx]); if (editHook) editHook('undo', history.stack[history.idx]); } }
+function redo() { if (history.idx < history.stack.length - 1) { history.idx++; restore(history.stack[history.idx]); if (editHook) editHook('redo', history.stack[history.idx]); } }
 function docChanged() {
   measureCache.size > 2000 && measureCache.clear();
   persist();
@@ -1399,7 +1401,7 @@ function updateHint() {
     state: 'Click anywhere to add a state · Press Esc when you are done',
     link: 'Drag from one state to another (or back onto itself for a loop) · Drag from empty space onto a state for the start arrow',
   };
-  $('#hint').textContent = hints[tool];
+  $('#hint').textContent = viewOnly ? viewOnlyMsg || 'This machine is given: you can look at it, but not change it. Drag to move the view.' : hints[tool];
 }
 function tempLink() {
   if (!drag) return null;
@@ -1435,8 +1437,8 @@ canvas.addEventListener('pointerdown', (e) => {
   }
   if (document.activeElement && document.activeElement !== canvas && document.activeElement.blur) document.activeElement.blur();
   canvas.focus({ preventScroll: true });
-  if (walk && walk.locked) {
-    // the canvas is showing a walkthrough step, not the user's drawing: allow panning only
+  if ((walk && walk.locked) || viewOnly) {
+    // the canvas is showing a walkthrough step (or a given machine), not the user's drawing: allow panning only
     drag = { mode: 'pan', cx: e.clientX, cy: e.clientY, tx: view.tx, ty: view.ty };
     canvas.setPointerCapture(e.pointerId);
     return;
@@ -1554,7 +1556,7 @@ canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', () => { drag = null; render(); });
 
 canvas.addEventListener('dblclick', (e) => {
-  if (tool === 'state' || (walk && walk.locked)) return;
+  if (tool === 'state' || (walk && walk.locked) || viewOnly) return;
   const p = eventPoint(e);
   const n = nodeAt(p);
   if (n) { n.accept = !n.accept; select('node', n.id); commit(); return; }
@@ -1649,7 +1651,7 @@ function updateSelectionPanel() {
     : 'Symbols separated by commas, e.g. a,b. Use ε for an empty move.';
   if (PAGE === 'tm' && !isNode && !isStart) $('#sel-help').innerHTML = 'Rules like <span class="math">0→x,R</span> (read → write, move) or <span class="math">x→R</span>. Type <code>-&gt;</code> for the arrow and use ␣ for blank. Use “; new rule” to stack another rule on this arrow.';
   if (PAGE === 'tm' && isNode) $('#sel-help').textContent = 'Name a state q_{accept} or q_{reject} to make it halt. Click the canvas and type to rename quickly.';
-  if (PAGE === 'pda' && !isNode && !isStart) $('#sel-help').innerHTML = 'Rules like <span class="math">0,ε→0</span>: read, pop → push. Type <code>-&gt;</code> for the arrow. Use “; new rule” to stack another rule on this arrow.';
+  if ((PAGE === 'pda' || (PAGE === 'assign' && !asgFA)) && !isNode && !isStart) $('#sel-help').innerHTML = 'Rules like <span class="math">0,ε→0</span>: read, pop → push. Type <code>-&gt;</code> for the arrow. Use “; new rule” to stack another rule on this arrow.';
   if (isNode) {
     $('#sel-accept').checked = !!o.accept;
     $('#sel-initial').checked = doc.links.some((l) => l.type === 'start' && l.node === o.id);
@@ -1906,6 +1908,7 @@ $('#zoom-level').addEventListener('click', () => zoomAt(1 / view.s, W / 2, H / 2
 $('#zoom-fit').addEventListener('click', fitView);
 $('#btn-help').addEventListener('click', () => $('#how-to').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('#welcome-add').addEventListener('click', () => {
+  if (viewOnly) return;
   const p = toWorld(W / 2, H / 2 - 30);
   const n = addNode(Math.round(p.x / GRID) * GRID, Math.round(p.y / GRID) * GRID);
   select('node', n.id); commit();
@@ -2251,6 +2254,9 @@ try { window.matchMedia('(max-width: 860px)').addEventListener('change', () => {
    popping a string needs its first symbol on top.
    ===================================================================== */
 const pdaCmp = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true });
+// Assignment page only (always false on pda.html): asgFA = the question is a DFA/NFA, so labels are lists of symbols and
+// there is no stack; asgHistOff = this student sees only the current stack on this question (no history, no trace table).
+let asgFA = false, asgHistOff = false;
 // Split a string of stack or input symbols. A symbol is one character, optionally with a subscript (A_1, A_{12}).
 function pdaSyms(str) {
   const t = convertSymbols(str || '').replace(/\s+/g, '');
@@ -2292,6 +2298,15 @@ function buildPDA(src = doc) {
     const where = `${plainLabel(names.get(from))} → ${plainLabel(names.get(to))}`;
     const text = (l.text || '').trim();
     if (!text) { warnings.push(`The arrow ${where} has no label.`); continue; }
+    if (asgFA) {
+      for (const sym of convertSymbols(text).split(/\s*,\s*|\s+/).map((x) => x.trim()).filter(Boolean)) {
+        const eps = ['ε', 'λ', 'Λ', 'eps', 'epsilon', 'lambda'].includes(sym);
+        const t = { from, to, link: l.id, line: 0, read: eps ? null : sym, pop: [], push: [], text };
+        trans.push(t); out.get(from).push(t);
+        if (!eps) sigma.add(sym);
+      }
+      continue;
+    }
     let line = -1;
     for (const part of text.split(';')) {
       if (!part.trim()) continue;
@@ -2536,9 +2551,9 @@ function pdaInput(P, text) {
 function updateMachineInfo() {
   const P = buildPDA();
   const el = $('#machine-info');
-  if (!doc.nodes.length) { el.innerHTML = '<p class="small-text muted">Empty canvas. Double-click to add your first state, or load an example.</p>'; return; }
-  let html = `<div class="machine-head"><span class="type-badge nfa">PDA</span><span class="small-text">${P.ids.length} state${P.ids.length === 1 ? '' : 's'} · ${P.trans.length} rule${P.trans.length === 1 ? '' : 's'} · ${P.accept.size} accepting</span></div>`;
-  html += `<p class="sigma">Σ = {${P.sigma.map(labelHTML).join(', ')}} &nbsp; Γ = {${P.gamma.map(labelHTML).join(', ')}}</p>`;
+  if (!doc.nodes.length) { el.innerHTML = `<p class="small-text muted">Empty canvas. Double-click to add your first state${PAGE === 'assign' ? '.' : ', or load an example.'}</p>`; return; }
+  let html = `<div class="machine-head"><span class="type-badge nfa">${asgFA ? (buildAutomaton(doc).isDFA ? 'DFA' : 'NFA') : 'PDA'}</span><span class="small-text">${P.ids.length} state${P.ids.length === 1 ? '' : 's'} · ${P.trans.length} ${asgFA ? 'transition' : 'rule'}${P.trans.length === 1 ? '' : 's'} · ${P.accept.size} accepting</span></div>`;
+  html += asgFA ? `<p class="sigma">Σ = {${P.sigma.map(labelHTML).join(', ')}}</p>` : `<p class="sigma">Σ = {${P.sigma.map(labelHTML).join(', ')}} &nbsp; Γ = {${P.gamma.map(labelHTML).join(', ')}}</p>`;
   if (P.notes.length || P.warnings.length) html += '<ul class="notes">' + P.notes.map((n) => `<li>${escHTML(n)}</li>`).join('') + P.warnings.map((w) => `<li class="warn">${escHTML(w)}</li>`).join('') + '</ul>';
   el.innerHTML = html;
 }
@@ -2600,7 +2615,7 @@ function resetSim(fromEdit) {
 }
 function startSim() {
   const P = buildPDA();
-  if (P.start == null) { toast(doc.nodes.length ? 'Mark a start state first (tick “Initial state”).' : 'Draw a PDA first, or load an example.'); return null; }
+  if (P.start == null) { toast(doc.nodes.length ? 'Mark a start state first (tick “Initial state”).' : PAGE === 'assign' ? 'Draw your machine first.' : 'Draw a PDA first, or load an example.'); return null; }
   const { input, bad } = pdaInput(P, $('#sim-input').value);
   if (bad != null) { sim = { P, input, bad, steps: [{ set: new Set([P.start]) }], idx: 0, res: { accepted: false } }; return sim; }
   const res = decidePDA(P, input);
@@ -2612,6 +2627,7 @@ function startSim() {
   return sim;
 }
 function stackFigure(st) {
+  if (asgFA) return '';
   const MAX = 9;
   if (!st.length) return '<div class="pda-stack" aria-label="Stack: empty"><div class="cap">Stack</div><div class="well"><div class="none">empty</div></div></div>';
   const top = [...st].reverse();
@@ -2638,7 +2654,7 @@ function showSim() {
     lines = `<div class="sim-line">${res.complete ? 'No branch of the computation accepts.' : 'No accepting branch was found within the search limits.'} The furthest any branch read was ${res.maxRead} of ${input.length} symbol${input.length === 1 ? '' : 's'}.</div>`;
     if (sim.stuck) {
       const t = c.t;
-      const move = t ? `Move: read <span class="math">${t.read === null ? 'ε' : labelHTML(t.read)}</span>, pop <span class="math">${t.pop.length ? t.pop.map(labelHTML).join('') : 'ε'}</span>, push <span class="math">${t.push.length ? t.push.map(labelHTML).join('') : 'ε'}</span> <span class="muted">(rule ${ruleHTML(t)})</span>` : 'Start: the stack is empty.';
+      const move = t && asgFA ? (t.read === null ? 'Move: an ε-move (reads nothing)' : `Move: read <span class="math">${labelHTML(t.read)}</span>`) : t ? `Move: read <span class="math">${t.read === null ? 'ε' : labelHTML(t.read)}</span>, pop <span class="math">${t.pop.length ? t.pop.map(labelHTML).join('') : 'ε'}</span>, push <span class="math">${t.push.length ? t.push.map(labelHTML).join('') : 'ε'}</span> <span class="muted">(rule ${ruleHTML(t)})</span>` : 'Start: the stack is empty.';
       lines += `<div class="sim-line muted small-text">Below is one branch that gets furthest through the input${steps.length > 1 ? '. Step through it, or click a column in the stack history.' : '.'}</div>`;
       lines += `<div class="sim-line">State <span class="math">${labelHTML(P.names.get(c.q))}</span>${P.accept.has(c.q) ? ' <span class="muted">(accepting)</span>' : ''}</div><div class="sim-line move">${move}</div>`;
       if (done) lines += `<div class="sim-line">${pdaStuckReason(sim)}</div>`;
@@ -2651,7 +2667,7 @@ function showSim() {
   } else {
     verdict = done ? '<span class="pill ok">✓ Accepted</span>' : `<span class="pill run">Step ${idx} of ${steps.length - 1}</span>`;
     const t = c.t;
-    const move = t ? `Move: read <span class="math">${t.read === null ? 'ε' : labelHTML(t.read)}</span>, pop <span class="math">${t.pop.length ? t.pop.map(labelHTML).join('') : 'ε'}</span>, push <span class="math">${t.push.length ? t.push.map(labelHTML).join('') : 'ε'}</span> <span class="muted">(rule ${ruleHTML(t)})</span>` : 'Start: the stack is empty.';
+    const move = t && asgFA ? (t.read === null ? 'Move: an ε-move (reads nothing)' : `Move: read <span class="math">${labelHTML(t.read)}</span>`) : t ? `Move: read <span class="math">${t.read === null ? 'ε' : labelHTML(t.read)}</span>, pop <span class="math">${t.pop.length ? t.pop.map(labelHTML).join('') : 'ε'}</span>, push <span class="math">${t.push.length ? t.push.map(labelHTML).join('') : 'ε'}</span> <span class="muted">(rule ${ruleHTML(t)})</span>` : 'Start: the stack is empty.';
     lines = `<div class="sim-line">State <span class="math">${labelHTML(P.names.get(c.q))}</span>${P.accept.has(c.q) ? ' <span class="muted">(accepting)</span>' : ''}</div><div class="sim-line move">${move}</div>`;
     if (done) lines += `<div class="sim-line muted small-text">The whole input is read and the PDA is in an accepting state. This is ${res.notShortest ? 'one' : 'the shortest'} accepting computation (${steps.length - 1} move${steps.length === 2 ? '' : 's'}).</div>`;
   }
@@ -2660,7 +2676,7 @@ function showSim() {
     <div class="pda-run"><div class="sim-lines">${lines}</div>${stackFigure(c.st)}</div>`;
   // the whole computation, as a table of configurations
   const box = $('#trace-box');
-  if (res && ((res.accepted && !res.noPath) || sim.stuck)) {
+  if (!asgHistOff && res && ((res.accepted && !res.noPath) || sim.stuck)) {
     box.hidden = false;
     $('#trace-box summary').textContent = res.accepted ? 'The whole computation' : 'This branch, step by step';
     const rest = (i) => (i < input.length ? input.slice(i).map(labelHTML).join('') : 'ε');
@@ -2752,7 +2768,7 @@ function drawHistory(x, lay, { from, to, y0 = 0, pal, cur }) {
   }
   x.restore();
 }
-const histShown = () => !!(sim && sim.bad == null && sim.res && ((sim.res.accepted && !sim.res.noPath) || sim.stuck));
+const histShown = () => !!(!asgFA && !asgHistOff && sim && sim.bad == null && sim.res && ((sim.res.accepted && !sim.res.noPath) || sim.stuck));
 function historySummary(s, plain) {
   const n = s.input.length, moves = s.steps.length - 1;
   const word = n ? s.input.map(plainLabel).join('') : 'ε';
@@ -3246,5 +3262,6 @@ function init() {
 init();
 })();
 </script>
+<script>(function(){try{var a=JSON.parse(localStorage.getItem('deltadraw:assign:active')||'null');if(!a||Date.now()-a.t>14*864e5)return;var p=location.pathname.split('/').pop()||'index.html';var add=function(end){var k='deltadraw:assign:visits',l=JSON.parse(localStorage.getItem(k)||'[]');if(l.length<500){l.push({p:p,t:Date.now(),end:end});localStorage.setItem(k,JSON.stringify(l));}};add(false);addEventListener('pagehide',function(){try{add(true);}catch(e){}});}catch(e){}})();</script>
 </body>
 </html>

@@ -707,7 +707,7 @@ body.resizing.col{cursor:col-resize} body.resizing.row{cursor:row-resize}
     </div>
   </div>
   <footer class="foot">
-    <span>DeltaDraw v1.9 · Turing machines</span>
+    <span>DeltaDraw v2.0 · Turing machines</span>
     <span>Follows Sipser, <em>Introduction to the Theory of Computation</em>, 3rd ed.</span>
     <a href="index.html">All chapters</a>
     <a href="pda.html">Pushdown automata</a>
@@ -772,6 +772,9 @@ const NODE_MIN_R = 26;
 const GRID = 20;
 let sim = null; // active string simulation (full version only)
 let walk = null; // active step-by-step walkthrough (full version only)
+let viewOnly = false; // assignment page: the canvas shows a given machine that may be looked at but not changed
+let viewOnlyMsg = ''; // assignment page: the hint shown while viewOnly (empty = the default one)
+let editHook = null; // assignment page: told about every committed edit, undo and redo (for the log)
 
 /* ---------------- Storage (wrapped: may be unavailable) ---------------- */
 const store = {
@@ -1282,6 +1285,7 @@ function selectedObj() {
   return doc.links.find((l) => l.id === selection.id) || null;
 }
 function select(kind, id) {
+  if (viewOnly) kind = null;
   selection = kind ? { kind, id } : null;
   replaceOnType = kind === 'node';
   updateSelectionPanel();
@@ -1301,6 +1305,7 @@ function commit() {
   if (history.stack.length > 300) history.stack.shift();
   history.idx = history.stack.length - 1;
   docChanged();
+  if (editHook) editHook('edit', s);
 }
 function scheduleCommit() { clearTimeout(commitTimer); commitTimer = setTimeout(commit, 450); }
 function restore(s) {
@@ -1311,8 +1316,8 @@ function restore(s) {
   docChanged();
   updateSelectionPanel();
 }
-function undo() { if (commitTimer) commit(); if (history.idx > 0) { history.idx--; restore(history.stack[history.idx]); } }
-function redo() { if (history.idx < history.stack.length - 1) { history.idx++; restore(history.stack[history.idx]); } }
+function undo() { if (commitTimer) commit(); if (history.idx > 0) { history.idx--; restore(history.stack[history.idx]); if (editHook) editHook('undo', history.stack[history.idx]); } }
+function redo() { if (history.idx < history.stack.length - 1) { history.idx++; restore(history.stack[history.idx]); if (editHook) editHook('redo', history.stack[history.idx]); } }
 function docChanged() {
   measureCache.size > 2000 && measureCache.clear();
   persist();
@@ -1392,7 +1397,7 @@ function updateHint() {
     state: 'Click anywhere to add a state · Press Esc when you are done',
     link: 'Drag from one state to another (or back onto itself for a loop) · Drag from empty space onto a state for the start arrow',
   };
-  $('#hint').textContent = hints[tool];
+  $('#hint').textContent = viewOnly ? viewOnlyMsg || 'This machine is given: you can look at it, but not change it. Drag to move the view.' : hints[tool];
 }
 function tempLink() {
   if (!drag) return null;
@@ -1428,8 +1433,8 @@ canvas.addEventListener('pointerdown', (e) => {
   }
   if (document.activeElement && document.activeElement !== canvas && document.activeElement.blur) document.activeElement.blur();
   canvas.focus({ preventScroll: true });
-  if (walk && walk.locked) {
-    // the canvas is showing a walkthrough step, not the user's drawing: allow panning only
+  if ((walk && walk.locked) || viewOnly) {
+    // the canvas is showing a walkthrough step (or a given machine), not the user's drawing: allow panning only
     drag = { mode: 'pan', cx: e.clientX, cy: e.clientY, tx: view.tx, ty: view.ty };
     canvas.setPointerCapture(e.pointerId);
     return;
@@ -1547,7 +1552,7 @@ canvas.addEventListener('pointerup', endDrag);
 canvas.addEventListener('pointercancel', () => { drag = null; render(); });
 
 canvas.addEventListener('dblclick', (e) => {
-  if (tool === 'state' || (walk && walk.locked)) return;
+  if (tool === 'state' || (walk && walk.locked) || viewOnly) return;
   const p = eventPoint(e);
   const n = nodeAt(p);
   if (n) { n.accept = !n.accept; select('node', n.id); commit(); return; }
@@ -1642,7 +1647,7 @@ function updateSelectionPanel() {
     : 'Symbols separated by commas, e.g. a,b. Use ε for an empty move.';
   if (PAGE === 'tm' && !isNode && !isStart) $('#sel-help').innerHTML = 'Rules like <span class="math">0→x,R</span> (read → write, move) or <span class="math">x→R</span>. Type <code>-&gt;</code> for the arrow and use ␣ for blank. Use “; new rule” to stack another rule on this arrow.';
   if (PAGE === 'tm' && isNode) $('#sel-help').textContent = 'Name a state q_{accept} or q_{reject} to make it halt. Click the canvas and type to rename quickly.';
-  if (PAGE === 'pda' && !isNode && !isStart) $('#sel-help').innerHTML = 'Rules like <span class="math">0,ε→0</span>: read, pop → push. Type <code>-&gt;</code> for the arrow. Use “; new rule” to stack another rule on this arrow.';
+  if ((PAGE === 'pda' || (PAGE === 'assign' && !asgFA)) && !isNode && !isStart) $('#sel-help').innerHTML = 'Rules like <span class="math">0,ε→0</span>: read, pop → push. Type <code>-&gt;</code> for the arrow. Use “; new rule” to stack another rule on this arrow.';
   if (isNode) {
     $('#sel-accept').checked = !!o.accept;
     $('#sel-initial').checked = doc.links.some((l) => l.type === 'start' && l.node === o.id);
@@ -1899,6 +1904,7 @@ $('#zoom-level').addEventListener('click', () => zoomAt(1 / view.s, W / 2, H / 2
 $('#zoom-fit').addEventListener('click', fitView);
 $('#btn-help').addEventListener('click', () => $('#how-to').scrollIntoView({ behavior: 'smooth', block: 'start' }));
 $('#welcome-add').addEventListener('click', () => {
+  if (viewOnly) return;
   const p = toWorld(W / 2, H / 2 - 30);
   const n = addNode(Math.round(p.x / GRID) * GRID, Math.round(p.y / GRID) * GRID);
   select('node', n.id); commit();
@@ -2992,5 +2998,6 @@ function init() {
 init();
 })();
 </script>
+<script>(function(){try{var a=JSON.parse(localStorage.getItem('deltadraw:assign:active')||'null');if(!a||Date.now()-a.t>14*864e5)return;var p=location.pathname.split('/').pop()||'index.html';var add=function(end){var k='deltadraw:assign:visits',l=JSON.parse(localStorage.getItem(k)||'[]');if(l.length<500){l.push({p:p,t:Date.now(),end:end});localStorage.setItem(k,JSON.stringify(l));}};add(false);addEventListener('pagehide',function(){try{add(true);}catch(e){}});}catch(e){}})();</script>
 </body>
 </html>
